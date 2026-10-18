@@ -1,0 +1,29 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+# Anchor Directory
+
+The anchor record for project recalibration and scope intervention is the
+`(anchor)` clause of the repo deed (`*_chora.deed` at the repo root). No
+anchor file lives in this directory, and no `.a2ml` file may be created here.
+
+## Clause
+
+- `(anchor)` - Project recalibration, scope intervention, canonical authority
+
+Read a field with `scripts/deed-field.sh rsr-template-repo_chora.deed anchor <key>`.
+
+## Multiple Versions
+
+The `(anchor)` clause records its own `(metadata)` date. Each recalibration
+point is a change to that clause, recorded in git history.
+
+## Standards Compliance
+
+The deed follows the DEED grammar specification,
+`1-formats/deed/spec/DEED-GRAMMAR-SPEC.adoc` in
+https://github.com/hyperpolymath/standards
+
+## See Also
+
+- `../README.adoc` — the descriptiles
+- `../../contractiles/README.adoc` — the normative counterpart family

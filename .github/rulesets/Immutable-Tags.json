@@ -1,0 +1,1 @@
+{"bypass_actors":[],"conditions":{"ref_name":{"exclude":[],"include":["~ALL"]}},"enforcement":"active","name":"Immutable-Tags","rules":[{"type":"deletion"},{"type":"non_fast_forward"},{"type":"update"},{"type":"required_signatures"}],"target":"tag"}

@@ -1,0 +1,174 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= Template Placeholders
+# Template Placeholders
+
+All placeholders in this template follow the `{{PLACEHOLDER}}` pattern.
+After cloning, replace them with your project-specific values.
+
+## Recommended: Interactive Bootstrap
+
+```bash
+just repo-init
+```
+
+This interactively prompts for all values, replaces every placeholder,
+validates the result, and runs k9-svc checks if available.
+
+## Manual Replace
+
+```bash
+# If you prefer manual replacement (run from repo root)
+
+sed -i 's/{{AUTHOR}}/Jane Doe/g' $(grep -rl '{{AUTHOR}}' .)
+sed -i 's/{{AUTHOR_EMAIL}}/jane@example.org/g' $(grep -rl '{{AUTHOR_EMAIL}}' .)
+sed -i 's/{{OWNER}}/my-org/g' $(grep -rl '{{OWNER}}' .)
+sed -i 's/{{PROJECT_NAME}}/my-project/g' $(grep -rl '{{PROJECT_NAME}}' .)
+sed -i 's/{{PROJECT}}/MY_PROJECT/g' $(grep -rl '{{PROJECT}}' .)
+sed -i 's/{{project}}/my_project/g' $(grep -rl '{{project}}' .)
+sed -i 's/{{REPO}}/my-project/g' $(grep -rl '{{REPO}}' .)
+sed -i 's/{{FORGE}}/github.com/g' $(grep -rl '{{FORGE}}' .)
+sed -i "s/{{CURRENT_YEAR}}/$(date +%Y)/g" $(grep -rl '{{CURRENT_YEAR}}' .)
+sed -i "s/{{CURRENT_DATE}}/$(date +%Y-%m-%d)/g" $(grep -rl '{{CURRENT_DATE}}' .)
+```
+
+## Placeholder Reference
+
+### Author & Copyright
+
+| Placeholder | Description | Example | Files |
+|---|---|---|---|
+| `{{AUTHOR}}` | Full legal name | `Jane Doe` | SPDX headers (all files), MAINTAINERS.md, .mailmap, .reuse/dep5, docs/AI-CONVENTIONS.md |
+| `{{AUTHOR_EMAIL}}` | Primary contact email | `jane@example.org` | SPDX headers (all files), .mailmap, .reuse/dep5, www/.well-known/humans.txt |
+| `{{AUTHOR_EMAIL_ALT}}` | Previous/secondary email (for .mailmap) | `old@example.com` | .mailmap |
+| `{{AUTHOR_ORG}}` | Author's organization/affiliation | `Acme University` | project-metadata.k9.ncl |
+| `{{AUTHOR_LAST}}` | Author surname (for citations) | `Doe` | docs/CITATIONS.adoc |
+| `{{AUTHOR_FIRST}}` | Author first name (for citations) | `Jane` | docs/CITATIONS.adoc |
+| `{{AUTHOR_INITIALS}}` | Author initials (for citations) | `J.` | docs/CITATIONS.adoc |
+| `{{AUTHOR_ORCID}}` | Author ORCID iD, bare form; blank drops the line (default: `git config user.orcid`) | `0000-0002-1825-0097` | CITATION.cff |
+
+### Project Identity
+
+| Placeholder | Description | Example | Files |
+|---|---|---|---|
+| `{{PROJECT_NAME}}` | Human-readable project name | `My Project` | SECURITY.md, CODE_OF_CONDUCT.md, TOPOLOGY.md, docs/status/ROADMAP.adoc (via build/templates/ROADMAP.adoc.in), Justfile, GOVERNANCE.md, MAINTAINERS.md, devcontainer.json |
+| `{{PROJECT_DESCRIPTION}}` | One-line description | `A tool for X` | README.adoc, build/container/Containerfile |
+| `{{PROJECT}}` | Uppercase identifier (for Idris2 modules, C macros) | `MY_PROJECT` | ABI-FFI-README.md, src/interface/abi/*.idr, src/interface/ffi/*.zig |
+| `{{project}}` | Lowercase identifier (for C symbols, filenames) | `my_project` | ABI-FFI-README.md, src/interface/ffi/*.zig |
+| `{{REPO}}` | Repository name (slug) | `my-project` | CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md, cliff.toml |
+| `{{OWNER}}` | GitHub/GitLab org or username | `my-org` | SPDX headers, CONTRIBUTING.md, SECURITY.md, GOVERNANCE.md, MAINTAINERS.md, CODEOWNERS, mirror.yml, cliff.toml |
+| `{{FORGE}}` | Git forge domain | `github.com` | CONTRIBUTING.md |
+
+### Dates
+
+| Placeholder | Description | Example | Files |
+|---|---|---|---|
+| `{{CURRENT_YEAR}}` | Current year | `2026` | SPDX headers (all files), GOVERNANCE.md, MAINTAINERS.md |
+| `{{CURRENT_DATE}}` | Current date (ISO) | `2026-02-14` | `*_chora.deed` (via build/templates/identity.deed.in), MAINTAINERS.md |
+| `{{DATE}}` | Last updated date | `2026-02-14` | TOPOLOGY.md, THREAT-MODEL.md |
+
+### Contact & Security
+
+| Placeholder | Description | Example | Files |
+|---|---|---|---|
+| `{{SECURITY_EMAIL}}` | Security contact email | `security@example.org` | SECURITY.md |
+| `{{PGP_FINGERPRINT}}` | 40-char PGP fingerprint | `ABCD 1234 ...` | SECURITY.md |
+| `{{PGP_KEY_URL}}` | URL to public PGP key | `https://keys.openpgp.org/...` | SECURITY.md |
+| `{{WEBSITE}}` | Project website | `https://example.org` | SECURITY.md |
+| `{{CONDUCT_EMAIL}}` | Conduct reports email | `conduct@example.org` | CODE_OF_CONDUCT.md |
+| `{{CONDUCT_TEAM}}` | Conduct committee name | `Code of Conduct Committee` | CODE_OF_CONDUCT.md |
+| `{{RESPONSE_TIME}}` | SLA for initial response | `48 hours` | CODE_OF_CONDUCT.md |
+
+### Git
+
+| Placeholder | Description | Example | Files |
+|---|---|---|---|
+| `{{MAIN_BRANCH}}` | Main branch name | `main` | CONTRIBUTING.md |
+
+### Build
+
+| Placeholder | Description | Example | Files |
+|---|---|---|---|
+| `{{LICENSE}}` | License name | `MPL-2.0` | ABI-FFI-README.md |
+| `{{PROJECT_PURPOSE}}` | One-line project description | `FFI bridges between languages` | `*_chora.deed` `(anchor (identity))` :one-sentence (set from `{{PROJECT_DESCRIPTION}}` by `just repo-init`) |
+| `{{OPENSSF_BP_ID}}` | OpenSSF Best Practices numeric project ID (from registering at bestpractices.dev). Optional — leave blank until registered; `just repo-init` then surfaces it in the post-init "remaining placeholders" notice as a reminder. | `1234` | README.adoc (OpenSSF Best Practices badge) |
+
+### Project Content & Onboarding (manual-fill, post-init)
+
+These tokens carry free-form, per-project content that the interactive
+`just repo-init` bootstrap does **not** prompt for (you cannot sensibly answer
+"required invariants" in a 30-second bootstrap). Like the `{{PGP_*}}` tokens,
+fill them by hand after `init`; the post-init "remaining placeholders" notice
+surfaces any left unfilled.
+
+| Placeholder | Description | Example | Files |
+|---|---|---|---|
+| `{{PACKAGE_NAME}}` | Package / module name (slug) | `my-project` | docs/onboarding/QUICKSTART-MAINTAINER.adoc |
+| `{{DESCRIPTION}}` | Short repo description (forge metadata) | `A tool for X` | .github/settings.yml |
+| `{{LANG_STACK}}` | Language / toolchain stack | `Idris2 + Zig` | docs/onboarding/QUICKSTART-DEV.adoc |
+| `{{BUILD_CMD}}` | Build command | `just build` | docs/onboarding/QUICKSTART-DEV.adoc |
+| `{{TEST_CMD}}` | Test command | `just test` | docs/onboarding/QUICKSTART-DEV.adoc |
+| `{{BUILD_OUTPUT_PATH}}` | Build artefact output path | `build/` | docs/onboarding/QUICKSTART-MAINTAINER.adoc |
+| `{{DEPS}}` | Project dependencies summary | `Idris2 0.7, Zig 0.13` | docs/onboarding/QUICKSTART-MAINTAINER.adoc |
+| `{{MUST_INVARIANTS}}` | Required project invariants | `no believe_me; totality on` | docs/onboarding/QUICKSTART-DEV.adoc |
+| `{{MAIN_FUNCTION}}` | Primary function / purpose | `FFI bridge generation` | no file in this template (the retired Intentfile is now `.machine_readable/contractiles/intend/intend.k9.ncl`, which does not carry the token) |
+| `{{TARGET_AUDIENCE}}` | Intended audience | `library authors` | no file in this template (the retired Intentfile is now `.machine_readable/contractiles/intend/intend.k9.ncl`, which does not carry the token) |
+| `{{EXPECTED_AUTHOR}}` | Expected author identity (trust anchor) | `hyperpolymath` | no file in this template (the retired Trustfile is now `.machine_readable/contractiles/trust/trust.k9.ncl`, which does not carry the token) |
+| `{{PROJECT_UNIQUE_STRENGTH}}` | What this project does better than alternatives | `proof-carrying FFI` | `*_chora.deed` `(bot-directives (methodology (methodology (unique-strength))))` :description |
+| `{{PROJECT_KIND}}` | Project kind / category | `library` | `*_chora.deed` `(anchor (identity))` :kind |
+| `{{PROJECT_DOMAIN}}` | Project domain | `formal-methods` | `*_chora.deed` `(anchor (identity))` :domain |
+| `{{OPENSSF_PROJECT_ID}}` | OpenSSF Best Practices project ID (same value as `{{OPENSSF_BP_ID}}`) | `1234` | docs/governance/TEMPLATE-STANDARDS-AUDIT.adoc |
+
+### Repo deed (folded family-7 allocation manifest)
+
+| Placeholder | Description | Example | Files |
+|---|---|---|---|
+| `[YOUR-REPO-NAME]` | Repository name | `my-project` | `*_chora.deed` (repo deed) |
+| `[YOUR-NAME/ORG]` | Maintainer name | `hyperpolymath` | `*_chora.deed` (repo deed) |
+
+(`[DATE]` was listed here for the root AI manifest but no file ever carried the
+literal token — row removed with the fold; standards#837 pilot.)
+
+### AI Installation Guide
+
+| Marker | Description | Files |
+|---|---|---|
+| `[TODO-AI-INSTALL]` | Unfilled section in AI installation guide | `docs/AI_INSTALLATION_GUIDE.adoc`, `docs/AI-INSTALL-README-SECTION.adoc`, `README.adoc` |
+
+These are **not** standard `{{PLACEHOLDER}}` markers -- they are TODO markers
+that must be replaced with project-specific content before release. They mark
+sections where the developer (or AI) must fill in:
+
+- What questions the AI should ask the user
+- Exact prerequisite check and install commands
+- Privacy notice specific to this project
+- Complete installation command block
+- Credential setup instructions (URLs, scopes, env vars)
+- Verification commands and expected output
+- Error handling table
+- Example conversation
+
+**finishbot checks:** `just validate-ai-install` verifies no `[TODO-AI-INSTALL]` markers remain.
+
+## Deletion Markers
+
+Some files contain deletion instructions:
+
+| Marker | Meaning | File |
+|---|---|---|
+| `{{~ ... ~}}` | Delete this entire line after reading | ABI-FFI-README.md (line 1) |
+
+## Verification
+
+After replacing all placeholders, verify none remain:
+
+```bash
+grep -rn '{{' . --include='*.md' --include='*.adoc' --include='*.deed' \
+  --include='*.scm' --include='*.idr' --include='*.zig' --include='*.res' \
+  --include='Justfile' --include='*.nix' --include='*.toml' --include='*.yml' \
+  --include='*.yaml' --include='*.hs' --include='*.ncl' --include='*.txt' \
+  --include='*.json' --include='Containerfile' --include='dep5' \
+  | grep -v 'PLACEHOLDERS.md' | grep -v 'node_modules'
+```
+
+If the above command produces no output, all placeholders have been replaced.

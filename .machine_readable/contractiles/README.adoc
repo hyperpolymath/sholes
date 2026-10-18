@@ -1,0 +1,224 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= Contractiles Template Set
+:toc:
+:sectnums:
+
+This directory contains the canonical contractile templates for the
+hyperpolymath estate. `rsr-template-repo` mirrors the standards master
+structure; copy `.machine_readable/contractiles/` into a new repo to
+establish a consistent operational, validation, trust, recovery,
+aspiration, and service-automation framework.
+
+[IMPORTANT]
+====
+The normative grammar for the record family used throughout this directory
+is `1-formats/deed/spec/DEED-GRAMMAR-SPEC.adoc` in
+https://github.com/hyperpolymath/standards[hyperpolymath/standards]. The
+format formerly called A2ML is retired: no `.a2ml` file may exist in this
+repository. Each verb's declaration now lives as Nickel data in the
+`declaration` field of its `<verb>.k9.ncl`, and the former per-verb
+manifests and the `INDEX` registry were folded into each k9 file's
+`pedigree.trident` and the registry table below.
+
+The "contractile CLI" has never been built -- enforcement currently rides on
+the CI gates, not on that tool.
+====
+
+Each verb directory holds two files that together carry the trident's three
+roles:
+
+* `<verb>.k9.ncl` — the k9 service-automation component (trust-tiered). Its
+  `declaration` field is the project-specific declaration (data) that used to
+  be the `<Verb>file` (Intentfile, Mustfile, Trustfile, Adjustfile, Dustfile,
+  Bustfile); its `pedigree.trident` record holds what the per-verb manifest
+  held (semantics, cardinality, authority, signed_by, history).
+* `<verb>.ncl` — the paired Nickel runner (pedigree + schema + run policy).
+  Its `paired_xfile` names `<verb>.k9.ncl#declaration`.
+
+A `<verb>.k9.ncl` starts with the `K9!` magic line, so strip it before
+handing the file to `nickel` (`tail -n +2`), from a copy that sits next to a
+copy of `_base.ncl`. `coaptation/extract-clauses.sh` shows the pattern.
+
+Declaration records use the field names of the runner's `schema` (`id`,
+`description`, `probe`, `severity`, `status`, …) plus `section` / `group`
+for the heading they sat under. The runner schema is not applied to them as a
+contract: several authored values (`warning`, `advisory`, `info`
+severities; bust classes such as `template_processing`) fall outside its enums.
+
+Anything else in a verb directory is human-only notes or archive; machines
+ignore it.
+
+All verb runners import `_base.ncl` (shared pedigree + run-defaults +
+probe-schema). The registry table below catalogues every verb; consumers
+(CI scripts, the contractile CLI, Hypatia rules) SHOULD discover verbs from
+it rather than hard-coding the list. See
+https://github.com/hyperpolymath/standards/blob/main/docs/CONTRACTILE-SPEC.adoc[the normative specification].
+
+== Verbs (6 + k9 exception)
+
+[cols="1,2,3", options="header"]
+|===
+| Verb | Declaration | Role
+
+| `must`
+| `must/must.k9.ncl` → `declaration`
+| Release-blocking invariants that must hold. Gating — fails block.
+
+| `trust`
+| `trust/trust.k9.ncl` → `declaration`
+| Trust boundary, allowed actions, integrity checks. Gating.
+
+| `adjust`
+| `adjust/adjust.k9.ncl` → `declaration`
+| Controlled corrective actions — bounded drift tolerances and responses.
+
+| `dust`
+| `dust/dust.k9.ncl` → `declaration`
+| Rollback, recovery, and deprecation semantics. Report + act on undo.
+
+| `bust`
+| `bust/bust.k9.ncl` → `declaration`
+| Breakage, expiry, and hard-stop conditions. Gating — declares "this is
+  broken" rather than "this must stay healthy".
+
+| `intend`
+| `intend/intend.k9.ncl` → `declaration`
+| North-star: committed next-actions (\[[intents]] with probes) AND horizon
+  aspirations (\[[wishes]] grouped near/mid/far). Non-gating (report only).
+  Absorbed the deprecated `lust` verb 2026-04-18.
+|===
+
+=== Registry
+
+Registry `contractiles-registry` v2.0.0 (2.0.0, 2026-04-18: all 6 verbs on
+trident shape; verb set complete). Last updated 2026-04-18. Base schema
+`.machine_readable/contractiles/_base.ncl`. Meta-schema: pending — see
+https://github.com/hyperpolymath/standards/blob/main/docs/CONTRACTILE-SPEC.adoc[CONTRACTILE-SPEC]
+§validator-meta-schema. Folded in from the retired `INDEX` registry; trident
+paths below are current.
+
+[cols="1,2,1,1,1,2,1,4", options="header"]
+|===
+| Verb | Semantics | Status | Tier | Authority | Gating | Cardinality | Notes
+
+| `adjust` | drift tolerances + corrective actions | active | Yard | advisory | advisory (continue-with-warnings) | one per repo
+| Fifth trident instance (2026-04-18). First (Yard, advisory) authority pattern. Specialises in cumulative-drift catchment — tolerance bands + trend tracking across sessions. auto_fix_when_available applies deterministic patches; advisory otherwise.
+
+| `bust` | hard-stop / expiry / must-not-run declarations | active | Hunt-read-only | blocking | hard (exit-nonzero) | one per repo
+| Fourth trident instance (2026-04-18). Completes the blocking-authority triple (must + trust + bust). Specialises in deprecated-path-reintroduction catchment. Injects failures via declared probes and verifies recovery paths.
+
+| `dust` | rollback / recovery / deprecation / audit-trail preservation | active | Yard | advisory | advisory (continue-with-warnings) | one per repo
+| Sixth and FINAL trident instance (2026-04-18) — completes the full verb set. Specialises in audit-trail preservation + rollback-path verification. Destructive actions gated behind --apply flag + per-item approval; dry-run default.
+
+| `intend` | north-star (commitments + aspirations) | active | Hunt | reporting | non-gating (continue) | one per repo
+| First trident instance in the estate (2026-04-18). Reports progress toward committed next-actions AND lists horizon aspirations. Absorbed the deprecated `lust` verb 2026-04-18. Never blocks. Remaining 5 verbs still on file_pair shape until tridents are built.
+
+| `must` | invariant assertion — release-blocking | active | Hunt-read-only | blocking | hard (exit-nonzero) | one per repo
+| Third trident instance (2026-04-18). Completes the blocking-authority pair with trust: must = concrete + persistent invariants; trust = concrete + ephemeral transactions. Specialises in subtle invariant-erosion (tracking per-session trend; flagging silent regression). Single failure blocks merge. Simplest and most commonly populated verb.
+
+| `trust` | security + provenance + safe-hacking | active | Hunt | blocking | hard (exit-nonzero) | one per repo
+| Second trident instance (2026-04-18). First (Hunt, blocking) verb — hard gate. Primary defense against threat-model misclassification (B1) and 'turn off the firewall' capability-collapse (C2). Inherits on_open negotiation+accountability+translation from intend.k9.ncl v2.0.0; adds threat_model_foregrounding + block_session_close_on_critical_drift.
+
+| `k9` | trust-tier templates (EXCEPTION to one-verbfile rule) | exception | — | — | not applicable | —
+| k9 is service-automation meta-infrastructure, not a verb contractile. Three trust-tier templates (Kennel/Yard/Hunt), now at `.machine_readable/self-validating/template-{kennel,yard,hunt}.k9.ncl`. Has no declaration of its own. See CONTRACTILE-SPEC §k9-exception.
+|===
+
+Each trident is the verb's `<verb>.ncl` runner plus its `<verb>.k9.ncl`
+component (which carries the declaration).
+
+NOTE: The `lust/` verb was deprecated 2026-04-18 (name had unwanted
+associations). Its \[[wishes]] semantics live inside the intend declaration
+(`intend/intend.k9.ncl`, field `declaration.wishes`) alongside
+`declaration.intents`. Any `lust/` dir encountered in
+an estate repo is drift and should be removed.
+
+== k9 — Service-Automation Layer (EXCEPTION to the one-verbfile rule)
+
+IMPORTANT: `k9/` is **not a contractile verb** and does NOT follow the
+declaration + `<verb>.ncl` pattern. This is an intentional, documented
+exception. Do not apply the naming rule to k9.
+
+=== Why k9 is different
+
+The six verb contractiles each declare *one concern per repo* in a single
+xfile. k9 is not a concern; it is the *graded automation surface* that
+enforces or validates concern declarations. k9 provides three trust-tier
+*templates* that repos copy and instantiate:
+
+[cols="1,1,3", options="header"]
+|===
+| File | Trust tier | Description
+
+| `../self-validating/template-kennel.k9.ncl`
+| Kennel
+| Pure data. No subprocess, no filesystem write, no network. Safe for
+  metadata and declarative settings.
+
+| `../self-validating/template-yard.k9.ncl`
+| Yard
+| Nickel evaluation with contracts and validation. No side effects.
+
+| `../self-validating/template-hunt.k9.ncl`
+| Hunt
+| Full execution surface. Must declare side effects, support dry-run, and
+  be signed before the estate treats it as trustworthy automation.
+|===
+
+The templates live in `.machine_readable/self-validating/`. Each verb's
+`<verb>.k9.ncl` instantiates the Hunt tier's shape; it takes its `pedigree`
+contract from `_base.ncl` (the old `../k9/template-hunt.k9.ncl` import named
+a path that no longer exists).
+
+=== Why the naming rule does not apply
+
+The one-verb-one-Verbfile rule exists to enforce clean concern separation.
+k9 is meta-infrastructure: it has no declaration of its own because it is
+not a declarative xfile — it is a template set that instantiates into
+specific repos. Applying the rule would produce a meaningless declaration
+with nothing to declare.
+
+=== Audit rule
+
+If a repo claims `k9` enforcement, each k9 component in that repo MUST
+declare a `paired_xfile` pointing to a specific contractile declaration (e.g.
+`../must/must.k9.ncl#declaration`). Floating k9 components with no paired xfile are
+non-conformant.
+
+See https://github.com/hyperpolymath/standards/blob/main/docs/CONTRACTILE-SPEC.adoc#k9-exception[the normative statement].
+
+== Fill-In Instructions
+
+When copying this set into a new repo:
+
+1. Replace every template file's placeholders with project-specific content.
+   The six declarations below are the `declaration` fields of the
+   `<verb>.k9.ncl` files.
+2. `Mustfile` — encode real invariants (schema versions, ports, required
+   checks), not generic samples.
+3. `Trustfile` — point at actual keys, policies, and authority boundaries.
+4. `Adjustfile` — define the drift tolerances and corrective actions the
+   repo commits to.
+5. `Dustfile` — describe how this repo actually rolls back or retires
+   behaviour while preserving the audit trail.
+6. `Bustfile` — declare real breakage / expiry / hard-stop conditions.
+7. `Intentfile` — list tracked next-actions with observable probes
+   (\[[intents]] section) AND horizon aspirations (\[[wishes]] section).
+8. Pair any k9 component with a specific contractile via `paired_xfile`.
+
+== Intentfile: Commitments vs Aspirations — Two Sections, One File
+
+Since 2026-04-18 both axes live in one declaration (formerly
+`intend/Intentfile`, now the `declaration` field of `intend/intend.k9.ncl`):
+
+* `intents` (formerly `\[[intents]]`) is the **commitment axis**. Items here are tracked
+  next-actions with probes. Status progresses
+  declared → in_progress → done/deferred/retired.
+* `wishes` (formerly `\[[wishes]]`) is the **aspiration axis**. Items here are horizon goals
+  grouped near/mid/far. Status progresses
+  declared → in_progress → achieved/abandoned.
+
+If something is concrete enough to have a probe, it belongs in `intents`.
+If it is a horizon-level desire that might never be acted on, it belongs
+in `wishes`. A wish can graduate to an intent when a concrete plan
+materialises.

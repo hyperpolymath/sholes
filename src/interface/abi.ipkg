@@ -1,0 +1,36 @@
+-- SPDX-License-Identifier: MPL-2.0
+-- Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+--
+-- Idris2 package for the formally-typed ABI seam.
+--
+-- The seam lives in a single, case-consistent directory src/interface/Abi/
+-- (uppercase) so the physical path matches the `module Abi.*` namespace on
+-- EVERY filesystem. Idris2 requires capitalised namespace components, and a
+-- lowercase abi/ directory cannot satisfy that without a case-twin symlink
+-- (src/interface/Abi -> abi) that collides on case-insensitive filesystems
+-- (macOS/Windows). One case-consistent directory has exactly one path identity
+-- under case-folding, so the collision is impossible by construction.
+--
+-- A bare `idris2 --check src/interface/Abi/Foo.idr` still warns ("module name
+-- does not match file name") because Idris derives the expected module from the
+-- full path; that is expected. Use the package for a real typecheck:
+--   idris2 --typecheck src/interface/abi.ipkg      (or --build)
+--
+-- The RSR validators accept either Abi/ (canonical, case-consistent) or a
+-- lowercase abi/ for downstream repos that ship lowercase — but never both.
+
+package abi
+
+version = 0.1.0
+
+authors = "Jonathan D.A. Jewell"
+
+brief = "Formally-typed ABI/FFI seam (Idris2 type + layout proofs) for an RSR-templated repository"
+
+sourcedir = "."
+
+depends = base
+
+modules = Abi.Types
+        , Abi.Layout
+        , Abi.Foreign

@@ -1,0 +1,21 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= AI-Install README Section (canonical snippet)
+
+The canonical README section is now part of the estate provisioning set:
+`hyperpolymath/standards` →
+`3-practice/provisioning/templates/README-ai-install.adoc.tmpl`.
+It starts with the `\[[ai-install]]` anchor and the heading
+`== AI-Assisted Installation (Recommended)`, then a *Just say it* block whose first
+listing line is the one sentence to give any AI. `just ai-setup` and
+`./launcher.sh --ai-setup` print that same line, read from the README, so edit it
+there and nowhere else.
+
+`just validate-ai-install` checks for the heading text, the `\[[ai-install]]`
+anchor, `docs/AI_INSTALLATION_GUIDE.adoc`, `docs/SETUP.adoc` and the three
+`llm-warmup-{user,dev,maintainer}.adoc` warm-ups.
+
+This repository's own section (see `README.adoc`) is specialised for a template:
+its sentence asks the assistant to create a new repository, and it keeps the
+note on minting without a terminal (`RSR_NON_INTERACTIVE=1` with the answers in
+the environment).

@@ -1,0 +1,122 @@
+# This workflow is managed by gh actions-lock.
+# SPDX-License-Identifier: MPL-2.0
+# {{PROJECT_NAME}} — Julia CI (julia-library archetype)
+#
+# Pin posture (estate ruling R2, 2026-09-02; D38/D39 resolution 2026-09-19):
+# symbolic refs here, pinned by .github/workflows/actions.lock (same dir).
+# The lock records come from archetypes/julia-library/actions.lock, merged
+# into the spine's lock at mint. Refs resolved 2026-10-09:
+#   actions/checkout@v7.0.1          = 3d3c42e5aac5ba805825da76410c181273ba90b1
+#   julia-actions/setup-julia@v3.0.2 = fa02766e078afaaf09b14210362cee14137e6a32
+#   julia-actions/cache@v3.5.0       = 9353db09a0f2bbbdec6f41791918c75d37391b36
+# Regenerate the lock in the SAME PR as any uses: change (estate MUST).
+
+name: Julia CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+# No job here writes to the repository.
+permissions:
+  contents: read
+
+# No `continue-on-error` on a MUST check (R1–R9): a red job is the gate
+# working. Coverage (R4) is reported by the estate's standard coverage
+# upload where present; it is not a blocker at template level.
+jobs:
+  fmt:
+    name: Format (JuliaFormatter)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: julia-actions/setup-julia@v3.0.2
+        with:
+          version: "1"
+      - name: Check formatting (check mode — never writes in CI)
+        run: |
+          julia --project=. -e '
+            using Pkg
+            Pkg.add("JuliaFormatter")
+            using JuliaFormatter
+            for f in filter(isfile, collect(Iterators.flatten((
+                [joinpath("src", x) for x in readdir("src")],
+                [joinpath("test", x) for x in readdir("test") if x != "cases"],
+                [joinpath("test", "cases", x) for x in readdir(joinpath("test", "cases"))],
+            ))))
+                text = read(f, String)
+                formatted = JuliaFormatter.format_text(text)
+                if text != formatted
+                    @error "not formatted" file=f
+                    exit(1)
+                end
+            end'
+
+  jet:
+    name: Static analysis (JET)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: julia-actions/setup-julia@v3.0.2
+        with:
+          version: "1"
+      - uses: julia-actions/cache@v3.5.0
+      - name: JET analysis (supported API)
+        # JET's path/string entry points were REMOVED in v0.12.0, having been
+        # deprecated since v0.11: `report_package(::AbstractString)`,
+        # `report_package()` and the corresponding `test_package` forms. The
+        # package must be loaded and its MODULE passed instead —
+        # `report_package(PkgModule)`. `target_defined_modules` was removed in
+        # the same release (use `target_modules`).
+        #
+        # The previous invocation was `JET.test_package(path=".",
+        # julia_version="1")`, which is the removed string form. It failed with
+        # `MethodError: no method matching report_package(; toplevel_logger,
+        # path, julia_version)` on JET v0.12.2 before any analysis ran. Because
+        # the analyzer was installed with an unconstrained `Pkg.add`, the
+        # breakage arrived with an upstream release, not with a template change.
+        #
+        # The analyzer now goes into a throwaway environment with a pinned
+        # version, so it no longer mutates this package's Project.toml on every
+        # run, and it cannot float to a new major/minor unannounced.
+        run: |
+          julia -e '
+            using Pkg
+            Pkg.activate(mktempdir())
+            Pkg.develop(path=".")
+            Pkg.add(Pkg.PackageSpec(name="JET", version="0.12"))
+            using {{PROJECT_NAME}}, JET
+
+            # Fail with the actual reason rather than a MethodError if the
+            # upstream API moves again. This is the tripwire for the class of
+            # defect this job previously shipped: a call that never ran.
+            if !hasmethod(JET.test_package, (Module,))
+                error("JET ", pkgversion(JET), " has no test_package(::Module) — " *
+                      "the julia-library overlay pins an API that no longer exists.")
+            end
+
+            JET.test_package({{PROJECT_NAME}})'
+
+  test:
+    name: Test (Test + Aqua)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # The [compat] floor IS tested — an untested floor is an unproven
+        # floor (measured estate gap: Axiology-class repos declare julia 1.9
+        # but test 1.10/1.11 only).
+        julia: ["1.9", "1"]
+        os: [ubuntu-24.04]
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: julia-actions/setup-julia@v3.0.2
+        with:
+          version: ${{ matrix.julia }}
+      - uses: julia-actions/cache@v3.5.0
+      - name: Pkg.test()
+        run: julia --project=. -e 'using Pkg; Pkg.test()'

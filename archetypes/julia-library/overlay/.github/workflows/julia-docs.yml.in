@@ -1,0 +1,58 @@
+# This workflow is managed by gh actions-lock.
+# SPDX-License-Identifier: MPL-2.0
+# {{PROJECT_NAME}} — docs build & deploy (julia-library archetype)
+#
+# Fails LOUD while docs/ is absent: a declared `docs-site` capability with
+# no build is a defect (criterion 5.2.6, na-honesty). Once
+# docs/Project.toml + docs/make.jl + docs/src/ exist, this builds the docs
+# and Documenter's own `deploydocs` (called from docs/make.jl) pushes the
+# site to gh-pages with GITHUB_TOKEN.
+#
+# The build runs as two plain steps instead of julia-actions/julia-buildpkg
+# and julia-actions/julia-docdeploy. Those two actions are refused at
+# startup by the estate's actions allowlist, so a minted repo's Docs
+# workflow could never start; the steps below are what they ran.
+#
+# Pin posture (estate ruling R2 / D38-D39): symbolic refs, pinned by
+# .github/workflows/actions.lock. Regenerate the lock in the same PR as
+# any uses: change.
+
+name: Docs
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    name: Build and deploy
+    runs-on: ubuntu-24.04
+    # deploydocs pushes the built site to the gh-pages branch.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+        # deploydocs pushes with GITHUB_TOKEN from its own env, so the
+        # checkout keeps no credential for package code run during setup.
+        with:
+          persist-credentials: false
+      - name: Layout gate — fail loud while docs/ is absent
+        run: |
+          if [ ! -f docs/Project.toml ] || [ ! -f docs/make.jl ] || [ ! -d docs/src ]; then
+            echo "::error::docs-site declared but no Documenter build: docs/Project.toml, docs/make.jl and docs/src/ are required. Either add the build or drop the docs-site capability from the repo deed's (rsr-profile) clause."
+            exit 1
+          fi
+      - uses: julia-actions/setup-julia@v3.0.2
+        with:
+          version: "1"
+      - uses: julia-actions/cache@v3.5.0
+      - name: Instantiate the docs environment
+        run: julia --project=docs -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+      - name: Build and deploy (Documenter deploydocs)
+        run: julia --project=docs docs/make.jl
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

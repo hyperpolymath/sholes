@@ -1,0 +1,82 @@
+# SPDX-License-Identifier: MPL-2.0
+# Dependabot configuration for RSR-compliant repositories
+# Covers common ecosystems - remove unused ones for your project
+
+version: 2
+updates:
+  # GitHub Actions - always include
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 2
+    ignore:
+      # HOLD: github/codeql-action at v4.38.0 (SHA-pinned). v4.38.1 fails
+      # GitHub workflow-startup validation estate-wide (nexia-list#100;
+      # SHA-form re-bump bypassed versions-scoped ignores - see
+      # nexia-list#101/#104). Hold until upstream clears 4.38.1 or a
+      # newer release verifies green; revisit deliberately.
+      #
+      # The trailing * is load-bearing, as in standards/.github/dependabot.yml.
+      # Workflows reference the SUBPATH actions (github/codeql-action/init,
+      # /analyze) and Dependabot treats each subpath as its own dependency
+      # name, so a bare "github/codeql-action" matches NONE of them. That is
+      # how #210 bumped 4.38.0 -> 4.38.2 straight through this hold and left
+      # actions.lock out of sync (#217).
+      - dependency-name: "github/codeql-action*"
+
+  # Rust/Cargo
+  #
+  # `open-pull-requests-limit: 0` suppresses routine version-update PRs
+  # (no weekly patch-bump noise) while leaving Dependabot SECURITY PRs
+  # flowing. Under GitHub's current Dependabot behaviour (2024+), using
+  # an `ignore:` rule with `version-update:semver-patch` would ALSO
+  # silence security PRs that happen to be patch-level — historically
+  # the cause of estate-wide vulns sitting un-PR'd for weeks.
+  # `open-pull-requests-limit: 0` is the GitHub-endorsed way to say
+  # "security only, not routine bumps". Pair with the
+  # dependabot-automerge.yml workflow for low-touch security
+  # maintenance.
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
+
+  # Elixir/Mix
+  - package-ecosystem: "mix"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 3
+    groups:
+      dependency-updates:
+        patterns: ["*"]
+
+  # Node.js/npm
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 3
+    groups:
+      dependency-updates:
+        patterns: ["*"]
+
+  # Python/pip
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 3
+    groups:
+      dependency-updates:
+        patterns: ["*"]
+
+  # NOTE: Nix is banned estate-wide — Guix is the sole package manager.
+  # Do not add a `nix` ecosystem here. Guix has no Dependabot ecosystem;
+  # pin Guix channels/manifests via build/ tooling instead.

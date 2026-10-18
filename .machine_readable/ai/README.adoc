@@ -1,0 +1,75 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= AI Guidance Directory
+
+Put AI-facing instructions in this folder (for example `CLAUDE.md`,
+`COPILOT.md`, `GEMINI.md`, `AI.djot`). Avoid scattering agent instruction
+files around the repo root. Machine-readable facts do not live here: they are
+clauses of the repo deed (`*_chora.deed`) at the repo root, read with
+`scripts/deed-field.sh`. There are no `.a2ml` files in this estate.
+
+== Recommended machine read order
+
+* the repo deed's `(anchor)` clause — semantic authority and golden path
+* the repo deed's `(policies)` clause — `(maintenance-axes)`,
+  `(maintenance-checklist)`, `(software-development-approach)`,
+  `(crg-criteria)`, `(tsdm)`
+* the repo deed's `(status)`, `(maturity)` and `(meta)` clauses
+* `docs/status/ROADMAP.adoc`
+
+== AI assistant instructions
+
+=== Repository focus
+
+* This repository is a Rhodium Standard Repository; obey the Rhodium policies
+  and keep the repo deed and `.machine_readable/` authoritative.
+* Machine-readable content is the repo deed (`*_chora.deed`, at the root) plus
+  `.machine_readable/` (contractiles, bot-directive and integration clauses are
+  in the deed).
+* Keep generated files out of source control, and regenerate them with the
+  documented commands before committing.
+
+=== Workflow
+
+. Read `docs/status/ROADMAP.adoc` for blockers and next actions, and the repo
+  deed's `(status)` clause for the phase.
+. Respect the constraints in the repo deed's `(agentic)` clause when tooling
+  changes are requested.
+. After finishing edits, update `docs/status/ROADMAP.adoc` with your outcomes
+  and commit with a concise, imperative message.
+
+=== Delivery promises
+
+* Say in summaries whether the repo deed, `docs/status/ROADMAP.adoc` or
+  `.machine_readable/contractiles/` changed.
+* Keep this file in sync with the repository's status; update it if the
+  governance changes.
+
+== Foundational integrations
+
+These tools form the architectural floor for all hyperpolymath repos. Integrate
+them incrementally as the project matures; their configuration is the repo
+deed's `(integrations)` clause.
+
+[cols="1,3"]
+|===
+| proven | Formally verified safety library — replace raw string/JSON/URL/crypto ops
+| panic-attacker | Static analysis — run `just assail` before every commit
+| feedback-o-tron | Autonomous bug filing — auto-report upstream dependency failures
+| verisimdb | Cross-repo analytics — emit scan results and build metrics
+| vexometer | Irritation surface analysis — measure friction in CLI/UI tools
+| hypatia | Neurosymbolic CI/CD — safety-triangle routing for automated fixes
+| boj-server | MCP gateway — all external service integrations route through BoJ
+|===
+
+== Floor-raise checklist
+
+. The repo deed (`<reponame>_chora.deed`) exists at the repo root and lints.
+. The contractiles exist: `.machine_readable/contractiles/<verb>/<verb>.k9.ncl`
+  for must, trust and dust at least.
+. The `assail` recipe is in the Justfile and wired into the pre-commit hook.
+. The deed's `(integrations (proven))` clause is filled in.
+. The deed's `(integrations (verisimdb))` feed is configured.
+. The deed's `(integrations (feedback-o-tron))` clause is filled in for
+  upstream reporting.
+. The deed's `(integrations (vexometer))` hooks are set (CLI/UI repos).

@@ -1,0 +1,96 @@
+  ; >>> repo-identity
+  ; Written by `just repo-init` from build/templates/identity.deed.in, in
+  ; place of the block the template repo ships (template issue #209). It replaces
+  ; descriptiles/CLADE.a2ml and ECOSYSTEM.a2ml; the mapping is standards
+  ; 1-formats/deed/mappings/clade-to-repo-deed.adoc and
+  ; meta-ecosystem-to-repo-deed.adoc.
+  ;
+  ; THE UUID IS DERIVED, NOT ALLOCATED, NOT INVENTED. It is not stored: it is
+  ;     uuid5(namespace = URL, name = the header :repo-uuid string)
+  ; and anyone can recompute it (gv-clade-index:
+  ; docs/SPEC-clade-verisim-portal.adoc §Identity Model):
+  ;     uuidgen --sha1 --namespace @url --name "{{FORGE}}/{{OWNER}}/{{REPO}}"
+  ; The owner is part of the name, so part of the identity: record the owner
+  ; that is true today, and re-derive if the repo ever moves.
+  ;
+  ; CHOOSE A CLADE. A CLOSED TAXONOMY OF 12 CATEGORIES, NOT AN ABBREVIATION
+  ; SCHEME: the two letters abbreviate the clade's name, never your repo's.
+  ;   fv  Formal Verification & Proofs   provable correctness, dependent types, theorem proving
+  ;   nl  Nextgen Languages              compilers, runtimes, language tooling
+  ;   rm  Repo Management & Tooling      scaffolding, graph analysis, bots, templates
+  ;   gv  Governance & Standards         licensing, compliance, policy enforcement
+  ;   db  Databases                      database engines, query languages, storage
+  ;   ap  Applications                   end-user apps, web, desktop, services
+  ;   ix  Infrastructure & Cloud         containers, deployment, sysadmin
+  ;   dx  Developer Ecosystem            dev tools, package managers, editors, bindings
+  ;   pt  Protocols & Interop            internet standards, protocol implementations
+  ;   ax  AI & Neurosymbolic             ML, neural proof synthesis, AI governance
+  ;   gm  Games & Interactive            game engines, interactive experiences
+  ;   sc  Security                       scanning, vulnerability management, access control
+  ; paint-type once chose `pt` reading it as "PainT-type" (an image editor is
+  ; `ap`); gossamer chose `gv` reading it as "Graphical/Visual" (`gv` is
+  ; GoVernance). Both codes were valid, so every check passed.
+  ; HOW TO CHOOSE: the primary clade reflects the project's core value
+  ; proposition, not its implementation. A game written in Idris2 is `gm`.
+  ; Set BOTH :primary and :primary-name, and make them agree; then set
+  ; :prefixed-name to "<primary>-{{REPO}}". `just validate-rsr` fails while
+  ; :primary is UNASSIGNED. That is deliberate: an unchosen clade must never
+  ; look like a chosen one.
+  ;
+  ; REGISTRATION IS NOT DERIVATION. Registering means an entry in
+  ; gv-clade-index verisim/seed/repos.a2ml. It is outward-facing and it is the
+  ; OWNER's act; an agent must not do it.
+  (identity
+    :primary-forge github
+    :owner "{{OWNER}}"
+    :prefixed-name "UNASSIGNED-{{REPO}}")
+  (clade
+    :primary UNASSIGNED
+    :primary-name "UNASSIGNED"
+    :secondary ()
+    :assigned "{{CURRENT_DATE}}"
+    :rationale "")
+  (forges
+    :github "{{OWNER}}/{{REPO}}")
+  ; :type is one of standalone monorepo monorepo-child inflated deflated hub
+  ; satellite. A hub COORDINATES an ecosystem family; a satellite is
+  ; coordinated by one and keeps :parent "" (parent names a monorepo parent,
+  ; never the coordinating hub).
+  (lineage
+    :type standalone
+    :parent ""
+    :born "{{CURRENT_DATE}}"
+    :previous-names ()
+    :instantiated-from "rsr-template-repo")
+  ; :phase is one of reserved incubating active dormant merged superseded
+  ; archived extinct. A repo created today has not proven anything yet.
+  (status
+    :phase incubating
+    :since "{{CURRENT_DATE}}"
+    :present #t
+    :aliases ()
+    :merged-into ""
+    :superseded-by ""
+    :successors ()
+    :ended ""
+    (history
+      (entry :phase incubating :since "{{CURRENT_DATE}}" :note "created from rsr-template-repo; clade not yet chosen; not yet registered")))
+  ; :level is one of experimental alpha beta production lts (standards
+  ; 1-formats/deed/vocabulary/maturity.adoc).
+  (maturity
+    :level experimental
+    :since "{{CURRENT_DATE}}")
+  ; Fill in what this repo IS and IS NOT, and the repos it relates to.
+  ; :relationship is one of standard-source build-tooling validation-tooling
+  ; signing-tooling verification-tooling minted-from registry.
+  (ecosystem
+    :project "{{REPO}}"
+    :ecosystem "{{OWNER}}"
+    :position-type "UNASSIGNED"
+    :purpose "UNASSIGNED"
+    :not ()
+    :pipeline-position "UNASSIGNED"
+    :chain "UNASSIGNED"
+    :coordination standards
+    (related :name "rsr-template-repo" :relationship minted-from :notes "the template this repo was minted from by just repo-init"))
+  ; <<< repo-identity

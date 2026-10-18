@@ -1,0 +1,52 @@
+# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) {{CURRENT_YEAR}} {{AUTHOR}} ({{OWNER}}) <{{AUTHOR_EMAIL}}>
+#
+# Dev Container image for {{PROJECT_NAME}}
+# Base: Chainguard Wolfi (minimal, supply-chain-secure)
+# Build: podman build -t {{PROJECT_NAME}}-dev -f .devcontainer/Containerfile .
+# `:latest` suits a dev container (rebuilt daily); pin by digest
+# (...@sha256:<digest>) if you need a reproducible dev environment.
+#
+# Every tool comes from Wolfi or from a sha256-checked release binary, so the
+# image builds with no dev-container features (registry-hosted features can
+# vanish or turn private, and then nobody can start the container).
+
+FROM cgr.dev/chainguard/wolfi-base:latest
+
+# Install common development tools
+RUN apk update && apk add --no-cache \
+    bash \
+    curl \
+    git \
+    just \
+    openssh-client \
+    ca-certificates \
+    build-base \
+    posix-libc-utils \
+    && rm -rf /var/cache/apk/*
+
+# Nickel (the .machine_readable contracts): the same verified release CI uses
+# (.github/workflows/estate-rules.yml). Bump the version and both digests together.
+ARG NICKEL_VERSION=1.17.0
+RUN set -eu; \
+    case "$(uname -m)" in \
+      x86_64)  asset=nickel-x86_64-linux; sum=afcdfa6e0fff31760cf229e85997456c02c00b8b3b84ff38f897ac7b3f39ae34 ;; \
+      aarch64) asset=nickel-arm64-linux;  sum=9d7e027fde829b5788c92231c27fcfc926ee841d0716d655cee202c9f582e0c0 ;; \
+      *) echo "no Nickel release binary for $(uname -m)" >&2; exit 1 ;; \
+    esac; \
+    curl --proto '=https' --proto-redir '=https' -fsSL \
+      "https://github.com/nickel-lang/nickel/releases/download/${NICKEL_VERSION}/${asset}" \
+      -o /usr/local/bin/nickel; \
+    echo "${sum}  /usr/local/bin/nickel" | sha256sum -c -; \
+    chmod 0755 /usr/local/bin/nickel
+
+# Dev user: wolfi-base already ships `nonroot` (uid/gid 65532, home /home/nonroot);
+# devcontainer.json maps your host user onto it with --userns=keep-id.
+
+# Set workspace directory
+WORKDIR /workspaces/{{PROJECT_NAME}}
+
+# Default shell
+ENV SHELL=/bin/bash
+
+USER nonroot

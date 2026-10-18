@@ -1,0 +1,1 @@
+{"_comment":"PLANTED CONTROL — must be REJECTED by check-aibdp.sh: unknown policy status vocabulary.","aibdp_version":"0.2","contact":"mailto:sec@example.invalid","policies":{"training":{"rationale":"planted control","status":"yolo"}},"status":"experimental — declaration-only"}

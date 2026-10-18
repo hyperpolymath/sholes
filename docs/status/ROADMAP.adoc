@@ -1,0 +1,69 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= rsr-template-repo Roadmap
+
+The journal of the template itself: milestones, blockers and next actions.
+A repo minted from the template does not inherit it: `just repo-init`
+replaces this file with `build/templates/ROADMAP.adoc.in`.
+
+Phase and maturity are not recorded here. They live in the repo deed,
+`rsr-template-repo_chora.deed`, in the `(status …)` and `(maturity …)`
+clauses (`just state-phase` prints both).
+
+This file took over the journal half of the retired STATE record
+(rsr-template-repo#209), last
+updated there on 2026-09-19. STATE also recorded version 0.3.0; the release
+version is 0.1.0 (`Justfile`, `CITATION.cff`, tag `v0.1.0`, deed
+`(meta :version …)`).
+
+== Milestones
+
+[cols="5,1",options="header"]
+|===
+| Milestone | Done
+
+| Phase 0: Core scaffolding (justfile, CI/CD, machine-readable) | 100%
+| Phase 1: ABI/FFI standard (Idris2/Zig templates) | 100%
+| Phase 1b: AI Gatekeeper Protocol (AI manifest, now the repo deed) | 100%
+| Phase 1c: TOPOLOGY.md standard and guide | 100%
+| Phase 1d: Maintenance gate (axes, checklist, approach) | 100%
+| Phase 1e: Trustfile / contractiles | 100%
+| Phase 2: Container ecosystem templates (stapeln) | 100%
+| Phase 2b: www/ site-operations bundle + .well-known migration (#53) | 100%
+| Phase 2c: Forge & Sustain mechanics — provenance at mint, self-name passes, drift gate, update mechanism (ADR-0003, ratified 2026-09-19) | 100%
+| Phase 2d: julia-library archetype overlay + e2e mint test (recon P1.2) | 100%
+| Phase 3: Multi-forge sync hardening | 0%
+| Phase 4: Guix reproducible shells | 50%
+| Phase 4b: RSR oracle dogfood gate in CI (recon P0.2; hypatia M-3 SSOT-path fix is the precondition) | 0%
+|===
+
+== Blockers
+
+. Hypatia M-3: `mix hypatia.rsr_score --standards` resolves the SSOT at the
+  pre-reorg path (`rhodium-standard-repositories/spec/`). A one-line fix is
+  prepared (recon P0.2/01), pending its PR. The dogfood job works around it
+  with an explicit `--ssot` until then.
+. Estate-wide `actions.lock` sweep (D38/D39 ruling 2026-09-19): the grace
+  window closed on 2026-10-01. The sweep's estate-wide status is not recorded
+  here. This repo's own lockfile verifies (`gh actions-lock --no-fix`, rc=0,
+  2026-10-02).
+
+== Next actions
+
+* Wire the RSR oracle dogfood job in dogfood-gate.yml (recon P0.2) once the hypatia M-3 fix lands
+* Record where the estate-wide actions.lock sweep stands now that the 2026-10-01 window has closed (gatekeeper repos first)
+* Rebase rsr-julia-library-template-repo onto this spine (recon P1.3 procedure; ADR-0003 now accepted)
+* Validate container templates across wolfi-base and static Chainguard images
+* Harden multi-forge sync for GitLab/Bitbucket mirroring edge cases
+* Expand Guix development shell templates
+
+== Maintenance runs
+
+No maintenance run has been recorded. Reports go to
+`docs/reports/maintenance/latest.json`.
+
+== Ecosystem
+
+Part of the RSR Framework and the stapeln ecosystem. The repos it depends on
+(stapeln, selur-compose, cerro-torre, svalinn, vordr, k9-svc) are the
+`(related …)` entries of the deed's `(ecosystem …)` clause.

@@ -1,0 +1,104 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= AI Conventions
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) {{CURRENT_YEAR}} {{AUTHOR}} ({{OWNER}}) <{{AUTHOR_EMAIL}}>
+
+== AI Conventions (Authoritative Source)
+
+All AI coding agents working in this repository MUST follow these rules.
+Per-tool config files (.cursorrules, .clinerules, etc.) reference this document.
+
+=== Session Startup
+
+1. Read the repo deed (`*_chora.deed` at root) FIRST (mandatory gatekeeper).
+2. Read `docs/status/ROADMAP.adoc` for blockers and next actions (phase and maturity are in the deed's `(status)` and `(maturity)` clauses).
+3. Read the deed's `(anchor)` clause for canonical authority boundaries.
+4. Read the deed's `(policies (maintenance-axes))` clause for maintenance/audit sequencing.
+5. Read the deed's `(policies (maintenance-checklist))` clause for baseline controls.
+6. Read the deed's `(policies (software-development-approach))` clause for execution order.
+7. Read the deed's `(agentic)` clause for agent constraints.
+
+=== License
+
+Per estate policy (hyperpolymath/standards `LICENCE-POLICY.adoc` Rule 1 + Addendum A8):
+
+- Code / config / scripts: `SPDX-License-Identifier: MPL-2.0`.
+- Prose docs (`*.adoc`, `*.md` narrative): `SPDX-License-Identifier: CC-BY-SA-4.0`.
+- GitHub shows only one repo licence: the root `LICENSE` is MPL-2.0 (so the
+  sidebar reads MPL-2.0); **both** canonical texts live in `LICENSES/`
+  (`MPL-2.0.txt` + `CC-BY-SA-4.0.txt`) and prose is CC-BY-SA-4.0 by its
+  per-file header, not a second root licence file.
+- Fallback (platform-required only): MPL-2.0 with a comment explaining why.
+- NEVER use AGPL-3.0 (son-shared repos are the only exception, per Rule 3 — not this template).
+- Preserve third-party licenses verbatim; never relicense.
+- Licence-header remediation on existing files is manual, owner-only — no
+  automated/bulk SPDX edits (Addendum A2). New files may carry the correct
+  SPDX from birth.
+
+=== Author Attribution
+
+- Name: **{{AUTHOR}}**
+- Email: **{{AUTHOR_EMAIL}}**
+- Copyright: `Copyright (c) {{CURRENT_YEAR}} {{AUTHOR}} ({{OWNER}}) <{{AUTHOR_EMAIL}}>`
+
+=== State Files
+
+No `.a2ml` file may exist anywhere in this repository: the format is retired.
+State, metadata, anchor and policy facts are clauses of the repo deed
+(`*_chora.deed`) — `(status)`, `(maturity)`, `(meta)`, `(anchor)`,
+`(neurosym)`, `(playbook)`, `(policies …)` — and the journal is
+`docs/status/ROADMAP.adoc`. Never recreate them as separate files.
+
+=== Banned Patterns
+
+|===
+| Language | Banned | Reason
+
+| Idris2 | `believe_me`, `assert_total` | Unsound escape hatches
+| Haskell | `unsafeCoerce`, `unsafePerformIO` | Breaks type safety
+| OCaml | `Obj.magic`, `Obj.repr`, `Obj.obj` | Unsafe casting
+| Coq | `Admitted` | Unproven assumption
+| Lean | `sorry` | Unproven assumption
+| Rust | `transmute` (unless FFI + SAFETY:) | Unsound reinterpret
+|===
+
+
+=== Banned Languages
+
+|===
+| Banned | Use Instead
+
+|  |
+| Node.js / npm / bun |
+| Go | Rust
+| Python | Julia / Rust
+|===
+
+
+=== Container Standard
+
+- Runtime: **Podman** (never Docker).
+- File: **Containerfile** (never Dockerfile).
+- Base images: `cgr.dev/chainguard/wolfi-base:latest` or `cgr.dev/chainguard/static:latest`.
+
+=== ABI/FFI Standard
+
+- ABI definitions: **Idris2** with dependent types (`src/interface/Abi/`).
+- FFI implementation: **Zig** with C ABI compatibility (`ffi/zig/`).
+- Generated C headers: `generated/abi/`.
+
+=== Build System
+
+Use `just` (Justfile) for all build, test, lint, and format tasks.
+
+=== References
+
+- `*_chora.deed` (repo deed) -- universal AI entry point
+- `*_chora.deed` `(agentic)` -- agent permissions and constraints
+- `*_chora.deed` `(status)` / `(maturity)` -- current phase and maturity
+- `docs/status/ROADMAP.adoc` -- milestones, blockers, next actions
+- `*_chora.deed` `(anchor)` -- canonical authority and policy boundary
+- `*_chora.deed` `(policies (maintenance-axes))` -- canonical axis sequencing and audit requirements
+- `*_chora.deed` `(policies (maintenance-checklist))` -- baseline maintenance checklist policy
+- `*_chora.deed` `(policies (software-development-approach))` -- axis execution approach policy

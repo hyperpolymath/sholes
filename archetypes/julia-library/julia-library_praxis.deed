@@ -1,0 +1,37 @@
+;; SPDX-License-Identifier: MPL-2.0
+;; SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+;;
+;; julia-library_praxis.deed — the julia-library archetype for `just repo-init`
+;; (ADR-0003). repo-init reads it with scripts/deed-field.sh:
+;;   (capability :preset)  the capability preset; and
+;;   (tokens :<TOKEN>)     each value fills {{<TOKEN>}} at mint.
+;;
+;; Harvested 2026-07-21 from rsr-julia-library-template-repo (its variant
+;; record, the ADR-0002 reference instance) and the dormant scaffoldia registry
+;; entry registry/julia/package.ncl. The variant repo remains the full
+;; hand-maintained reference (Project.toml [compat] closure, Aqua+JET,
+;; Documenter, flagship rubric); this archetype covers the `just repo-init` path.
+;;
+;; Contract rules: archetypes/README.adoc. Single-line values; no `|` in token
+;; values (init's sed delimiter). Tokens omitted here stay UNASSIGNED on
+;; purpose: PACKAGE_NAME and MUST_INVARIANTS are per-repo judgement, and an
+;; archetype must not write fiction.
+(praxis-deed
+  :schema-version "1.0.0"
+  :canonical-name "rsr-template-repo-archetype-julia-library"
+  (metadata
+    :archetype "julia-library"
+    :name "julia-library"
+    :schema_version "0.1.0"
+    :harvested-from "rsr-julia-library-template-repo variant record + scaffoldia registry julia/package.ncl")
+  (capability
+    ; Preset defined in standards .machine_readable/template-capability-gates.toml
+    :preset "julia-library")
+  (tokens
+    :PROJECT_KIND "library"
+    :PROJECT_DOMAIN "julia"
+    :LANG_STACK "Julia (1.9+)"
+    :BUILD_CMD "julia --project=. -e 'using Pkg; Pkg.instantiate()'"
+    :TEST_CMD "julia --project=. -e 'using Pkg; Pkg.test()'"
+    :DEPS "Julia General registry via Project.toml [deps] with [compat] closure"
+    :BUILD_OUTPUT_PATH "src/"))

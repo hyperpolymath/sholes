@@ -1,0 +1,143 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= AI-Assisted Installation Guide
+:toc:
+:toclevels: 3
+:sectnums:
+
+This guide is for an **AI agent** instantiating this template into a new
+repository. A human following it will not be misled, but the ordering and the
+warnings are written for an agent working non-interactively.
+
+[[ai-implementation]]
+== Implementation for an AI agent
+
+=== 1. Orient before acting
+
+Read, in this order, before running anything:
+
+. `*_chora.deed` (the repo deed) — the universal AI entry point at the repository root.
+. `CLAUDE.md` — the generated arrival pack (estate doctrine + repo identity).
+. `docs/status/ROADMAP.adoc` — milestones, blockers and next actions (phase and maturity are in the deed's `(status)` and `(maturity)` clauses; `just state-phase` prints them).
+
+Do not infer the repository's purpose from its name. If a fact is not written
+down, record it as `UNASSIGNED` rather than inventing it.
+
+=== 2. Obtain the template
+
+Always take the template from `origin/main`, never from a local working tree —
+local checkouts across this estate are routinely stale or carry sweep debris.
+
+[source,bash]
+----
+git clone https://github.com/hyperpolymath/rsr-template-repo.git my-project
+cd my-project
+rm -rf .git && git init
+----
+
+Alternatively, use GitHub's *Use this template* button, which produces a repo
+with no git ancestry; `just repo-init` recovers the template tip via
+`git ls-remote` and records it as the `parent-pin`.
+
+=== 3. Run the instantiation
+
+[source,bash]
+----
+just repo-init            # or: just repo-init <archetype>
+----
+
+`just repo-init` renders every `{{TOKEN}}` in the tree, derives the repository
+identity, writes the provenance files, and removes the template-only
+directories.
+
+[NOTE]
+====
+**Without a terminal, set `RSR_NON_INTERACTIVE=1` and answer through the
+environment.** Each prompt reads the variable named in the table below; the
+recipe keeps that variable's value from the environment, or leaves it empty, and
+never touches stdin. `PROJECT_NAME`, `REPO`, `OWNER`, `AUTHOR` and `AUTHOR_EMAIL`
+are required; an unset optional answer takes its default.
+
+[source,bash]
+----
+RSR_NON_INTERACTIVE=1 PROJECT_NAME="My Project" REPO=my-project \
+  OWNER=my-org AUTHOR="My Name" AUTHOR_EMAIL=me@example.org \
+  just repo-init
+----
+
+Until 2026-10-14 this mode stubbed the `read` builtin for the whole recipe, so
+the substitution loops never terminated, and this guide told agents to pipe
+answers to stdin instead. Piping still works, in the order below.
+====
+
+The prompts, in order, are:
+
+[cols="1,3,2",options="header"]
+|===
+| # | Prompt | Environment variable
+
+| 1 | Project name | `PROJECT_NAME`
+| 2 | Repository slug — validated against `^[a-z0-9]+(-[a-z0-9]+)*$`; no capitals, spaces or underscores (it must be a valid Guix package name) | `REPO`
+| 3 | Owner | `OWNER`
+| 4 | Author full name | `AUTHOR`
+| 5 | Author email | `AUTHOR_EMAIL`
+| 6 | Author organisation | `AUTHOR_ORG`
+| 7 | Previous/alternate email | `AUTHOR_EMAIL_ALT`
+| 8 | Author ORCID iD (blank = none; checked against its check digit) | `AUTHOR_ORCID`
+| 9 | Project description | `PROJECT_DESCRIPTION`
+| 10 | Forge domain | `FORGE`
+| 11 | Security email | `SECURITY_EMAIL`
+| 12 | Conduct email | `CONDUCT_EMAIL`
+| 13 | Project type | `PROJECT_TYPE`
+| 14 | Website URL (blank = default) | `WEBSITE`
+| 15 | OpenSSF Best Practices ID (blank = none) | `OPENSSF_BP_ID`
+| 16 | Service name (blank = default) | `SERVICE_NAME`
+| 17 | Primary port (blank = 8080) | `PORT`
+| 18 | Container registry (blank = default) | `REGISTRY`
+| 19 | Proceed? — answer `y` | `CONFIRM`
+|===
+
+[IMPORTANT]
+====
+When piping, prompts 16–18 are gated on the presence of the container
+directory, **not** on the project type. The template always ships one, so they
+always fire. Supplying fewer answers than prompts makes `read` hit EOF, which
+returns 1 and kills the recipe under `set -e`.
+====
+
+=== 4. Verify the result
+
+[source,bash]
+----
+just --list                       # every recipe resolves (imports are silent on failure)
+just check-root-shape             # root matches the allowlist
+bash scripts/check-no-placeholders.sh .
+just verify
+----
+
+A successful instantiation leaves **no** `{{TOKEN}}` anywhere in the tree, and
+removes the template-only directories from the minted repository. If
+`scripts/validate-template.sh` or the end-to-end instantiation test are still
+present, the repository was not cured — they are the clearest single marker of
+an un-instantiated repo.
+
+== Privacy
+
+This template performs no telemetry and transmits nothing during installation.
+
+Note what instantiation *records*, all of it locally and in your own git history:
+
+* The identity you supply at prompts 3–7 (owner, author name, both email
+  addresses, organisation) is written into source headers, `CITATION.cff`,
+  `.mailmap`, `CODEOWNERS` and the security contact. Treat the alternate email
+  as published data.
+* `just repo-init` runs `git ls-remote` against the template's forge to resolve
+  the parent pin. This is a single outbound request; when it is unavailable the
+  pin is recorded as `UNASSIGNED` rather than guessed.
+* The clade UUID is *derived*, never allocated:
+  `uuidgen --sha1 --namespace @url --name "<forge>/<owner>/<repo>"`. It is a
+  function of the repository's name, so renaming the repository changes it and
+  registries must be regenerated rather than string-swapped.
+
+If you are an agent acting on someone else's behalf, do not invent identity
+values to satisfy a prompt. Leave them `UNASSIGNED` and report the gap.

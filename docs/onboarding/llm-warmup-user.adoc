@@ -1,0 +1,55 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+= LLM warm-up — rsr-template-repo (user)
+
+Paste this whole file into any AI assistant before asking it about
+rsr-template-repo. It tells the assistant what the project is, how a person gets it
+running, and where to look when something goes wrong.
+
+== What it is
+
+rsr-template-repo (https://github.com/hyperpolymath/rsr-template-repo) is a library written in idris2, zig.
+
+It is not a project in its own right: it is the template every new hyperpolymath
+repository is created from. It ships CI/CD, machine-readable metadata
+(`.machine_readable/descriptiles/`), an AI gatekeeper deed
+(`rsr-template-repo_chora.deed`), a typed ABI/FFI seam (Idris2 over Zig), Guix and
+mise toolchains, and governance files, all passing the RSR validators before you
+add a line of your own.
+
+== Getting it running
+
+The supported routes, in order of ease:
+
+. *Ask an AI*: follow `docs/AI_INSTALLATION_GUIDE.adoc` in the repository.
+. *The launcher*: `git clone https://github.com/hyperpolymath/rsr-template-repo.git && cd rsr-template-repo && ./launcher.sh --setup`
+. *By hand*: `docs/SETUP.adoc`, every step explained.
+
+Prerequisites are git, a C toolchain and mise; everything else is installed by
+`mise install`, at the versions pinned in `mise.lock`.
+
+== Using it
+
+A person uses it to start a new repository:
+
+. On GitHub, *Use this template* (or clone it).
+. In the new checkout, run `just repo-init`. It asks for the project name, owner,
+  author and licence contact (listed in `.machine_readable/ai/PLACEHOLDERS.adoc`),
+  replaces every placeholder token, then validates the result. `just repo-init
+  julia-library` applies the one archetype overlay shipped in `archetypes/`.
+. Run `just validate` (structure + metadata) and `just doctor` (toolchain).
+
+An AI running `repo-init` sets `RSR_NON_INTERACTIVE=1` and passes the answers as
+environment variables (see `docs/AI_INSTALLATION_GUIDE.adoc`), or pipes them to stdin.
+
+== When something is wrong
+
+Run `just doctor`. Every FAIL line carries a code (PV-E…) that is explained, with
+its fix, in `docs/SETUP.adoc` §Troubleshooting. `just heal` applies the automatic
+fixes. Do not guess an installer that the repository does not document.
+
+== What it touches
+
+Nothing leaves the machine. `mise install` and `just setup` install tools per-user
+under the mise data directory; `just repo-init` rewrites files only inside the
+checkout. No remote repository is created and nothing is pushed until you do it.

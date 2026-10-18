@@ -1,0 +1,67 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= Descriptiles
+:toc:
+
+The *descriptiles* are this repository's descriptive machine-readable
+metadata: they record what the repository *is* and what state it is *in*.
+They pair with the contractiles in `../contractiles/`, which record what it
+*ought* to do.
+
+[IMPORTANT]
+====
+*The normative grammar for this family is the DEED grammar specification,*
+`1-formats/deed/spec/DEED-GRAMMAR-SPEC.adoc` in
+https://github.com/hyperpolymath/standards[hyperpolymath/standards].
+
+The format formerly called A2ML is retired: no `.a2ml` file may exist in
+this repository. Descriptive facts are clauses of the repo deed
+(`*_chora.deed`, at the repo root) or `*_praxis.deed` files, with the file
+extension `.deed`. Read a field with `scripts/deed-field.sh`.
+
+DEED is an *s-expression* format. If you have seen these files described
+anywhere as a "TOML-like key-value" format, that description is wrong and
+is the documented cause of a family-wide divergence; the grammar has no
+`key = value` form. Always resolve the surface question against the DEED
+grammar specification, never against a neighbouring file.
+====
+
+== The descriptiles
+
+The descriptiles are clauses of the repo deed (`*_chora.deed`), not
+separate files; no `.a2ml` file may be recreated anywhere
+(rsr-template-repo#209):
+
+* `(neurosym)`: symbolic semantics, composition algebra;
+* `(playbook)`: executable plans, operational runbooks;
+* `(status)` and `(maturity)` for project phase and maturity; `(meta)` for
+  architecture axes and development practices (ADRs themselves are in
+  `docs/decisions/`); `(ecosystem)` for ecosystem position and boundaries;
+  `(agentic)` for agent permissions and gating; `(identity)`, `(clade)`,
+  `(lineage)` and `(forges)` for the facet classification record;
+* `docs/status/ROADMAP.adoc`: milestones, blockers, next actions and
+  maintenance runs.
+
+== Other files in this directory
+
+This directory also carries files whose classification is settled elsewhere
+and is deliberately not restated here:
+
+`anchors/`:: Explains the `ANCHOR` record, which is now the repo deed's
+`(anchor)` clause. An anchor is *both* descriptile and
+contractile — it states an observed drift (descriptive) and issues a
+mandated realignment (normative). It is the join between the two families
+and has its own specification.
+
+`*_chora.deed` (repo deed, at the repo root):: The universal AI entry point —
+a DEED-grammar file. The family-7 allocation manifest (the former root AI
+manifest) and the ply directory tree folded into it in the standards#837 pilot.
+
+== Generation
+
+These files may be generated from `.scm` sources by transpilation. Source
+`.scm` files should be removed after a successful transpilation.
+
+== See also
+
+* `../contractiles/README.adoc` — the normative counterpart family

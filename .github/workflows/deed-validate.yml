@@ -1,0 +1,59 @@
+# This workflow is managed by gh actions-lock.
+# SPDX-License-Identifier: MPL-2.0
+name: "🟡 CHECK: DEED Manifest Validation"
+
+on:
+  pull_request:
+    branches: ['**']
+  push:
+    branches: [main, master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deed-validate:
+    name: Validate DEED manifests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Check for deed manifests
+        id: detect
+        run: |
+          COUNT=$(find . -name '*.deed' -not -path './.git/*' | wc -l)
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+          if [ "$COUNT" -eq 0 ]; then
+            echo "::warning::No .deed manifest found. Every RSR repo should have a repo deed (<reponame>_chora.deed) at its root."
+          fi
+
+      - name: "🟡 CHECK: Validate DEED manifests"
+        if: steps.detect.outputs.count > 0
+        uses: hyperpolymath/deed-ecosystem/validate-action@main
+        with:
+          path: '.'
+          strict: 'false'
+
+      - name: Write summary
+        run: |
+          MANIFEST_COUNT="${{ steps.detect.outputs.count }}"
+          if [ "$MANIFEST_COUNT" -eq 0 ]; then
+            cat <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          ## DEED Manifest Validation
+
+          :warning: **No .deed manifest found.** Every RSR-compliant repo should have a repo deed (`<reponame>_chora.deed`) at its root.
+
+          Copy it from [rsr-template-repo](https://github.com/hyperpolymath/rsr-template-repo). Manifests are validated against the DEED grammar (standards `1-formats/deed/`). The `.a2ml` format is retired; no `.a2ml` file may exist.
+          EOF
+          else
+            echo "## DEED Manifest Validation" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "Scanned **${MANIFEST_COUNT}** .deed manifest(s). See step output for details." >> "$GITHUB_STEP_SUMMARY"
+          fi

@@ -1,0 +1,87 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+= LLM warm-up — rsr-template-repo (developer)
+
+Paste this into an AI assistant before changing code in rsr-template-repo.
+
+== Orientation
+
+rsr-template-repo (https://github.com/hyperpolymath/rsr-template-repo): a library in idris2, zig.
+
+The template's own code is the ABI/FFI seam that every minted repo inherits:
+
+* `src/interface/Abi/` + `src/interface/abi.ipkg`: Idris2 types and layout proofs
+  (the ABI owns the contract).
+* `src/interface/ffi/`: the Zig implementation (`build.zig`, `src/main.zig`,
+  `test/integration_test.zig`), exporting C symbols named `<project>_*`.
+* `src/interface/generated/`: C headers generated from the ABI.
+
+Everything else is scaffolding: `.machine_readable/` (descriptiles, contractiles,
+policies), `build/just/*.just` (the task phases the root `Justfile` imports), and
+`.github/workflows/` (the CI a minted repo starts with).
+
+== Toolchain
+
+* Declared in `mise.toml` (specs `latest`), made concrete in `mise.lock`. Never
+  hand-edit versions; `just toolchain-refresh` bumps and re-locks.
+* Guix alternative: `build/manifest.scm` (dev shell), `build/guix.scm` (package),
+  `build/channels.scm` (pinned Guix). `just dev-shell` picks whichever is present.
+* `just` ≥ 1.42. The shared recipes live in `build/just/provision.just`
+  (`mod provision`); root recipes in `Justfile` override them.
+
+== The loop
+
+[source,bash]
+----
+just setup        # once
+just build
+just test
+just bench        # N/A when there are no benchmarks
+just eval         # test + bench with timings, logged under .eval/
+just lint && just fmt
+just doctor       # before you open a PR
+----
+
+Template-specific commands:
+
+[source,bash]
+----
+just repo-init    # instantiate: fills every placeholder token, then validates
+just validate     # RSR shape + metadata + AI-install completeness
+just quality      # fmt-check, lint, test
+just test-all     # test, e2e, aspect, bench, readiness
+just repo-map     # regenerate docs/architecture/REPOSITORY-MAP.adoc (CI checks it)
+----
+
+The golden path is `just test && just quality`. In the template itself `test` and
+`lint` fail on the placeholder tokens in `src/interface/ffi/src/main.zig`; that is
+deliberate. Test a change to the FFI in a scratch copy after `repo-init`.
+
+== Where things are
+
+* Top level: `archetypes/ benches/ build/ ci/ docs/ examples/ features/ LICENSES/
+  scripts/ session/ src/ tests/ verification/ www/`. The root file list is fenced by
+  `.machine_readable/root-allow.txt`; a new root file needs a line there.
+* `build/just/`: provisioning (`provision.just`, `provision-lib.sh`), `repo-init.just`,
+  `validate.just`, and the other imported phases.
+* `build/guix.scm`, `build/manifest.scm`, `build/channels.scm`: the Guix route.
+* `tests/`: e2e, aspect, shape and workflow checks. `benches/`: benchmark harness.
+* `docs/`: SETUP, AI installation guide, onboarding warm-ups, architecture map.
+
+== Rules that bite
+
+* Languages: JavaScript runs Bun > Deno > pnpm > npm from one `package.json`;
+  after `bun add`, run `js-runtimes regen`. Python, TypeScript, ReScript, Nix,
+  Go and Makefiles are banned. New code follows the repository's existing languages.
+* Every new file carries an SPDX header: `MPL-2.0` for code and config,
+  `CC-BY-SA-4.0` for prose docs. Never change an existing file's licence.
+* Commits are signed; history is linear (squash merges).
+
+* `.machine_readable/contractiles/Justfile` must stay byte-identical to the root
+  `Justfile`; copy it after every edit.
+* Never put literal placeholder tokens in prose that `repo-init` will process: it
+  substitutes them. Write "placeholder token" instead.
+* `build/` is not an artefact directory here: `just clean` deliberately leaves it,
+  because `build/just/repo-init.just` lives there.
+* Descriptile and policy facts are clauses of the repo deed (`*_chora.deed`),
+  read with `scripts/deed-field.sh`; A2ML is retired and no `.a2ml` file may exist.

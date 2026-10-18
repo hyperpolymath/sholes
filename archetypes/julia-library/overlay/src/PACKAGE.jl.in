@@ -1,0 +1,15 @@
+module {{PROJECT_NAME}}
+
+# {{PROJECT_NAME}} — {{PROJECT_DESCRIPTION}}
+#
+# Forged from the hyperpolymath julia-library archetype ({{CURRENT_YEAR}}).
+# Provenance: the repo deed's (provenance) clause, written at mint.
+#
+# The public API is whatever is `export`ed below; Aqua's exports/ambiguity
+# checks gate it from the first mint, so keep exports deliberate.
+
+# --- public API ----------------------------------------------------------
+
+# --- implementation ------------------------------------------------------
+
+end # module {{PROJECT_NAME}}

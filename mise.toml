@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: MPL-2.0
+# SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+#
+# The toolchain for rsr-template-repo (idris2, zig). Specs are `latest`; mise.lock
+# records the concrete version and per-platform checksum of each, so every
+# checkout installs the same bits. Refresh both with: just toolchain-refresh
+# Canon: hyperpolymath/standards 3-practice/provisioning (TRUST-DEFAULTS §toolchain).
+# Estate policy: no python, node/npm/yarn, make or nix here. JavaScript runs Bun > Deno >
+# pnpm from one package.json, so a repository with one pins all three (LANGUAGE-POLICY §1.4).
+#
+# Idris2 is not a mise tool: it comes from pack (`just setup` says how).
+# A repository created from this template gets this file re-minted for its own
+# languages by `launch-scaffolder provision-set realign` (the deed's :repo differs).
+
+[settings]
+lockfile = true
+
+[tools]
+just = "latest"
+shellcheck = "latest"
+trivy = "latest"          # just deps-audit
+zig = "latest"

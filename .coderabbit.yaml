@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: MPL-2.0
+# CodeRabbit configuration. Schema: https://coderabbit.ai/integrations/schema.v2.json
+#
+# Docstring Coverage pre-merge check is pinned to `mode: warning` as an explicit
+# estate decision rather than left to the vendor default. Some estate repos'
+# rulesets require the `CodeRabbit` status context; an `error` mode would make
+# them unmergeable at today's docstring-coverage baseline. Raise it per repo only
+# once that repo's coverage clears the threshold.
+reviews:
+  pre_merge_checks:
+    docstrings:
+      mode: warning
+      threshold: 80
+  finishing_touches:
+    docstrings:
+      enabled: true

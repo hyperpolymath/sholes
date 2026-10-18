@@ -1,0 +1,170 @@
+== Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on https://keepachangelog.com/en/1.1.0/[Keep a
+Changelog], and this project adheres to
+https://semver.org/spec/v2.0.0.html[Semantic Versioning].
+
+=== [Unreleased]
+
+==== Added
+
+* `www/` site-operations bundle (issue #53): canonical `.well-known/`
+  metadata, publishable content, policy sources, error bodies,
+  security-header templates, Caddy/nginx/Apache integration examples, an
+  authoritative-only BIND 9 starting hand with record templates,
+  encrypted-DNS/privacy and TLS guidance, explicit opt-in profiles,
+  schemas, planted-control tests and operational runbooks.
+* `scripts/migrate-wellknown-to-www.sh` — conflict-safe migration of a
+  repository-root `.well-known/` into `www/.well-known/` (identical copies
+  de-duplicated, root-only content moved, divergent content quarantined —
+  see Changed).
+* `scripts/sweep-wellknown.sh` — stage 5 (#119) batch driver: classify,
+  migrate, test and commit across the estate in batches of 25, holding
+  Pages-served and non-RSR repositories for a human decision instead of
+  sweeping them blind.
+* `www/runbooks/stage5-wellknown-sweep.adoc` — how to run the sweep, and
+  how to recover from a quarantine.
+* Mint wiring for the `www/` bundle: `repo-init` now invokes
+  `scripts/migrate-wellknown-to-www.sh` when the tree being minted still
+  carries a legacy root `.well-known/`, and runs `www/tests/run-all.sh`
+  afterwards. Both are no-ops for a repository minted from the current
+  template; they exist for running `repo-init` over a tree that predates
+  #53. #106 described both as already present — neither was, which is a
+  fair part of why the estate still carries root `.well-known/` directories.
+* `scripts/merge-actions-lock.rs` — merges an archetype's lock fragment
+  (`archetypes/<name>/actions.lock`) into the spine's
+  `.github/workflows/actions.lock` at mint. A record that differs between
+  the two stops the mint. `tests/workflows/archetype_lock_merge_test.sh`
+  (wired into estate-rules) checks the merged lock with
+  `check-lock-sync.sh`, and checks that the old clobber, a missing record
+  and a conflicting record all fail.
+
+==== Changed
+
+* JavaScript runtimes follow the 2026-10-14 ruling (standards
+  LANGUAGE-POLICY §1.3–§1.4): Bun > Deno > pnpm > npm, from one
+  `package.json` whose `bun.lock`, `deno.lock` and `pnpm-lock.yaml` are all
+  written by `js-runtimes regen`.
+** `.github/workflows/runtime-policy.yml` used to fail any repository
+   carrying more than one lock, so it failed every repository that follows the
+   ruling ("Mixed toolchains: 3 package managers"). Those three locks now count
+   as one dependency graph. `package-lock.json` next to them still fails. A
+   `deno.json` is a notice, not a warning.
+** The provisioning engine (`build/just/provision-lib.sh`,
+   `provision-modes.sh`, `provision-check.sh`) is re-synced to standards
+   `ed04132e` (engine 0.6.0, standards#1255). A `package.json` provisions bun,
+   deno and pnpm, and deno and pnpm are no longer banned tools.
+** The same policy appears in the arrival pack (`arrival-pack.ncl`, and
+   CLAUDE.md regenerated from it), `mise.toml`, `docs/SETUP.adoc` PV-W23,
+   PV-W30 and PV-W34, the dev warm-up, `.cursorrules`, `.clinerules`,
+   `.windsurfrules`, `.github/copilot-instructions.md` and the PR template.
+** The six standards reusables move from `ae36881` to `934b879`. At
+   `ae36881` governance's Actions lockfile verify installs gh-actions-lock
+   v0.1.6, which cannot read this lock's format v0.0.3 (exit 2, red on main).
+   `actions.lock` is re-keyed and closed at the new pin (setup-bun and
+   setup-deno records added), as resource-algebra#8 did.
+
+* Canonical `.well-known/` location moved from the repository root to
+  `www/.well-known/`. Well-known enforcement, Groove checks, the root-shape
+  allowlist, the SSG bootstrap and the documentation now prefer the `www/`
+  location and accept the legacy root location with a warning during the
+  migration window.
+
+==== Changed
+
+* Divergent root/`www/` `.well-known/` content is now quarantined to
+  `www/.legacy-well-known-<YYYYMMDD>/` instead of being left in place: the
+  estate-wide sweep (#119) is unattended, so a conflict must not halt it, and
+  must not be silent either. The `www/` copy is untouched, both hashes are
+  printed, and the run exits non-zero. `--in-place` keeps the previous
+  contract (preserve both, exit 1) for hand resolution. The quarantine lives
+  under `www/` rather than at the root because the root allowlist is matched
+  literally and bidirectionally, so a dated root directory would report as
+  drift in every repository swept.
+
+==== Fixed
+
+* The mint's self-name pass keeps issue references. It rewrote
+  `rsr-template-repo#N`, a reference to this template's own issue, into
+  `<child>#N`, which names an issue of the child that does not exist or is
+  unrelated. resource-algebra carried such references after its mint.
+  `tests/workflows/self_name_pass_test.sh` (wired into Estate Rules) runs
+  the recipe's own rewrite program on fixtures.
+* CLAUDE.md prints the deed's typed identity (`#u5"<name>"`) instead of
+  the derived uuid5 in hex, and the deed's identity comment no longer
+  spells it out. ADR-008's strict v8 gate (governance "UUID v7
+  conformance") rejected both, in the template and in every minted repo.
+* The standards reusables are pinned to `6a92510`, whose governance job
+  installs gh-actions-lock v0.2.0. At `ae36881` it installed v0.1.6, which
+  refuses lock format v0.0.3 ("newer than this binary supports"), so
+  Actions lockfile verify failed. `actions.lock` was relocked with
+  standards' `propagate-workflow-pins.sh` (hyperpolymath/standards#1254).
+  `6a92510` also scans the julia-library overlay's `Project.toml.in` as a
+  `Project.toml` (hyperpolymath/standards#1258), so its `[extras]` registry
+  UUIDs no longer fail the strict v8 gate.
+* The non-interactive mint completes. `RSR_NON_INTERACTIVE=1` used to
+  stub `read` for the whole recipe, so an unanswered prompt killed the
+  mint under `set -u` and the substitution loops never ended. Prompts now
+  read answers from the environment; `tests/workflows/non_interactive_mint_test.sh`
+  drives that path in Estate Rules, and the docs that warned agents off it
+  now describe it.
+* A mint leaves just's own interpolation of `project` alone, regenerates
+  CLAUDE.md and the repository map from the child's deed and tree, keeps
+  the deed's `reject-if-contains` detector, and no longer breaks the
+  OpenSSF audit table when no OpenSSF id is given.
+* The standards reusables are pinned to standards main (`ae36881`), where
+  the Actions lockfile verify job pins its tool and treats `sha-as-ref`
+  as advisory.
+* The julia-library lock fragment is at the spine's lockfile format
+  v0.0.3, so Julia mints merge it again.
+
+* Julia mints start with Lock Sync green. The julia-library overlay
+  shipped its own `actions.lock`, which replaced the spine's at mint, so
+  every spine workflow lost its records. The records now ship beside the
+  overlay and are merged in. The overlay workflows gain SPDX headers and
+  top-level permissions, and julia-docs builds with plain steps instead of
+  the allowlist-refused julia-buildpkg/julia-docdeploy. julia-actions/cache
+  moves to v3.5.0. The root allowlist admits `?Project.toml` and `?test/`.
+  The docs checkout sets `persist-credentials: false`, so package code run
+  while the docs environment is set up finds no stored token. deploydocs
+  still receives GITHUB_TOKEN.
+* `just repo-init julia-library` accepts a `<Name>.jl` slug. The PROJECT
+  tokens map its dot to an underscore, and the default service name is the
+  slug in lower case.
+
+* Dev container starts for everyone: dropped the ghcr.io dev container
+  features (anonymous pulls returned 403), installing just from Wolfi and a
+  SHA-256-checked Nickel 1.17.0 binary instead. The default
+  `.devcontainer/devcontainer.json` now targets rootless Podman
+  (`--userns=keep-id:uid=65532,gid=65532`, `label=disable`) so the workspace
+  is writable as wolfi-base's built-in `nonroot`; Docker, Codespaces and
+  Gitpod use `.devcontainer/docker/devcontainer.json`.
+* `dot-wellknown-enforcement.yml` now drives the migrator that #106 described
+  but never wired up: previously the workflow only printed advice to run it,
+  so nothing verified that a repository would survive the migration. It now
+  runs the migrator in `--dry-run` and turns every conflict into a
+  `::warning` annotation — a warning, not an error, for the migration window.
+* The migrator's acceptance test had encoded the in-place contract as the
+  required behaviour, contradicting #106's stated design; it now proves the
+  quarantine contract across nine scenarios, including the collision case
+  where a quarantine name is already taken.
+* `tests/e2e/template_instantiation_test.sh` fed the three container answers
+  only when `container/` existed, but `build/just/repo-init.just` asks those
+  questions when `build/container/` does. On any complete checkout — which is
+  what CI clones — the recipe asked three questions the test had no answers
+  for, `read` hit EOF, and the recipe exited 1, so the instantiation e2e was
+  red at the container prompt. The guard now matches the recipe's own path.
+  (The test also needed `ruby` for the two mint tools. Those are Rust as
+    of 2026-09-18, so it no longer stops there.)
+
+* Restore the modular `just` recipes removed by the root-layout refactor, so
+  `just repo-init`, validation, assessment, container, Groove, and proof tasks
+  are available again.
+* Require lowercase hyphenated repository slugs at initialization and verify
+  that both Guix package definitions receive the rendered slug and project URL.
+* Keep template validation aligned with authority documents moved under
+  `docs/`, and repair the cross-platform `cloak`/`uncloak` recipe syntax.
+* Restore the tracked-file language-ban gate with regression fixtures proving
+  that supported Zig passes while prohibited V-language remnants fail.
