@@ -53,10 +53,12 @@ In 1868, **Christopher Latham Sholes** patented the practical typewriter. When t
 2. A rubber cylinder rolled the paper up by one line (**Line Feed**, `LF`, `\n`, `0x0A`).
 
 A century later, the early computing split cemented this mechanical legacy:
+
 * **Unix (1970s)**: Dennis Ritchie and Ken Thompson dropped the redundant byte, standardizing on **`LF`**.
 * **CP/M and MS-DOS**: Retained teleprinter compatibility with the two-byte sequence **`CRLF`**.
 
-Because Git hashes raw byte streams ($\Sigma^*$) rather than semantic contents, humanity has spent fifty years paying for this split with:
+Because Git hashes raw byte streams rather than semantic contents, humanity has spent fifty years paying for this split with:
+
 * Phantom 40,000-line Git diffs when files are opened across OS boundaries.
 * Wiped `git blame` histories.
 * Linux containers crashing because shebangs search for `/usr/bin/env bash\r`.
@@ -67,13 +69,16 @@ Because Git hashes raw byte streams ($\Sigma^*$) rather than semantic contents, 
 
 We do not negotiate with ASCII `0x0D`. **sholes** treats content addressing as a quotient over an equivalence relation on byte streams:
 
-$$\mathcal{Q} = \Sigma^* / \sim_{\mathrm{LE}}$$
+[stem]
+++++
+\mathcal{Q} = \Sigma^* / \sim_{\mathrm{LE}}
+++++
 
 1. **Mechanized Proofs (Agda / Lean 4 / Coq)**:
-   * **Idempotence**: $\forall s.\; \mathrm{canon}(\mathrm{canon}(s)) \equiv \mathrm{canon}(s)$
-   * **Equivalence Invariance**: $\forall s_1, s_2.\; s_1 \sim_{\mathrm{LE}} s_2 \implies \mathrm{canon}(s_1) \equiv \mathrm{canon}(s_2)$
-   * **Cryptographic Coherence**: $\forall H, s_1, s_2.\; s_1 \sim_{\mathrm{LE}} s_2 \implies H(\mathrm{canon}(s_1)) \equiv H(\mathrm{canon}(s_2))$
-   * **Binary Preservation**: $\forall s.\; \mathrm{is\_binary}(s) \implies \mathrm{canon}(s) \equiv s$
+   * **Idempotence**: `canon(canon(s)) = canon(s)`
+   * **Equivalence Invariance**: `s1 ~ s2 => canon(s1) = canon(s2)`
+   * **Cryptographic Coherence**: `s1 ~ s2 => H(canon(s1)) = H(canon(s2))`
+   * **Binary Preservation**: `is_binary(s) => canon(s) = s`
    * **Well-Behaved Symmetric Lens**: Satisfies the categorical `GetPut` and `PutGet` laws for environment-directed routing.
 2. **Verified Systems Engine (Rust + Creusot)**:
    * Zero-copy, bounded-buffer streaming filter.
@@ -85,7 +90,8 @@ $$\mathcal{Q} = \Sigma^* / \sim_{\mathrm{LE}}$$
 [#quick-start]
 == Quick start
 
-```bash
+[source,bash]
+----
 # 1. Install via cargo or pre-built binary
 cargo install sholes-cli
 
@@ -94,3 +100,130 @@ sholes init --global
 
 # 3. Verify repository hygiene and check for line-ending divergence
 sholes audit .
+----
+
+To work on this repository directly:
+
+[source,bash]
+----
+# 1. Inspect tasks via Just
+just
+
+# 2. Verify formal proofs (Agda / Coq)
+just verify-proofs
+
+# 3. Run Creusot verification conditions on Rust engine
+just verify-code
+
+# 4. Run test suites and differential fuzzing against GNU dos2unix
+just test
+----
+
+'''
+
+[#ai-install]
+== AI-Assisted Installation (Recommended)
+
+[#just-say-it]
+=== Just say it
+
+Say this to any AI assistant that can read a URL and run commands (or give you commands to paste):
+
+[source,text]
+----
+Set up sholes from https://github.com/hyperpolymath/sholes
+----
+
+The URL leads the assistant to `docs/AI_INSTALLATION_GUIDE.adoc`, the complete step-by-step recipe. The assistant checks your system, installs prerequisites with `mise`, checks the proofs, builds the verified filter, and runs `just doctor`.
+
+[#what-you-will-be-asked]
+=== What you will be asked
+
+1. Your operating system (Linux, macOS, or Windows via WSL2).
+2. The installation scope (global Git filter or per-repository).
+3. To confirm the privacy notice below.
+
+[#privacy-and-security]
+=== Privacy and security
+
+[IMPORTANT]
+====
+Installing and running **sholes** operates entirely offline and locally on your machine. No source code, hashes, paths, or telemetry are ever transmitted to any remote network endpoint.
+====
+
+[#minting-without-a-terminal]
+=== Minting without a terminal
+
+Agents and CI can configure non-interactively: set `RSR_NON_INTERACTIVE=1` and pass required environment variables. See `build/just/repo-init.just` for all automation switches.
+
+[#troubleshooting]
+=== Troubleshooting
+
+Run `just doctor`; each `FAIL` carries an actionable remediation code explained in `docs/SETUP.adoc` link:docs/SETUP.adoc#troubleshooting[§Troubleshooting], and `just heal` applies automatic fixes. Developers and maintainers can warm up an AI with `just ai-warmup dev` or `just ai-warmup maintainer`.
+
+'''
+
+[#what-you-get]
+== What you get
+
+* **Mechanized Proof Core (`proofs/`)** — Agda formalization of quotient string normalization, with verified proof exports in Lean 4 and Coq/Rocq.
+* **Verified Rust Engine (`crates/sholes-core/`)** — Creusot-annotated algorithms proving memory safety, non-corruption of binary streams, and canonical output invariants.
+* **Git Filter Driver (`crates/sholes-cli/`)** — High-throughput streaming CLI implementing Git filter protocol v2 (`clean` and `smudge`).
+* **Machine-Readable Metadata (`.machine_readable/descriptiles/`)** — `STATE`, `META`, `ECOSYSTEM`, `PLAYBOOK`, `AGENTIC`, `NEUROSYM`, `CLADE`, and `anchors/ANCHOR` in deed format for autonomous agents and validation tools.
+* **AI Gatekeeper Protocol** — `sholes_chora.deed` defining repository agent boundaries, capabilities, and verification gates.
+* **CI/CD & Supply Chain** — GitHub Actions for CodeQL, OpenSSF Scorecard, reproducible Guix/Stapeln builds, SBOM generation, and cryptographic provenance signing.
+
+'''
+
+[#repository-map]
+== Repository map
+
+The authoritative map is generated, so it cannot drift from the tree: link:docs/architecture/REPOSITORY-MAP.adoc[docs/architecture/REPOSITORY-MAP.adoc] (regenerate with `just repo-map`; CI fails if it is stale).
+
+The short version:
+
+[cols="1,2", options="header"]
+|===
+| Path | What lives there
+
+| `README.adoc`, `CLAUDE.md`
+| Start here — humans and AI agents respectively.
+
+| `proofs/`
+| Formal proofs in Agda, Lean 4, and Coq/Rocq.
+
+| `crates/`, `src/`, `tests/`
+| Rust source code, Creusot contracts, CLI, and integration tests.
+
+| `docs/`
+| Architecture notes, mathematical definitions, and human documentation.
+
+| `.machine_readable/`
+| Manifests, contractiles, deeds, and policies that tools and agents read.
+
+| `build/`, `Justfile`
+| Every task runs through `just`; task definitions live in `build/just/`.
+
+| `ci/`, `.github/`
+| GitHub Actions and security automation pipelines.
+|===
+
+'''
+
+[#where-to-go-next]
+== Where to go next
+
+* link:docs/architecture/REPOSITORY-MAP.adoc[The repository map] — generated; what every directory is for.
+* link:docs/EXPLAINME.adoc[EXPLAINME] — the engineering deep-dive: how quotient projection works under the hood.
+* link:docs/AFFIRMATION.adoc[AFFIRMATION] — the dated, signed honesty snapshot of the repo's true state.
+* link:docs/AUDIT.adoc[AUDIT] — the release audit gate and verification status.
+* link:docs/AI_INSTALLATION_GUIDE.adoc[AI installation guide] — for autonomous agents instantiating and developing this repo.
+
+'''
+
+[#licence]
+== Licence
+
+Code, configuration, and scripts are link:LICENSE[Mozilla Public License 2.0] (`MPL-2.0`); formal proofs and prose documentation are `CC-BY-SA-4.0`. Both texts live in `LICENSES/`, and per-file `SPDX-License-Identifier` headers are authoritative.
+
+Long-term attribution uses Quantum-Safe Provenance — see link:docs/legal/EXHIBIT-B-QUANTUM-SAFE.txt[the Quantum-Safe Provenance exhibit].
