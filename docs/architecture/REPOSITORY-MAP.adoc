@@ -81,6 +81,10 @@ predecessors did.
 | yes
 | -
 
+| `ARCHITECTURE.md`
+| optional
+| tooling-friendly architecture bridge; docs/ARCHITECTURE.adoc remains canonical
+
 | `CHANGELOG.adoc`
 | yes
 | AsciiDoc is the estate-standard documentation format
@@ -96,6 +100,14 @@ predecessors did.
 | `CONTRIBUTING.adoc`
 | optional
 | estate docs gate (standards scripts/check-docs-presence.sh) requires CONTRIBUTING at the ROOT; this is the copy it verifies
+
+| `Cargo.toml`
+| optional
+| Rust workspace manifest for the SHOLES implementation
+
+| `EXPLAINME.adoc`
+| optional
+| engineering receipt retained at the project root
 
 | `GEMINI.md`
 | optional
@@ -117,6 +129,10 @@ predecessors did.
 | yes
 | -
 
+| `README.md`
+| optional
+| tooling-friendly bridge; README.adoc remains canonical prose
+
 | `archetypes/`
 | optional
 | template-only variation seam (ADR-0003); `just repo-init` removes it from minted repos
@@ -136,6 +152,10 @@ predecessors did.
 | `coordination.k9.ncl`
 | yes
 | repo-local session binding (template-mandated)
+
+| `crates/`
+| optional
+| dependency-free Rust core and CLI
 
 | `docs/`
 | yes
@@ -160,6 +180,10 @@ predecessors did.
 | `mise.toml`
 | yes
 | the toolchain: every tool at latest (PROVISIONING-STANDARD §4)
+
+| `proofs/`
+| optional
+| publication-facing Agda/Lean/Coq proof tree
 
 | `rsr-template-repo_chora.deed`
 | yes
@@ -254,11 +278,8 @@ your own repo - but do not read their emptiness as neglect here.
 | `tests/fuzz/`
 | `verification/benchmarks/`
 | `verification/coverage/`
-| `verification/fuzzing/`
 | `verification/safety_case/`
 | `verification/simulations/`
-| `verification/tests/`
-| `verification/traceability/`
 |===
 
 == Where things are enforced

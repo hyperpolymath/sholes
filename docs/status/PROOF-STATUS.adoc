@@ -1,101 +1,56 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
-// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-// Template: rsr-template-repo/docs/status/PROOF-STATUS.adoc
-// Tracks proof completion. Requirements defined in PROOF-NEEDS.adoc
-= Proof Status — {{PROJECT}}
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath)
+= Proof Status — SHOLES
 
-== Summary
+== Scope
 
-[cols="2,1,1,1,1,1", options="header"]
+The publication-facing quotient proof tree is under `proofs/`. The template ABI
+proofs under `verification/proofs/` remain a separate estate gate. This status
+file does not claim a prover run when the corresponding toolchain is absent.
+
+== Publication artifacts
+
+[cols="1,3,1,3,1", options="header"]
 |===
-| Category | Total | Done | In Progress | Blocked | Remaining
+| ID | Property | Source | Cross-prover copy | Status
 
-| ABI/FFI (ABI) | 5 | 0 | 0 | 0 | 5
-| Typing (TP) | 2 | 0 | 0 | 0 | 2
-| Invariant (INV) | 0 | 0 | 0 | 0 | 0
-| Security (SEC) | 0 | 0 | 0 | 0 | 0
-| Concurrency (CONC) | 0 | 0 | 0 | 0 | 0
-| Algorithm (ALG) | 0 | 0 | 0 | 0 | 0
-| Domain (DOM) | 0 | 0 | 0 | 0 | 0
-| *Total* | *7* | *0* | *0* | *0* | *7*
-|===
-
-*Overall*: 0% proven
-
-== Proofs Done
-
-// Format:
-// | ID | Proof | Prover | File | Date | Verified By |
-// | ABI-1 | Non-null pointer proofs | Idris2 | verification/proofs/idris2/ABI/Pointers.idr | 2026-XX-XX | idris2 --check |
-
-[cols="1,3,1,3,1,2", options="header"]
-|===
-| ID | Proof | Prover | File | Date | Verified By
-
-| — | No proofs completed yet | — | — | — | —
+| Q-1 | `Byte = Fin 256`, `Stream = List Byte` | `proofs/agda/Sholes/Core.agda` | Lean / Coq | Source present
+| Q-2 | Canonical CR, CRLF, LF projection | `proofs/agda/Sholes/Core.agda` | Lean / Coq | Source present
+| Q-3 | Idempotence | `idempotence` | Lean / Coq | Source present; run checker
+| Q-4 | Equivalence invariance | `Equivalence` | Lean / Coq | Source present; run checker
+| Q-5 | Parametric cryptographic coherence | `cryptographic-coherence` | Lean / Coq | Source present; run checker
+| Q-6 | Binary preservation | `binary-preservation` | Lean / Coq | Source present; run checker
+| Q-7 | POSIX/Windows lens laws | `Sholes/Lens` | Lean / Coq | Source present; run checker
 |===
 
-== Proofs In Progress
+== Runtime verification surface
 
-[cols="1,3,1,2,1,2", options="header"]
+[cols="1,3,2,1", options="header"]
 |===
-| ID | Proof | Prover | Assignee | Started | Blocker
+| ID | Obligation | Artifact | Status
 
-| — | — | — | — | — | —
-|===
-
-== Proofs Blocked
-
-[cols="1,3,2,3", options="header"]
-|===
-| ID | Proof | Blocked By | Notes
-
-| — | — | — | —
+| R-1 | Binary and malformed UTF-8 identity | `crates/sholes-core/src/classifier.rs`, tests | Implemented
+| R-2 | Allocation-free streaming state machine | `crates/sholes-core/src/normalize.rs` | Implemented
+| R-3 | Creusot predicates and contracts | `crates/sholes-core/src/contracts.rs` | Contract ledger present
+| R-4 | Projected random reads for filesystem adapters | `crates/sholes-core/src/view.rs` | Implemented
+| R-5 | Git pkt-line v2 clean/smudge process | `crates/sholes-cli/src/` | Implemented
 |===
 
-== Proofs Remaining
-
-[cols="1,3,1,1,1,1", options="header"]
-|===
-| ID | Proof | Category | Prover | Priority | Est. Effort
-
-| ABI-1 | Non-null pointer proofs | ABI | Idris2 | P1 | 2h
-| ABI-2 | Memory layout correctness | ABI | Idris2 | P1 | 4h
-| ABI-3 | Platform type size proofs | ABI | Idris2 | P1 | 2h
-| ABI-4 | FFI function return type proofs | ABI | Idris2 | P1 | 2h
-| ABI-5 | C ABI compliance | ABI | Idris2 | P1 | 4h
-| TP-1 | Core data type well-formedness | TP | Idris2 | P1 | 4h
-| TP-2 | Public API type safety | TP | Lean4 | P2 | 4h
-|===
-
-== Verification Commands
+== Commands
 
 [source,bash]
 ----
-# Check all Idris2 proofs
-just proof-check-idris2
+# Rust implementation and property tests
+cargo test --workspace
 
-# Check all Lean4 proofs
-just proof-check-lean4
+# Publication-facing Agda, Lean 4, and Coq/Rocq checks
+bash scripts/check-publication-proofs.sh
 
-# Check all Agda proofs
-just proof-check-agda
-
-# Check all Coq proofs
-just proof-check-coq
-
-# Run all proof checks
+# Existing estate proof gate (Idris2, Lean4, Agda, Coq)
 just proof-check-all
-
-# Scan for dangerous patterns
-panic-attack assail --proofs-only
 ----
 
-== Changelog
-
-[cols="1,3,1", options="header"]
-|===
-| Date | Change | By
-
-| 2026-04-04 | Initial proof status tracking | Template
-|===
+A missing toolchain is a failure, not a successful skip. Generated compiler
+caches and Why3 sessions are build artifacts and are not proof deliverables.
+The Rust tests are correspondence tests, not a substitute for the mechanized
+proofs.

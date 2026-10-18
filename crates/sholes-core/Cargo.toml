@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+[package]
+name = "sholes-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Allocation-free streaming line-ending canonicalization"
+repository.workspace = true
+
+[lib]
+name = "sholes_core"
+path = "src/lib.rs"
+
+[[bench]]
+name = "throughput"
+harness = false
+
+[features]
+default = []
+# The verifier consumes the contract comments in src/contracts.rs.  Keeping
+# verification out of the default feature set preserves the zero-dependency
+# runtime library.
+creusot = []

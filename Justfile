@@ -22,9 +22,9 @@ import? "build/contractile.just"
 mod provision 'build/just/provision.just'
 
 # Project metadata — customize these
-project := "rsr-template-repo"
+project := "sholes"
 OWNER := "hyperpolymath"
-REPO := "rsr-template-repo"
+REPO := "sholes"
 version := "0.1.0"
 tier := "infrastructure"  # 1 | 2 | infrastructure
 
@@ -91,7 +91,11 @@ import? "build/just/assess.just"
 # Build the project with every detected language's toolchain (here: pack/idris2 for
 # the ABI, then `zig build` in src/interface/ffi). Replace the delegation with a
 # body of your own when the project needs a different build.
-build: provision::build
+build: rust-build
+
+rust-build:
+    @command -v cargo >/dev/null || { echo "FAIL: cargo is required to build SHOLES" >&2; exit 1; }
+    cargo build --workspace
 
 # Build in release mode with optimizations
 build-release *args:
@@ -100,7 +104,8 @@ build-release *args:
     #   cargo build --release {{args}}
     #   MIX_ENV=prod mix compile {{args}}
     #   zig build -Doptimize=ReleaseFast {{args}}
-    @echo "FAIL: 'just build-release' is not wired yet — nothing was built. Edit the 'build-release' recipe." >&2; exit 1
+    @command -v cargo >/dev/null || { echo "FAIL: cargo is required to build SHOLES" >&2; exit 1; }
+    cargo build --workspace --release {{args}}
 
 # Build and watch for changes (requires entr or similar)
 build-watch:
@@ -134,15 +139,22 @@ clean-all: clean
 # (unit tests in src/main.zig, test/integration_test.zig). It compiles only after
 # `just repo-init` has filled the template tokens, so an un-initialised template
 # fails here loudly instead of reporting a pass over nothing.
-test: provision::test
+test: rust-test
+
+rust-test:
+    @command -v cargo >/dev/null || { echo "FAIL: cargo is required to test SHOLES" >&2; exit 1; }
+    cargo test --workspace
 
 # Run tests with verbose output
-test-verbose: provision::test
+test-verbose:
+    @command -v cargo >/dev/null || { echo "FAIL: cargo is required to test SHOLES" >&2; exit 1; }
+    cargo test --workspace -- --nocapture
 
 # Smoke test
 test-smoke:
     # TODO: Add basic sanity checks
-    @echo "FAIL: 'just test-smoke' is not wired yet — no smoke check ran. Edit the 'test-smoke' recipe." >&2; exit 1
+    @command -v cargo >/dev/null || { echo "FAIL: cargo is required to smoke-test SHOLES" >&2; exit 1; }
+    test "$$(printf 'a\\r\\nb\\r\\n' | cargo run -q -p sholes-cli -- clean)" = "$$(printf 'a\\nb\\n')"
 
 # Run end-to-end tests (full pipeline: build → run → verify)
 e2e:
@@ -207,24 +219,32 @@ fix: fmt
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # Format all source files [reversible: git checkout]
-fmt: provision::fmt
+fmt:
+    @command -v cargo >/dev/null || { echo "FAIL: cargo is required to format SHOLES" >&2; exit 1; }
+    cargo fmt --all
 
 # Check formatting without changes
-fmt-check: provision::fmt-check
+fmt-check:
+    @command -v cargo >/dev/null || { echo "FAIL: cargo is required to format SHOLES" >&2; exit 1; }
+    cargo fmt --all -- --check
 
 # Run linter (`zig fmt --check` on src/interface/ffi; like `test`, it parses the
 # FFI sources only after `just repo-init` has filled the template tokens)
-lint: provision::lint
+lint:
+    @command -v cargo >/dev/null || { echo "FAIL: cargo is required to lint SHOLES" >&2; exit 1; }
+    cargo clippy --workspace --all-targets -- -D warnings
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # RUN & EXECUTE
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # Run the application (N/A for a library; wire a "run" step or executable to enable)
-run: provision::run
+run *args:
+    @command -v cargo >/dev/null || { echo "FAIL: cargo is required to run SHOLES" >&2; exit 1; }
+    cargo run -p sholes-cli -- {{args}}
 
 # Run with verbose output
-run-verbose: run
+run-verbose *args: run {{args}}
 
 # Install to user path
 install: build-release
@@ -235,15 +255,11 @@ install: build-release
 # DEPENDENCIES
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# Install/check all dependencies
+# Install/check all dependencies. The default workspace intentionally has no
+# external crates beyond the two local packages.
 deps:
-    @echo "Checking dependencies..."
-    # TODO: Replace with your dependency check
-    # Examples:
-    #   cargo check
-    #   mix deps.get
-    #   gleam deps download
-    @echo "All dependencies satisfied"
+    @command -v cargo >/dev/null || { echo "FAIL: cargo is required to check SHOLES" >&2; exit 1; }
+    cargo check --workspace
 
 # Audit dependencies for vulnerabilities
 deps-audit:
@@ -601,6 +617,9 @@ help-me:
 # ═══════════════════════════════════════════════════════════════════════════════
 # FORMAL VERIFICATION (PROOFS) — see build/just/proofs.just
 # ═══════════════════════════════════════════════════════════════════════════════
+
+verify-proofs: proof-check-all
+verify-code: rust-test
 
 import? "build/just/proofs.just"
 

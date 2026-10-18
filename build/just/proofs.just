@@ -9,7 +9,7 @@
 # `just proof-check-all` for the full sweep.
 
 # Check all formal proofs (Idris2 + Lean4 + Agda + Coq)
-proof-check-all: proof-check-idris2 proof-check-lean4 proof-check-agda proof-check-coq proof-scan-dangerous
+proof-check-all: proof-check-idris2 proof-check-lean4 proof-check-agda proof-check-coq proof-check-publication proof-scan-dangerous
     @echo "=== All proof checks complete ==="
 
 # Each proof-check-<prover> delegates to scripts/check-proofs.sh, the single
@@ -39,6 +39,11 @@ proof-check-coq:
 # must not trip the gate. See scripts/scan-dangerous.sh.
 proof-scan-dangerous:
     @bash scripts/scan-dangerous.sh
+
+# Check the publication-facing cross-prover artifacts under proofs/.
+# This is separate from the template ABI proofs under verification/proofs/.
+proof-check-publication:
+    @bash scripts/check-publication-proofs.sh
 
 # Show proof status summary
 proof-status:

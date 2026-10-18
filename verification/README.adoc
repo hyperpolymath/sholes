@@ -1,3 +1,17 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
-// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-= Verification Pillar
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath)
+= SHOLES Verification
+
+The publication-facing finite-list proofs live under `proofs/` because the
+mission names that path explicitly. This directory contains verification
+boundary material that is useful to the repository's estate gates:
+
+* `creusot/` — the Rust/Why3 contract boundary;
+* `fuzzing/` — property and GNU converter differential strategy;
+* `traceability/` — requirement-to-artifact map;
+* `tests/` — correspondence-test notes;
+* `proofs/` — the pre-existing estate ABI/type proof gate and its manifests.
+
+Run `cargo test --workspace` for the executable implementation and
+`bash scripts/check-publication-proofs.sh` when the Agda, Lean 4, and Coq/Rocq
+toolchains are installed. A missing prover is a failed gate, not a proof skip.

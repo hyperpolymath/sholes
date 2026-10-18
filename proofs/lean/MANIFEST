@@ -1,0 +1,4 @@
+# Publication proof manifest
+lean/Sholes/Core.lean
+lean/Sholes/Equivalence.lean
+lean/Sholes/Lens.lean

@@ -1,48 +1,109 @@
-= Architecture
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath)
+= SHOLES Architecture
+:toc:
 
-== Overview
+== System boundary
 
-This repository follows a modular, maintainable architecture designed for clarity, scalability, and long-term sustainability.
+Git, IPFS, and build caches address raw byte streams. SHOLES puts one explicit
+projection boundary around those bytes:
 
-== Directory Structure
-
-[source]
+[source,text]
 ----
-.
-├── src/           # Source code
-├── tests/        # Test suites
-├── docs/         # Documentation
-├── scripts/      # Utility scripts
-├── config/       # Configuration files
-├── LICENSE       # License file
-├── LICENSES/     # Full license texts
-└── README.adoc   # Project documentation
+working tree -- clean --> canonical LF blob -- smudge --> POSIX LF / Windows CRLF
 ----
 
-== Design Principles
+The canonical text projection maps `CRLF` and lone `CR` to `LF`. Binary and
+malformed UTF-8 input is copied byte-for-byte. The Rust classifier examines a
+bounded 8192-byte header for NUL and validates complete slices as UTF-8. This
+is intentionally fail-safe: a stream is never rewritten merely because a
+heuristic says it looks textual.
 
-* *Separation of Concerns*: Each module has a single responsibility
-* *Testability*: Code is written to be easily testable
-* *Documentation*: All public APIs are documented
-* *Configuration*: Environment-specific settings are externalized
+== Repository layout
 
-== Dependencies
+[source,text]
+----
+crates/sholes-core/   allocation-free codec, classifier, audit, contracts, FUSE-neutral projected-read view
+crates/sholes-cli/    clean, smudge, audit, Git filter-process protocol
+proofs/agda/          constructive source model and quotient laws
+proofs/lean/          Lean 4 structural transcription
+proofs/coq/           Coq/Rocq structural transcription
+verification/         traceability, Creusot boundary, test strategy
+----
 
-* External dependencies are minimized and clearly declared
-* Version pinning is used for reproducibility
+The repository's established documentation convention is AsciiDoc. `README.md`
+and `ARCHITECTURE.md` are tooling-friendly entry points; this file is the
+canonical long-form architecture document.
 
-== Security Considerations
+== Core state machine
 
-* Sensitive data is never committed to the repository
-* Secrets are managed through environment variables or secure vaults
-* Regular dependency audits are performed
+`sholes-core` exposes `CanonicalCodec`, whose `push` method consumes as much of
+a caller-owned input slice as the caller-owned output slice permits. It stores
+only:
 
-== Maintainability
+* the classification (`Binary` or UTF-8 text);
+* whether a consumed `CR` is waiting for the next byte; and
+* at most two pending output bytes (`CRLF` in Windows mode).
 
-* Code follows consistent style guidelines
-* Pull requests require review and CI checks
-* Issues and discussions are tracked transparently
+Consequently a `CRLF` split over any ring-buffer boundary has the same result as
+an unsplit pair. `finish` emits a trailing lone `CR` exactly once. The binary
+path is a bounded `copy_from_slice` path and never enters the line-ending
+state machine.
 
----
+The all-at-once functions calculate the exact output length before invoking the
+same state machine. They may allocate an output `Vec` for convenience; the
+streaming API does not allocate.
 
-_Last updated: 2026-07-18_
+== Classifier contract
+
+The formal model is deliberately small:
+
+[source,text]
+----
+Byte   = Fin 256
+Stream = List Byte
+Classifier(Stream) = Binary | Text(UTF8)
+----
+
+The runtime refines `Binary` with malformed UTF-8, in addition to NUL-bearing
+streams. For a complete byte slice, UTF-8 validation covers the entire slice;
+for a streaming integration, `classify_header` provides the bounded header
+oracle. The refinement is recorded in `proofs/README.md` rather than hidden in
+the proof narrative.
+
+== Git filter protocol
+
+`sholes filter-process` implements the long-running Git filter protocol v2:
+
+. consume `git-filter-client` and `version=2` packet lines;
+. advertise `clean` and `smudge` capabilities;
+. consume `command`, `pathname`, then a flush-delimited binary payload;
+. return `status=success`, a flush, transformed payload packet lines, and a
+   final flush.
+
+Packet framing is independent of text encoding and accepts arbitrary bytes.
+The CLI's one-shot modes are useful as compatibility fallbacks for older Git
+configurations.
+
+== Proof and verification boundary
+
+The Agda source contains the constructive finite-list model and the quotient,
+coherence, binary-preservation, and lens laws. Lean 4 and Coq/Rocq repeat the
+same definitions and theorem shapes for cross-prover review. The cryptographic
+law is parametric in `H`: it proves equal inputs to a hash after canonicalizing,
+not the security properties of the hash.
+
+Creusot contracts in `crates/sholes-core/src/contracts.rs` state buffer
+validity, binary identity, canonical text output, and progress. Why3/Coq
+obligations cover the streaming state machine. OS scheduling, filesystem
+semantics, and cryptographic collision resistance remain outside those local
+proof scopes.
+
+== Testing
+
+`crates/sholes-core/tests/normalization.rs` tests idempotence, binary and
+invalid-UTF-8 preservation, Windows projection, chunk-boundary behavior,
+backpressure, and audit counts. `sholes-cli` tests pkt-line binary framing.
+The differential-testing plan in `verification/fuzzing/README.md` compares
+against GNU conversion tools when present but does not treat them as a proof
+oracle.

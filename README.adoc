@@ -166,9 +166,9 @@ Run `just doctor`; each `FAIL` carries an actionable remediation code explained 
 [#what-you-get]
 == What you get
 
-* **Mechanized Proof Core (`proofs/`)** — Agda formalization of quotient string normalization, with verified proof exports in Lean 4 and Coq/Rocq.
-* **Verified Rust Engine (`crates/sholes-core/`)** — Creusot-annotated algorithms proving memory safety, non-corruption of binary streams, and canonical output invariants.
-* **Git Filter Driver (`crates/sholes-cli/`)** — High-throughput streaming CLI implementing Git filter protocol v2 (`clean` and `smudge`).
+* **Mechanized Proof Core (`proofs/`)** — Agda formalization of quotient string normalization, with structural proof transcriptions in Lean 4 and Coq/Rocq.
+* **Verified Rust Engine (`crates/sholes-core/`)** — dependency-free, allocation-free streaming algorithms with a Creusot/Why3 contract ledger for binary identity and canonical output invariants.
+* **Git Filter Driver (`crates/sholes-cli/`)** — standalone std-only CLI implementing Git filter protocol v2 (`clean`, `smudge`, and `audit`).
 * **Machine-Readable Metadata (`.machine_readable/descriptiles/`)** — `STATE`, `META`, `ECOSYSTEM`, `PLAYBOOK`, `AGENTIC`, `NEUROSYM`, `CLADE`, and `anchors/ANCHOR` in deed format for autonomous agents and validation tools.
 * **AI Gatekeeper Protocol** — `sholes_chora.deed` defining repository agent boundaries, capabilities, and verification gates.
 * **CI/CD & Supply Chain** — GitHub Actions for CodeQL, OpenSSF Scorecard, reproducible Guix/Stapeln builds, SBOM generation, and cryptographic provenance signing.

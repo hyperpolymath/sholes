@@ -28,6 +28,13 @@
 
 # ─── Baseline: every RSR repo has these ──────────────────────────────────────
 README.adoc
+?EXPLAINME.adoc           # engineering receipt retained at the project root
+?README.md                # tooling-friendly bridge; README.adoc remains canonical prose
+?ARCHITECTURE.md          # tooling-friendly architecture bridge; docs/ARCHITECTURE.adoc remains canonical
+?Cargo.toml               # Rust workspace manifest for the SHOLES implementation
+?Cargo.lock               # generated workspace lockfile when Cargo is available
+?crates/                  # dependency-free Rust core and CLI
+?proofs/                  # publication-facing Agda/Lean/Coq proof tree
 LICENSE
 LICENSES/                  # REUSE licence texts, dual-licence model (code MPL-2.0 / docs CC-BY-SA-4.0)
 CHANGELOG.adoc             # AsciiDoc is the estate-standard documentation format

@@ -2,7 +2,10 @@
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 = Formal Verification Proofs
 
-This directory contains formal proofs organised by proof assistant.
+This directory contains the estate template ABI/type proofs organised by
+proof assistant. The SHOLES quotient formalization is publication-facing and
+lives under the repository-root `proofs/` tree; it is checked by
+`scripts/check-publication-proofs.sh`.
 
 == Directory Structure
 
