@@ -1,171 +1,96 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
-// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-// SPDX-FileCopyrightText: 2024-2026 Jonathan D.A. Jewell (hyperpolymath)
-= {{PROJECT_NAME}}
-:toc:
-:toc-placement: preamble
+= sholes
+:toc: auto
+:toclevels: 3
+:icons: font
+:source-highlighter: rouge
+:idprefix:
+:idseparator: -
 
-// ── Licensing ───────────────────────────────────────────────────────────────
-image:https://img.shields.io/badge/Code-MPL--2.0-blue.svg?logo=mozilla[Code licence: MPL-2.0,link="https://opensource.org/licenses/MPL-2.0"]
-image:https://img.shields.io/badge/Docs-CC--BY--SA--4.0-blue.svg?logo=creativecommons[Docs licence: CC-BY-SA-4.0,link="https://creativecommons.org/licenses/by-sa/4.0/"]
-image:https://img.shields.io/badge/Provenance-Quantum--Safe-blueviolet[Quantum-Safe Provenance,link="docs/legal/EXHIBIT-B-QUANTUM-SAFE.txt"]
+image:https://img.shields.io/badge/License-MPL--2.0-indigo.svg[License: MPL-2.0,link="https://github.com/hyperpolymath/sholes/blob/main/LICENSE"]
+image:https://img.shields.io/badge/standard-RSR--compliant-green.svg[RSR Compliant]
+image:https://img.shields.io/badge/verified-Agda%20%7C%20Creusot-9f55ff[Formal Verification,link="https://github.com/hyperpolymath/sholes/tree/main/proofs"]
+image:https://img.shields.io/badge/status-active-brightgreen.svg[Status]
 
-// ── Standard & quality gates ────────────────────────────────────────────────
-image:https://img.shields.io/badge/RSR-Rhodium_Standard-9C27B0[Rhodium Standard Repository,link="https://github.com/hyperpolymath/rhodium-standard-repositories"]
-image:https://www.bestpractices.dev/projects/{{OPENSSF_BP_ID}}/badge[OpenSSF Best Practices,link="https://www.bestpractices.dev/projects/{{OPENSSF_BP_ID}}"]
-image:https://api.scorecard.dev/projects/github.com/{{OWNER}}/{{REPO}}/badge[OpenSSF Scorecard,link="https://scorecard.dev/viewer/?uri=github.com/{{OWNER}}/{{REPO}}"]
-image:https://sonarcloud.io/api/project_badges/measure?project={{OWNER}}_{{REPO}}&metric=alert_status[SonarQube Quality Gate,link="https://sonarcloud.io/summary/new_code?id={{OWNER}}_{{REPO}}"]
-image:https://archive.softwareheritage.org/badge/origin/https://{{FORGE}}/{{OWNER}}/{{REPO}}/[Archived in Software Heritage,link="https://archive.softwareheritage.org/browse/origin/?origin_url=https://{{FORGE}}/{{OWNER}}/{{REPO}}"]
+**Sick of CRLF breaking your git diffs, shebangs, and CI caches? A formally verified quotient layer that ends the 50-year typewriter war forever. Agda proofs + verified Rust filter.**
 
-// ── Provenance & ecosystem ──────────────────────────────────────────────────
-image:https://img.shields.io/badge/Idris-Inside-5E5086?logo=idris&logoColor=white[Idris Inside,link="https://github.com/hyperpolymath/proven"]
-image:https://img.shields.io/badge/Zig-Zero--overhead-F7A41D?logo=zig&logoColor=black[Zig Zero-overhead FFI,link="https://github.com/hyperpolymath/typed-wasm"]
-image:https://api.thegreenwebfoundation.org/greencheckimage/{{FORGE}}[Green Web,link="https://www.thegreenwebfoundation.org/green-web-check/?url={{FORGE}}"]
+'''
 
-{{PROJECT_DESCRIPTION}}
+== Table of Contents
 
-[IMPORTANT]
-====
-*This file is a template.* You are reading `README.adoc` from the *RSR template repo*
-(or a freshly-cloned copy of it). Run `just repo-init` to replace every `{{PLACEHOLDER}}`
-token with your project's details, then delete this admonition. Until you do, the
-`{{...}}` markers below are intentional placeholders, not content.
-====
+- <<what-this-is,What this is>>
+- <<the-historical-tragedy,The Historical Tragedy (1868–Present)>>
+- <<the-mathematical-fix,The Mathematical Solution>>
+- <<quick-start,Quick start>>
+- <<ai-install,AI-Assisted Installation (Recommended)>>
+  - <<just-say-it,Just say it>>
+  - <<what-you-will-be-asked,What you will be asked>>
+  - <<privacy-and-security,Privacy and security>>
+  - <<minting-without-a-terminal,Minting without a terminal>>
+  - <<troubleshooting,Troubleshooting>>
+- <<what-you-get,What you get>>
+- <<repository-map,Repository map>>
+- <<where-to-go-next,Where to go next>>
+- <<licence,Licence>>
 
+'''
+
+[#what-this-is]
 == What this is
 
-A new repository scaffolded from the *Rhodium Standard Repository (RSR)* template:
-a batteries-included starting point that ships with CI/CD, machine-readable project
-metadata, an AI-agent gatekeeper protocol, a formally-typed ABI/FFI seam
-(Idris2 + Zig), container and reproducible-build scaffolding, and governance
-infrastructure — all wired and passing the RSR validators on day one.
+**sholes** is a formally verified bidirectional canonicalization engine for content-addressed storage (Git, IPFS, hermetic build systems, and container mounts).
 
-Replace this section with a description of *your* project once initialised.
+It neutralizes line-ending discrepancies (`LF` vs `CRLF`) at the storage boundary using **algebraic quotient types mechanized in Agda** (with exported proof objects for **Lean 4** and **Coq/Rocq**) and a **zero-allocation, Creusot-verified streaming Rust engine**.
 
+Instead of relying on fragile regexes, error-prone `core.autocrlf` configurations, or 200-line `.gitattributes` files, **sholes** proves that all platform representations factor through a unique canonical projection, rendering line-ending corruption mathematically impossible.
+
+[#the-historical-tragedy]
+=== The Historical Tragedy (1868–Present)
+
+In 1868, **Christopher Latham Sholes** patented the practical typewriter. When typists reached the right margin, two distinct mechanical events occurred:
+
+1. A physical lever was slapped to slide the heavy carriage back to the left margin (**Carriage Return**, `CR`, `\r`, `0x0D`).
+2. A rubber cylinder rolled the paper up by one line (**Line Feed**, `LF`, `\n`, `0x0A`).
+
+A century later, the early computing split cemented this mechanical legacy:
+* **Unix (1970s)**: Dennis Ritchie and Ken Thompson dropped the redundant byte, standardizing on **`LF`**.
+* **CP/M and MS-DOS**: Retained teleprinter compatibility with the two-byte sequence **`CRLF`**.
+
+Because Git hashes raw byte streams ($\Sigma^*$) rather than semantic contents, humanity has spent fifty years paying for this split with:
+* Phantom 40,000-line Git diffs when files are opened across OS boundaries.
+* Wiped `git blame` histories.
+* Linux containers crashing because shebangs search for `/usr/bin/env bash\r`.
+* Poisoned cryptographic build caches in Nix, Bazel, and IPFS.
+
+[#the-mathematical-fix]
+=== The Mathematical Solution
+
+We do not negotiate with ASCII `0x0D`. **sholes** treats content addressing as a quotient over an equivalence relation on byte streams:
+
+$$\mathcal{Q} = \Sigma^* / \sim_{\mathrm{LE}}$$
+
+1. **Mechanized Proofs (Agda / Lean 4 / Coq)**:
+   * **Idempotence**: $\forall s.\; \mathrm{canon}(\mathrm{canon}(s)) \equiv \mathrm{canon}(s)$
+   * **Equivalence Invariance**: $\forall s_1, s_2.\; s_1 \sim_{\mathrm{LE}} s_2 \implies \mathrm{canon}(s_1) \equiv \mathrm{canon}(s_2)$
+   * **Cryptographic Coherence**: $\forall H, s_1, s_2.\; s_1 \sim_{\mathrm{LE}} s_2 \implies H(\mathrm{canon}(s_1)) \equiv H(\mathrm{canon}(s_2))$
+   * **Binary Preservation**: $\forall s.\; \mathrm{is\_binary}(s) \implies \mathrm{canon}(s) \equiv s$
+   * **Well-Behaved Symmetric Lens**: Satisfies the categorical `GetPut` and `PutGet` laws for environment-directed routing.
+2. **Verified Systems Engine (Rust + Creusot)**:
+   * Zero-copy, bounded-buffer streaming filter.
+   * Native Git packet-line protocol driver (`filter.clean` / `filter.smudge`).
+   * Optional FUSE/9P virtual filesystem layer for cross-OS transparent checkouts.
+
+'''
+
+[#quick-start]
 == Quick start
 
-[source,bash]
-----
-# 1. Create a repo from this template (or clone it), then from the repo root:
-just repo-init                # interactive bootstrap: fills every {{PLACEHOLDER}}
+```bash
+# 1. Install via cargo or pre-built binary
+cargo install sholes-cli
 
-# 2. See the available tasks:
-just                     # lists all phases (build, test, validate, audit, ...)
+# 2. Register sholes globally as a Git filter driver
+sholes init --global
 
-# 3. Check the repo still satisfies the RSR shape:
-just validate            # structure + metadata checks
-----
-
-`just repo-init` prompts for the project name, owner, author, licence contact, and the
-other values listed in `.machine_readable/ai/PLACEHOLDERS.adoc`, substitutes them
-across the tree, validates the result, and (if available) runs the `k9-svc` checks.
-
-[[ai-install]]
-== AI-Assisted Installation (Recommended)
-
-=== Just say it
-
-Say this to any AI assistant that can read a URL and run commands (or give you
-commands to paste):
-
-[source,text]
-----
-Create a new repository from https://github.com/hyperpolymath/rsr-template-repo
-----
-
-The URL is the key: it leads the assistant to
-link:docs/AI_INSTALLATION_GUIDE.adoc[`docs/AI_INSTALLATION_GUIDE.adoc`], the
-complete step-by-step recipe. The assistant checks your system, installs the
-prerequisites, instantiates the template with `just repo-init`, and verifies the
-result with `just doctor`.
-
-* "Set up rsr-template-repo so I can work on the template itself — https://github.com/hyperpolymath/rsr-template-repo"
-* `./launcher.sh --ai-setup` (or `just ai-setup`) prints the line and the guide path.
-
-=== What you will be asked
-
-. Your operating system (Linux, macOS, or Windows via WSL2).
-. The new project's name, owner, author and licence contact (the values listed in
-  `.machine_readable/ai/PLACEHOLDERS.adoc`).
-. To confirm the privacy notice below.
-
-=== Privacy and security
-
-[IMPORTANT]
-====
-Setting up rsr-template-repo clones this repository and installs its developer
-tools per-user with mise (no administrator rights, nothing sent anywhere).
-`just repo-init` rewrites files only inside the new checkout; it creates no
-remote repository and pushes nothing until you do.
-====
-
-=== Minting without a terminal
-
-Agents and CI can mint non-interactively: set `RSR_NON_INTERACTIVE=1` and pass
-the answers as environment variables named like the prompts' variables in
-`build/just/repo-init.just` (`PROJECT_NAME`, `REPO`, `OWNER`, `AUTHOR` and
-`AUTHOR_EMAIL` are required; any other answer left unset is blank or takes its
-default). Piping the answers to stdin in prompt order also works.
-
-=== Troubleshooting
-
-Run `just doctor`; each FAIL carries a code explained in
-link:docs/SETUP.adoc#troubleshooting[`docs/SETUP.adoc` §Troubleshooting], and
-`just heal` applies the automatic fixes. Prefer to do it yourself? The full
-manual route is link:docs/SETUP.adoc[`docs/SETUP.adoc`]; developers and
-maintainers can brief an AI with `just ai-warmup dev` / `just ai-warmup maintainer`.
-
-== What you get
-
-* *Machine-readable metadata* (`.machine_readable/descriptiles/`) — `STATE`, `META`,
-  `ECOSYSTEM`, `PLAYBOOK`, `AGENTIC`, `NEUROSYM`, `CLADE`, and `anchors/ANCHOR`,
-  in deed, so tools and agents can read the project's state and boundaries.
-* *AI gatekeeper protocol* — `rsr-template-repo_chora.deed` (the repo deed) is the
-  universal entry point that tells an AI agent how to work in this repo before it
-  touches anything; it carries the AI allocation policy and the ply directory tree.
-* *Typed ABI/FFI seam* — `src/interface/Abi/` (Idris2 type + layout proofs) over
-  `src/interface/ffi/` (Zig implementation), with generated C headers.
-* *CI/CD* — GitHub Actions for quality, security (CodeQL, Scorecard, secret
-  scanning), multi-forge mirroring, and RSR anti-pattern enforcement.
-* *Supply-chain & reproducibility* — container layering (stapeln), Guix shells,
-  SBOM, and signing hooks.
-* *Governance* — `GOVERNANCE.adoc`, `MAINTAINERS.adoc`, `.github/` community health
-  files, and a release `AUDIT.adoc` gate.
-
-== Repository map
-
-The authoritative map is generated, so it cannot drift from the tree:
-link:docs/architecture/REPOSITORY-MAP.adoc[docs/architecture/REPOSITORY-MAP.adoc]
-(regenerate with `just repo-map`; CI fails if it is stale).
-
-The short version:
-
-[cols="1,3"]
-|===
-| Path | What lives there
-
-| `README.adoc`, `CLAUDE.md` | Start here - humans and AI agents respectively.
-| `src/`, `tests/`           | The code and its tests.
-| `docs/`                    | Human documentation, including the full map above.
-| `.machine_readable/`        | Manifests, contractiles and policies that tools read.
-| `build/`, `Justfile`       | Every task runs through `just`; phases live in `build/just/`.
-| `ci/`, `.github/`          | CI configuration; GitHub reads `.github/` and no other path.
-|===
-
-== Where to go next
-
-* link:docs/architecture/REPOSITORY-MAP.adoc[The repository map] — generated; what every directory is for.
-* link:docs/EXPLAINME.adoc[EXPLAINME] — the engineering deep-dive: how the pieces actually work.
-* link:docs/AFFIRMATION.adoc[AFFIRMATION] — the dated, signed honesty snapshot of the repo's true state.
-* link:docs/AUDIT.adoc[AUDIT] — the release audit gate.
-* link:docs/AI_INSTALLATION_GUIDE.adoc[AI installation guide] — for agents instantiating this template.
-* link:.machine_readable/ai/PLACEHOLDERS.adoc[PLACEHOLDERS] — the full placeholder reference.
-
-== Licence
-
-Code, configuration and scripts are link:LICENSE[Mozilla Public License 2.0]
-(`MPL-2.0`); prose documentation is `CC-BY-SA-4.0`. Both texts live in
-`LICENSES/`, and per-file `SPDX-License-Identifier` headers are authoritative.
-The GitHub-detected licence is MPL-2.0 (the root `LICENSE`). Long-term
-attribution uses Quantum-Safe Provenance — see
-link:docs/legal/EXHIBIT-B-QUANTUM-SAFE.txt[the Quantum-Safe Provenance exhibit].
+# 3. Verify repository hygiene and check for line-ending divergence
+sholes audit .
