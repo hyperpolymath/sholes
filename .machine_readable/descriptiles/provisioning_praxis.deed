@@ -10,8 +10,8 @@
 ;; Canon: hyperpolymath/standards 3-practice/provisioning/PROVISIONING-STANDARD.adoc
 (praxis-deed
   :schema-version "1.0.0"
-  :canonical-name "rsr-template-repo-provisioning"
-  :repo         "hyperpolymath/rsr-template-repo"
+  :canonical-name "sholes-provisioning"
+  :repo         "hyperpolymath/sholes"
   :archetype    "library"            ; app | library | tool | theory | docs
   :languages    "idris2 zig"           ; detected; informational
   ;; Contract-verb overrides ("" = per-language default, which `just langs` shows)

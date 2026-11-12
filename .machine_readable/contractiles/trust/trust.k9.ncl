@@ -100,7 +100,7 @@ let base    = import "../_base.ncl" in
       signed_by = {
         user = "Jonathan D.A. Jewell",
         date = "2026-04-18",
-        context = "trust trident — canonical template in rsr-template-repo. (Hunt, blocking) authority pattern. Primary catchment for adversarial drift test scenarios (firewall-off, cleartext-auth, PQ-downgrade, CSP-weaken). Hard gate: failed verification blocks merge. Copy this trident into a new repo and point it at the real keys, policies, and authority boundaries.",
+        context = "trust trident — canonical template in sholes. (Hunt, blocking) authority pattern. Primary catchment for adversarial drift test scenarios (firewall-off, cleartext-auth, PQ-downgrade, CSP-weaken). Hard gate: failed verification blocks merge. Copy this trident into a new repo and point it at the real keys, policies, and authority boundaries.",
       },
       history = [
         { date = "2026-04-18", event = "trident-born", note = "Trustfile.a2ml and trust.ncl pre-existed. This manifest + trust.k9.ncl complete the trident. Inherits on_open negotiation + accountability + plain-language-translation schema from intend.k9.ncl v2.0.0; adds trust-specific threat_model_foregrounding + block_session_close_on_critical_drift + stricter accountability pledge (user cannot disable verification to unblock merges)." },
@@ -118,12 +118,12 @@ let base    = import "../_base.ncl" in
   # Read by .machine_readable/coaptation/extract-clauses.sh.
   # -------------------------------------------------------------------
   declaration = {
-    preamble = "# SPDX-License-Identifier: MPL-2.0\n# Trustfile — Trust boundaries and integrity invariants for rsr-template-repo\n# Author: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>\n#\n# Defines what LLM/SLM agents are trusted to do without asking, and\n# integrity invariants that verify the repo has not been tampered with.\n",
-    abstract = "Trust boundaries and integrity checks for rsr-template-repo. This file\ncombines the trust-level definitions from the original TRUST.contractile\nwith the integrity invariants from the old Trustfile.a2ml. It defines\nwhat AI agents may do autonomously and what requires human approval,\nplus checks that verify repository integrity.",
+    preamble = "# SPDX-License-Identifier: MPL-2.0\n# Trustfile — Trust boundaries and integrity invariants for sholes\n# Author: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>\n#\n# Defines what LLM/SLM agents are trusted to do without asking, and\n# integrity invariants that verify the repo has not been tampered with.\n",
+    abstract = "Trust boundaries and integrity checks for sholes. This file\ncombines the trust-level definitions from the original TRUST.contractile\nwith the integrity invariants from the old Trustfile.a2ml. It defines\nwhat AI agents may do autonomously and what requires human approval,\nplus checks that verify repository integrity.",
     prose = [
       {
         section = "Trust Levels",
-        text = "The rsr-template-repo operates at trust level: maximal\n\nTrust levels:\n- maximal:    Agent may read, build, test, lint, format, heal freely.\n             Only destructive/external actions require approval.\n- standard:   Agent may read and build. Test/lint need approval.\n- restricted: Agent may read only. All modifications need approval.\n- minimal:    Agent may read specific files only. Everything else blocked.\n\nCurrent trust level: maximal",
+        text = "The sholes operates at trust level: maximal\n\nTrust levels:\n- maximal:    Agent may read, build, test, lint, format, heal freely.\n             Only destructive/external actions require approval.\n- standard:   Agent may read and build. Test/lint need approval.\n- restricted: Agent may read only. All modifications need approval.\n- minimal:    Agent may read specific files only. Everything else blocked.\n\nCurrent trust level: maximal",
       },
     ],
     verifications = [

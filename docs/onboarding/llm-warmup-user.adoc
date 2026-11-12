@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
-= LLM warm-up — rsr-template-repo (user)
+= LLM warm-up — sholes (user)
 
 Paste this whole file into any AI assistant before asking it about
-rsr-template-repo. It tells the assistant what the project is, how a person gets it
+sholes. It tells the assistant what the project is, how a person gets it
 running, and where to look when something goes wrong.
 
 == What it is
 
-rsr-template-repo (https://github.com/hyperpolymath/rsr-template-repo) is a library written in idris2, zig.
+sholes (https://github.com/hyperpolymath/sholes) is a library written in idris2, zig.
 
 It is not a project in its own right: it is the template every new hyperpolymath
 repository is created from. It ships CI/CD, machine-readable metadata
 (`.machine_readable/descriptiles/`), an AI gatekeeper deed
-(`rsr-template-repo_chora.deed`), a typed ABI/FFI seam (Idris2 over Zig), Guix and
+(`sholes_chora.deed`), a typed ABI/FFI seam (Idris2 over Zig), Guix and
 mise toolchains, and governance files, all passing the RSR validators before you
 add a line of your own.
 
@@ -22,7 +22,7 @@ add a line of your own.
 The supported routes, in order of ease:
 
 . *Ask an AI*: follow `docs/AI_INSTALLATION_GUIDE.adoc` in the repository.
-. *The launcher*: `git clone https://github.com/hyperpolymath/rsr-template-repo.git && cd rsr-template-repo && ./launcher.sh --setup`
+. *The launcher*: `git clone https://github.com/hyperpolymath/sholes.git && cd sholes && ./launcher.sh --setup`
 . *By hand*: `docs/SETUP.adoc`, every step explained.
 
 Prerequisites are git, a C toolchain and mise; everything else is installed by

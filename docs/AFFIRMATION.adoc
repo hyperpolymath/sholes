@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-= AFFIRMATION — {{PROJECT_NAME}}, as of <YYYY-MM-DD>
+= AFFIRMATION — sholes, as of <YYYY-MM-DD>
 :toc: macro
 :toclevels: 2
 :std-docs: https://github.com/hyperpolymath/standards/blob/main/docs
@@ -37,12 +37,12 @@ toc::[]
 
 == What this is, and how it works
 
-*What it is.* A short, dated, signed snapshot of what {{OWNER}} can honestly and
-verifiably claim about *{{PROJECT_NAME}}* at one exact commit. Nothing here is
+*What it is.* A short, dated, signed snapshot of what hyperpolymath can honestly and
+verifiably claim about *sholes* at one exact commit. Nothing here is
 marketing and nothing is a promise about the future — those live in the README.
 This file is the receipt.
 
-*What the project is.* {{PROJECT_DESCRIPTION}}
+*What the project is.* Tired of phantom 40,000-line diffs and /usr/bin/env: 'bash' errors? Formally proven quotient canonicalization that neutralizes line-ending chaos at the storage boundary. The 50-year war between Ken Thompson and Gary Kildall is settled by mathematics.
 
 *How it stays trustworthy.* Three moving parts:
 
@@ -63,7 +63,7 @@ correctness. Treat it as a falsifiable claim, not gospel.
 
 == The epistemic contract (read this before you trust _or_ attack)
 
-This document records {{OWNER}}'s *best belief* at the timestamp below. It is
+This document records hyperpolymath's *best belief* at the timestamp below. It is
 *not a guarantee of correctness.* The only guarantee is *no intentional
 overclaim*: where something is proven we say "proven"; where it is a documented
 trust boundary, an experiment, or an unwired module, we say so; where a claim is
@@ -95,19 +95,19 @@ file. Bring a counter-example, a failing run, or a contradicting source.
 | Field | Value
 
 | Project
-| {{PROJECT_NAME}}
+| sholes
 
 | Repo
-| `{{OWNER}}/{{REPO}}`
+| `hyperpolymath/sholes`
 
 | Branch
-| `{{MAIN_BRANCH}}`
+| `main`
 
 | Commit (HEAD)
 | `<full 40-character SHA — never abbreviated, never a tag>`
 
 | Permalink
-| https://{{FORGE}}/{{OWNER}}/{{REPO}}/tree/<full 40-character SHA>
+| https://github.com/hyperpolymath/sholes/tree/<full 40-character SHA>
 
 | Verified (UTC)
 | `<ISO-8601 with the Z suffix, e.g. 2026-09-09T00:52:11Z>`
@@ -120,7 +120,7 @@ file. Bring a counter-example, a failing run, or a contradicting source.
 | `<every compiler, prover and runtime version the claims depend on>`
 
 | Affirmed by
-| {{AUTHOR}} <{{AUTHOR_EMAIL}}>
+| Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 |===
 
 [IMPORTANT]
@@ -193,15 +193,15 @@ to prevent — mark it refuted and say what refuted it.
 
 [source,bash]
 ----
-git clone https://{{FORGE}}/{{OWNER}}/{{REPO}}
-cd {{REPO}}
+git clone https://github.com/hyperpolymath/sholes
+cd sholes
 git checkout <full 40-character SHA>
 # <the exact commands, in order, with their expected output>
 ----
 
 == One-line characterisation (quote this)
 
-> `<the one sentence {{AUTHOR}} is willing to be quoted on>`
+> `<the one sentence Jonathan D.A. Jewell is willing to be quoted on>`
 
 == Joint attestation
 
@@ -213,7 +213,7 @@ hidden.
 * *Engineering party (AI):* `<exact model identifier>` — ran the checks recorded
   here at `<ISO-8601 UTC>` and stands behind the wording above as a faithful
   report of those runs.
-* *Owner / maintainer:* {{AUTHOR}} <{{AUTHOR_EMAIL}}> — _signs by committing
+* *Owner / maintainer:* Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk> — _signs by committing
   this file with `-S`; the git commit signature over this content, at the
   commit SHA recorded above, is the cryptographic form of this affirmation._
 

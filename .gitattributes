@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0 (code)
 # SPDX-License-Identifier: CC-SA-BY-4.0 (prose)
 # Hyperpolymath estate canonical .gitattributes  (standards#343 phase 1)
-# Canon lives in rsr-template-repo; do not add a per-repo name to this header.
+# Canon lives in sholes; do not add a per-repo name to this header.
 #
 # Only diff drivers that git actually ships are used here. MEASURED on git
 # 2.47.3: diff=go and diff=zig are NOT drivers (git silently falls back to the

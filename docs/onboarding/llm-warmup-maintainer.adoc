@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
-= LLM warm-up — rsr-template-repo (maintainer)
+= LLM warm-up — sholes (maintainer)
 
 Paste this into an AI assistant before release, CI or governance work on
-rsr-template-repo. Read `llm-warmup-dev.adoc` first; this adds what a maintainer owns.
+sholes. Read `llm-warmup-dev.adoc` first; this adds what a maintainer owns.
 
 == The provisioning set
 

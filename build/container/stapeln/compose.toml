@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MPL-2.0
 #
-# {{PROJECT_NAME}} selur-compose configuration
+# sholes selur-compose configuration
 #
 # Orchestrates the container stack as verified container bundles (.ctp).
 # Uses selur zero-copy IPC between services on the same host.
@@ -10,7 +10,7 @@
 #   selur-compose up --detach            # Start in background
 #   selur-compose verify                 # Verify all .ctp signatures
 #   selur-compose ps                     # Check status
-#   selur-compose logs -f {{SERVICE_NAME}}  # Stream logs
+#   selur-compose logs -f sholes  # Stream logs
 #   selur-compose down                   # Stop all services
 #
 # Fallback (when selur is not installed): this TOML is selur-native and is
@@ -25,18 +25,18 @@ version = "1.0"
 # ============================================================================
 
 # Primary application service
-[services.{{SERVICE_NAME}}]
-image = "{{REGISTRY}}/{{SERVICE_NAME}}:latest.ctp"
-ports = ["{{PORT}}:{{PORT}}"]
+[services.sholes]
+image = "ghcr.io/hyperpolymath/sholes:latest.ctp"
+ports = ["8080:8080"]
 environment = {
   APP_HOST = "[::]",
-  APP_PORT = "{{PORT}}",
+  APP_PORT = "8080",
   APP_LOG_FORMAT = "json",
   APP_DATA_DIR = "/data",
 }
-volumes = ["{{SERVICE_NAME}}-data:/data"]
+volumes = ["sholes-data:/data"]
 restart = "always"
-healthcheck = { test = "curl -sf http://localhost:{{PORT}}/health", interval = "30s", timeout = "5s", retries = 3 }
+healthcheck = { test = "curl -sf http://localhost:8080/health", interval = "30s", timeout = "5s", retries = 3 }
 
 # Rokur secrets gate: refuses to start (and refuses to proxy) unless the
 # declared secrets are present; emits a structured audit log of every access.
@@ -45,14 +45,14 @@ healthcheck = { test = "curl -sf http://localhost:{{PORT}}/health", interval = "
 image = "ghcr.io/hyperpolymath/rokur:latest.ctp"
 ports = ["8081:8081"]
 environment = {
-  ROKUR_BACKEND = "http://{{SERVICE_NAME}}:{{PORT}}",
+  ROKUR_BACKEND = "http://sholes:8080",
   ROKUR_LISTEN = "[::]:8081",
   ROKUR_REQUIRED_SECRETS = "",
   ROKUR_AUDIT_LOG = "/var/log/rokur/audit.jsonl",
   ROKUR_LOG_FORMAT = "json",
 }
 volumes = ["rokur-audit:/var/log/rokur"]
-depends_on = ["{{SERVICE_NAME}}"]
+depends_on = ["sholes"]
 restart = "always"
 healthcheck = { test = "curl -sf http://localhost:8081/health", interval = "30s", timeout = "5s", retries = 3 }
 
@@ -75,7 +75,7 @@ healthcheck = { test = "curl -sf http://localhost:80/health", interval = "30s", 
 # Volumes
 # ============================================================================
 
-[volumes.{{SERVICE_NAME}}-data]
+[volumes.sholes-data]
 driver = "local"
 
 [volumes.rokur-audit]

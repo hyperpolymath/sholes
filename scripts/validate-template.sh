@@ -321,7 +321,7 @@ echo ""
 
 # Note: Template repo is allowed to have placeholders
 # For derived repos, we'd check that placeholders are replaced
-if [ "$(basename "$REPO_ROOT")" = "rsr-template-repo" ]; then
+if [ "$(basename "$REPO_ROOT")" = "sholes" ]; then
     log_pass "Skipping placeholder check for template repo"
 else
     # Check that key files don't have unresolved placeholders

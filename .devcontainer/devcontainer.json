@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) {{CURRENT_YEAR}} {{AUTHOR}} ({{OWNER}}) <{{AUTHOR_EMAIL}}>
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 //
-// Dev Container configuration for {{PROJECT_NAME}} — rootless Podman (default).
+// Dev Container configuration for sholes — rootless Podman (default).
 // Works with: VS Code Dev Containers with `dev.containers.dockerPath` = podman,
 // and the devcontainer CLI (`devcontainer up --docker-path podman`).
 // Docker, GitHub Codespaces and Gitpod: use .devcontainer/docker/devcontainer.json
 // instead — Docker rejects the Podman-only `--userns=keep-id` below.
 {
-  "name": "{{PROJECT_NAME}} (Podman)",
+  "name": "sholes (Podman)",
 
   "build": {
     "dockerfile": "Containerfile",

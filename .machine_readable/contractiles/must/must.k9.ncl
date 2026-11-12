@@ -94,7 +94,7 @@ let base    = import "../_base.ncl" in
       signed_by = {
         user = "Jonathan D.A. Jewell",
         date = "2026-04-18",
-        context = "must trident — canonical template in rsr-template-repo. Blocking-authority verb (paired with trust). Specialises in subtle invariant-erosion catchment vs trust's outrageous-attack catchment. Hard gate: any failing invariant blocks merge. Copy this trident into a new repo and replace the declaration with project-specific invariants.",
+        context = "must trident — canonical template in sholes. Blocking-authority verb (paired with trust). Specialises in subtle invariant-erosion catchment vs trust's outrageous-attack catchment. Hard gate: any failing invariant blocks merge. Copy this trident into a new repo and replace the declaration with project-specific invariants.",
       },
       history = [
         { date = "2026-04-18", event = "trident-born", note = "Mustfile.a2ml and must.ncl pre-existed. This manifest + must.k9.ncl complete the trident. Inherits on_open schema from intend.k9.ncl v2.0.0; inherits block_session_close_on_critical_drift + variance-severity-acknowledgement from trust.k9.ncl v1.0.0; adds must-specific track_per_session_trend + flag_silent_regression + probe_scope = 'read_only (must doesn't do active exploit attempts — that's trust's safe_hacking territory)." },
@@ -112,8 +112,8 @@ let base    = import "../_base.ncl" in
   # Read by .machine_readable/coaptation/extract-clauses.sh.
   # -------------------------------------------------------------------
   declaration = {
-    preamble = "# SPDX-License-Identifier: MPL-2.0\n# Mustfile — Physical state contract for rsr-template-repo\n# Author: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>\n#\n# What MUST be true about this repository. Hard requirements.\n# Run with: must check\n# Fix with: must fix (where a deterministic fix exists)\n",
-    abstract = "Physical-state invariants for rsr-template-repo. This is the canonical\nRSR template repository. These are hard requirements — CI and pre-commit\nhooks fail if any check fails.",
+    preamble = "# SPDX-License-Identifier: MPL-2.0\n# Mustfile — Physical state contract for sholes\n# Author: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>\n#\n# What MUST be true about this repository. Hard requirements.\n# Run with: must check\n# Fix with: must fix (where a deterministic fix exists)\n",
+    abstract = "Physical-state invariants for sholes. This is the canonical\nRSR template repository. These are hard requirements — CI and pre-commit\nhooks fail if any check fails.",
     prose = [
       {
         section = "Template Integrity",

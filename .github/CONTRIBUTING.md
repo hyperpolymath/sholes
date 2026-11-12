@@ -4,15 +4,15 @@ Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 -->
 ```
 # Clone the repository
-git clone https://github.com/hyperpolymath/rsr-template-repo.git
-cd rsr-template-repo
+git clone https://github.com/hyperpolymath/sholes.git
+cd sholes
 
 # Using Guix (recommended for reproducibility)
 guix shell -D -f build/guix.scm
 
 # Or using toolbox/distrobox
-toolbox create rsr-template-repo-dev
-toolbox enter rsr-template-repo-dev
+toolbox create sholes-dev
+toolbox enter sholes-dev
 # Install dependencies manually
 
 # Verify setup
@@ -39,7 +39,7 @@ which is precisely why the map is now generated rather than typed.
 
 **Before reporting**:
 1. Search existing issues
-2. Check if it's already fixed in `{{MAIN_BRANCH}}`
+2. Check if it's already fixed in `main`
 3. Determine which perimeter the bug affects
 
 **When reporting**:
@@ -72,10 +72,10 @@ Use the [feature request template](.github/ISSUE_TEMPLATE/feature_request.md) an
 
 Look for issues labelled:
 
-- [`good first issue`](https://github.com/hyperpolymath/rsr-template-repo/labels/good%20first%20issue) — Simple Perimeter 3 tasks
-- [`help wanted`](https://github.com/hyperpolymath/rsr-template-repo/labels/help%20wanted) — Community help needed
-- [`documentation`](https://github.com/hyperpolymath/rsr-template-repo/labels/documentation) — Docs improvements
-- [`perimeter-3`](https://github.com/hyperpolymath/rsr-template-repo/labels/perimeter-3) — Community sandbox scope
+- [`good first issue`](https://github.com/hyperpolymath/sholes/labels/good%20first%20issue) — Simple Perimeter 3 tasks
+- [`help wanted`](https://github.com/hyperpolymath/sholes/labels/help%20wanted) — Community help needed
+- [`documentation`](https://github.com/hyperpolymath/sholes/labels/documentation) — Docs improvements
+- [`perimeter-3`](https://github.com/hyperpolymath/sholes/labels/perimeter-3) — Community sandbox scope
 
 ---
 

@@ -89,14 +89,14 @@ T_TREE="$(git -C "$TMPL" rev-parse 'HEAD^{tree}')"
 # ─────────────────────────────────────────────────────────────────────────────
 say "control: a conforming child must PASS"
 CHILD="$SCRATCH/child-good"
-make_child "$CHILD" "hyperpolymath/rsr-template-repo" "main" "$T_COMMIT" "$T_TREE"
+make_child "$CHILD" "hyperpolymath/sholes" "main" "$T_COMMIT" "$T_TREE"
 rc=$(run_check "$CHILD")
 if [ "$rc" -eq 0 ]; then ok "conforming child accepted (positive control)"; else bad "conforming child was rejected (rc=$rc)"; cat "$SCRATCH/out"; fi
 
 # ─────────────────────────────────────────────────────────────────────────────
 say "negative control 1: missing provenance must FAIL (#203)"
 CHILD="$SCRATCH/child-noprov"
-make_child "$CHILD" "hyperpolymath/rsr-template-repo" "main" "$T_COMMIT" "$T_TREE"
+make_child "$CHILD" "hyperpolymath/sholes" "main" "$T_COMMIT" "$T_TREE"
 bash "$REPO_DIR/scripts/deed-clause.sh" replace "$CHILD/knot-knot_chora.deed" provenance - </dev/null
 rc=$(run_check "$CHILD")
 if [ "$rc" -ne 0 ]; then ok "child with no provenance clause rejected (T1)"; else bad "child with no provenance clause ACCEPTED — T1 is vacuous"; fi
@@ -104,9 +104,9 @@ if [ "$rc" -ne 0 ]; then ok "child with no provenance clause rejected (T1)"; els
 # ─────────────────────────────────────────────────────────────────────────────
 say "negative control 1b: a retired PROVENANCE.a2ml is BLOCKED, never read"
 CHILD="$SCRATCH/child-retired"
-make_child "$CHILD" "hyperpolymath/rsr-template-repo" "main" "$T_COMMIT" "$T_TREE"
+make_child "$CHILD" "hyperpolymath/sholes" "main" "$T_COMMIT" "$T_TREE"
 rm "$CHILD/knot-knot_chora.deed"
-printf '[provenance]\ntemplate_repo = "hyperpolymath/rsr-template-repo"\n' > "$CHILD/.machine_readable/PROVENANCE.a2ml"
+printf '[provenance]\ntemplate_repo = "hyperpolymath/sholes"\n' > "$CHILD/.machine_readable/PROVENANCE.a2ml"
 rc=$(run_check "$CHILD")
 if [ "$rc" -ne 0 ] && grep -q "BLOCKED" "$SCRATCH/out"; then ok "retired a2ml provenance blocked (T1)"; else bad "retired a2ml provenance not blocked (rc=$rc)"; cat "$SCRATCH/out"; fi
 
@@ -120,14 +120,14 @@ if [ "$rc" -ne 0 ]; then ok "self-parenting repo rejected (T2)"; else bad "self-
 # ─────────────────────────────────────────────────────────────────────────────
 say "negative control 3: UNASSIGNED pin must FAIL"
 CHILD="$SCRATCH/child-unassigned"
-make_child "$CHILD" "hyperpolymath/rsr-template-repo" "UNASSIGNED" "UNASSIGNED" "UNASSIGNED"
+make_child "$CHILD" "hyperpolymath/sholes" "UNASSIGNED" "UNASSIGNED" "UNASSIGNED"
 rc=$(run_check "$CHILD")
 if [ "$rc" -ne 0 ]; then ok "unresolved parent pin rejected (T3)"; else bad "unresolved parent pin ACCEPTED — T3 is vacuous"; fi
 
 # ─────────────────────────────────────────────────────────────────────────────
 say "negative control 4: a leaked work branch must FAIL (#203)"
 CHILD="$SCRATCH/child-leak"
-make_child "$CHILD" "hyperpolymath/rsr-template-repo" "main" "$T_COMMIT" "$T_TREE"
+make_child "$CHILD" "hyperpolymath/sholes" "main" "$T_COMMIT" "$T_TREE"
 # reproduce the knot-knot shape: a parentless branch whose tree is copied
 git -C "$CHILD" checkout -q --orphan coderabbit/fix-hypatia-scan-failures/f36ac704
 git -C "$CHILD" -c user.email=t@t -c user.name=t commit -qm "Initialize coderabbit/fix-hypatia-scan-failures/f36ac704"
@@ -139,7 +139,7 @@ if grep -qi "no common ancestor" "$SCRATCH/out"; then ok "unrelated-history sign
 # ─────────────────────────────────────────────────────────────────────────────
 say "negative control 5: drift must be REPORTED (advisory) and visibly found"
 CHILD="$SCRATCH/child-drift"
-make_child "$CHILD" "hyperpolymath/rsr-template-repo" "main" "$T_COMMIT" "$T_TREE"
+make_child "$CHILD" "hyperpolymath/sholes" "main" "$T_COMMIT" "$T_TREE"
 printf 'tampered\n' > "$CHILD/README.adoc"          # a template-owned file changed
 rm "$CHILD/.github/workflows.yml"                   # a template-owned file deleted
 rc=$(run_check "$CHILD" "$TMPL")

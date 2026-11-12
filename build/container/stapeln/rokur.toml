@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MPL-2.0
 #
-# Rokur secrets-gate configuration for {{PROJECT_NAME}}
+# Rokur secrets-gate configuration for sholes
 #
 # Rokur (stapeln container stack) is a secrets-management gate: a small
 # Deno service that sits in front of the application and refuses to pass
@@ -16,8 +16,8 @@
 #   # or, in the stack, via compose (see compose.toml / compose.yaml)
 
 [metadata]
-name = "{{SERVICE_NAME}}-gate"
-version = "{{VERSION}}"
+name = "sholes-gate"
+version = "0.1.0"
 
 # ============================================================================
 # Listener / routing  (env: ROKUR_LISTEN, ROKUR_BACKEND)
@@ -27,7 +27,7 @@ version = "{{VERSION}}"
 # Address rokur listens on (inside the container).
 listen = "[::]:8081"
 # The upstream application rokur fronts once the gate is satisfied.
-backend = "http://{{SERVICE_NAME}}:{{PORT}}"
+backend = "http://sholes:8080"
 # Health/readiness endpoints rokur exposes for vordr / orchestrators.
 health_path = "/health"
 ready_path = "/ready"

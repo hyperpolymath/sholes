@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MPL-2.0
 #
-# {{PROJECT_NAME}} — portable compose stack (Tier B)
+# sholes — portable compose stack (Tier B)
 #
 # This is the runtime-agnostic, OCI compose-spec file. It works unchanged with:
 #   podman compose  -f build/container/compose.yaml up -d
@@ -20,23 +20,23 @@ services:
   # ──────────────────────────────────────────────────────────────────────
   # Primary application service
   # ──────────────────────────────────────────────────────────────────────
-  "{{SERVICE_NAME}}":
+  "sholes":
     build:
       context: ..
       dockerfile: build/container/Containerfile
-    image: "{{REGISTRY}}/{{SERVICE_NAME}}:latest"
+    image: "ghcr.io/hyperpolymath/sholes:latest"
     ports:
-      - "{{PORT}}:{{PORT}}"
+      - "8080:8080"
     environment:
       APP_HOST: "[::]"
-      APP_PORT: "{{PORT}}"
+      APP_PORT: "8080"
       APP_LOG_FORMAT: "json"
       APP_DATA_DIR: "/data"
     volumes:
-      - "{{SERVICE_NAME}}-data:/data"
+      - "sholes-data:/data"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:{{PORT}}/health"]
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -50,7 +50,7 @@ services:
   rokur:
     image: ghcr.io/hyperpolymath/rokur:latest
     environment:
-      ROKUR_BACKEND: "http://{{SERVICE_NAME}}:{{PORT}}"
+      ROKUR_BACKEND: "http://sholes:8080"
       ROKUR_LISTEN: "[::]:8081"
       ROKUR_REQUIRED_SECRETS: ""        # comma-separated env names that MUST be set
       ROKUR_AUDIT_LOG: "/var/log/rokur/audit.jsonl"
@@ -60,7 +60,7 @@ services:
     volumes:
       - rokur-audit:/var/log/rokur
     depends_on:
-      "{{SERVICE_NAME}}":
+      "sholes":
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
@@ -95,5 +95,5 @@ services:
       retries: 3
 
 volumes:
-  "{{SERVICE_NAME}}-data":
+  "sholes-data":
   rokur-audit:

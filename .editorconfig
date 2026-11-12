@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # Hyperpolymath estate canonical .editorconfig  (standards#343 phase 1)
-# Canon lives in rsr-template-repo; do not add a per-repo name to this header.
+# Canon lives in sholes; do not add a per-repo name to this header.
 # https://editorconfig.org
 
 root = true

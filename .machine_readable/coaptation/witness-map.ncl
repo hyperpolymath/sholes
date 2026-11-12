@@ -56,12 +56,12 @@
   },
 
   # --- ADJUST: accessibility/hygiene posture (advisory; never gates) ---
-  # The ANCHOR identity block still carries {{PROJECT_NAME}}; for the template
+  # The ANCHOR identity block still carries sholes; for the template
   # itself that is expected, but it is honestly a posture dip worth surfacing.
   "adjust.placeholder-drift" = {
     kind = "descriptile",
     witnesses = [{ fact = "anchor.project", op = 'not_contains, arg = "{{" }],
-    note = "deed (anchor (identity :project)) is un-substituted ({{PROJECT_NAME}}) ⇒ posture dip",
+    note = "deed (anchor (identity :project)) is un-substituted (sholes) ⇒ posture dip",
   },
 
   # --- BUST: deliberately NO descriptile witness since rsr-template-repo#209. ---

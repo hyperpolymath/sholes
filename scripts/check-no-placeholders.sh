@@ -46,10 +46,10 @@ fi
 #
 # This check deliberately precedes the template exemption below. That exemption
 # is why the original incident went unseen: the gate skipped `*-template-repo`
-# entirely, so nobody noticed that .github/settings.yml shipped `name: "{{REPO}}"`
+# entirely, so nobody noticed that .github/settings.yml shipped `name: "sholes"`
 # — and .github/settings.yml is not inert content in a template. probot/settings
 # applies it on every push to the default branch, in the template as much as in
-# an instantiation. The template submitted the literal `{{REPO}}` as its own
+# an instantiation. The template submitted the literal `sholes` as its own
 # name; GitHub collapsed the illegal braces to dashes and renamed the repository
 # to `-REPO-`, which then read as a deleted repo.
 #
@@ -96,11 +96,11 @@ fi
 # Identity comes from the git remote, not the directory name.
 #
 # This used to be `basename "$(pwd)"`, which is right in CI — GITHUB_REPOSITORY
-# is set to `owner/rsr-template-repo` and matches — but wrong anywhere the
+# is set to `owner/sholes` and matches — but wrong anywhere the
 # checkout is not literally named `*-template-repo`. A git worktree is the common
 # case: `git worktree add .claude/worktrees/defects` gives basename `defects`,
 # the exemption misses, and the gate reports every one of the template's ~85
-# deliberate placeholder files as a failure. A clone into `rsr-template-repo-2`,
+# deliberate placeholder files as a failure. A clone into `sholes-2`,
 # or any renamed directory, does the same.
 #
 # The remote URL is the repo's actual identity and survives all of that. The

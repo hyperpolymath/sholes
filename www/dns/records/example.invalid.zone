@@ -29,10 +29,10 @@ www     IN  CNAME   example.invalid.
 ; your actual issuer(s), or 'issue ";"' to forbid issuance entirely.
 @       IN  CAA     0 issue "ca.example.invalid"
 @       IN  CAA     0 issuewild "ca.example.invalid"
-@       IN  CAA     0 iodef "mailto:{{SECURITY_EMAIL}}"
+@       IN  CAA     0 iodef "mailto:j.d.a.jewell@open.ac.uk"
 
 ; This zone sends no mail: hard-fail SPF, and declare MTA-STS/TLSRPT so
 ; senders to a spoofed address get a correct rejection signal (RFC 8461/8460).
 @       IN  TXT     "v=spf1 -all"
 _mta-sts    IN  TXT "v=STSv1; id=20260917000000Z;"
-_smtp._tls  IN  TXT "v=TLSRPTv1; rua=mailto:{{SECURITY_EMAIL}}"
+_smtp._tls  IN  TXT "v=TLSRPTv1; rua=mailto:j.d.a.jewell@open.ac.uk"

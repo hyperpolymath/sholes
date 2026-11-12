@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-// SPDX-FileCopyrightText: {{CURRENT_YEAR}} {{AUTHOR}} ({{OWNER}}) <{{AUTHOR_EMAIL}}>
-= Usage — {{PROJECT_NAME}}
-:revdate: {{CURRENT_YEAR}}-MM-DD
+// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+= Usage — sholes
+:revdate: 2026-MM-DD
 
 == Audience
 
-This document is for *consumers* of `{{PROJECT_NAME}}` — people who depend
+This document is for *consumers* of `sholes` — people who depend
 on it, call it, or include it. For developers working *on* it, see
 link:./contributing.adoc[contributing.adoc].
 
@@ -31,7 +31,7 @@ Expected output:
 
 [source]
 ----
-{{PROJECT_NAME}} v0.0.0
+sholes v0.0.0
 Listening on 127.0.0.1:8080
 ----
 

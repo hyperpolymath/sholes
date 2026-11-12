@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-= Acceptable Use — {{PROJECT_NAME}}
+= Acceptable Use — sholes
 
 Rendered into `public/policies/acceptable-use.html` at deploy time; this
 AsciiDoc file is the source of record.

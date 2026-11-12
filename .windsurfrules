@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MPL-2.0
-# Copyright (c) {{CURRENT_YEAR}} {{AUTHOR}} ({{OWNER}}) <{{AUTHOR_EMAIL}}>
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 # Authoritative source: docs/practice/AI-CONVENTIONS.adoc
 
 # STARTUP: Read the repo deed (*_chora.deed at the repo root) first, then docs/status/ROADMAP.adoc.
@@ -8,7 +8,7 @@
 # All original code: MPL-2.0.
 # Never AGPL-3.0. MPL-2.0 only as platform-required fallback.
 # SPDX header required on every source file.
-# Copyright: {{AUTHOR}} ({{OWNER}}) <{{AUTHOR_EMAIL}}>
+# Copyright: Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 # STATE FILES
 # No .a2ml file may exist anywhere: the format is retired. State, metadata,

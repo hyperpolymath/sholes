@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) {{CURRENT_YEAR}} {{AUTHOR}} ({{OWNER}}) <{{AUTHOR_EMAIL}}>
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 //
-// Dev Container configuration for {{PROJECT_NAME}} — Docker engines.
+// Dev Container configuration for sholes — Docker engines.
 // Works with: GitHub Codespaces, Gitpod, and VS Code Dev Containers on Docker.
 // The estate default is rootless Podman: .devcontainer/devcontainer.json.
 // Same image (../Containerfile); only the user-namespace settings differ.
 {
-  "name": "{{PROJECT_NAME}} (Docker / Codespaces)",
+  "name": "sholes (Docker / Codespaces)",
 
   "build": {
     "dockerfile": "../Containerfile",

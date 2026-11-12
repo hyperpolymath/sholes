@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
-= Setting up rsr-template-repo by hand
+= Setting up sholes by hand
 :toc:
 :toclevels: 2
 
@@ -10,7 +10,7 @@ link:AI_INSTALLATION_GUIDE.adoc[AI_INSTALLATION_GUIDE.adoc]), but those do
 exactly what is written here, so this page is also what to read when they stop.
 
 [horizontal]
-Repository:: https://github.com/hyperpolymath/rsr-template-repo
+Repository:: https://github.com/hyperpolymath/sholes
 Kind:: library (idris2, zig)
 Toolchain declared in:: `mise.toml` (versions `latest`, made concrete in `mise.lock`), and
 `build/manifest.scm` / `build/guix.scm` / `build/channels.scm` for Guix
@@ -56,12 +56,12 @@ The Guix development shell (`build/manifest.scm`) already includes both.
 
 [source,bash]
 ----
-git clone https://github.com/hyperpolymath/rsr-template-repo.git
-cd rsr-template-repo
+git clone https://github.com/hyperpolymath/sholes.git
+cd sholes
 ----
 
 Or with OPSM, the odds-and-sods package manager (see <<opsm>>):
-`opsm install https://github.com/hyperpolymath/rsr-template-repo.git --registry git`
+`opsm install https://github.com/hyperpolymath/sholes.git --registry git`
 
 TIP: To start a *new* project from this template, use GitHub's *Use this template*
 button (or clone as above), then run `just repo-init` before step 3; it fills every
@@ -153,10 +153,10 @@ when it is not.
 
 [source,bash]
 ----
-opsm install https://github.com/hyperpolymath/rsr-template-repo.git --registry git
+opsm install https://github.com/hyperpolymath/sholes.git --registry git
 ----
 
-rsr-template-repo has no registry package, so OPSM fetches it through its git
+sholes has no registry package, so OPSM fetches it through its git
 adapter; then provision it with `./launcher.sh --setup`. To get OPSM itself
 (Erlang/OTP 26+ and Elixir 1.16+ required):
 
@@ -212,4 +212,4 @@ every fix marked *auto* for you.
 |===
 
 Still stuck? `just doctor > doctor.txt 2>&1` and open an issue at
-https://github.com/hyperpolymath/rsr-template-repo/issues with that file attached.
+https://github.com/hyperpolymath/sholes/issues with that file attached.

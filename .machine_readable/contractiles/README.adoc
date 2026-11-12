@@ -5,7 +5,7 @@
 :sectnums:
 
 This directory contains the canonical contractile templates for the
-hyperpolymath estate. `rsr-template-repo` mirrors the standards master
+hyperpolymath estate. `sholes` mirrors the standards master
 structure; copy `.machine_readable/contractiles/` into a new repo to
 establish a consistent operational, validation, trust, recovery,
 aspiration, and service-automation framework.

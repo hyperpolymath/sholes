@@ -112,6 +112,6 @@ heuristic; unknown purpose remains unknown.
 
 == Provenance
 
-Bundle shape and constraints: `rsr-template-repo` issue #53. AIBDP schema
+Bundle shape and constraints: `sholes` issue #53. AIBDP schema
 vendored from `metadatastician/consent-aware-web` (MPL-2.0) — see
 `schemas/aibdp-schema-v0.2.json.license`.

@@ -2,7 +2,7 @@
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 // Template: rsr-template-repo/docs/status/PROOF-NEEDS.adoc
 // Authoritative master list: ~/Desktop/PROOF-REQUIREMENTS-MASTER.adoc
-= Proof Requirements — {{PROJECT}}
+= Proof Requirements — SHOLES
 
 == Proof Tier
 
@@ -26,7 +26,7 @@
 
 == Mandatory Proofs (All RSR Repos)
 
-These proofs come from the rsr-template-repo and MUST be present in every repo:
+These proofs come from the sholes and MUST be present in every repo:
 
 === ABI/FFI Boundary Proofs (Idris2)
 

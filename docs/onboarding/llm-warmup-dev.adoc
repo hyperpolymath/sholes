@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
-= LLM warm-up — rsr-template-repo (developer)
+= LLM warm-up — sholes (developer)
 
-Paste this into an AI assistant before changing code in rsr-template-repo.
+Paste this into an AI assistant before changing code in sholes.
 
 == Orientation
 
-rsr-template-repo (https://github.com/hyperpolymath/rsr-template-repo): a library in idris2, zig.
+sholes (https://github.com/hyperpolymath/sholes): a library in idris2, zig.
 
 The template's own code is the ABI/FFI seam that every minted repo inherits:
 
