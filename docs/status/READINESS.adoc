@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-= {{PROJECT_NAME}} Component Readiness Assessment
+= sholes Component Readiness Assessment
 
-*Standard:* link:https://{{FORGE}}/{{OWNER}}/standards/tree/main/component-readiness-grades[Component Readiness Grades (CRG) v2.0 STRICT] +
-*Assessed:* {{CURRENT_DATE}} +
-*Assessor:* {{AUTHOR}} +
+*Standard:* link:https://github.com/hyperpolymath/standards/tree/main/component-readiness-grades[Component Readiness Grades (CRG) v2.0 STRICT] +
+*Assessed:* 2026-11-12 +
+*Assessor:* Jonathan D.A. Jewell +
 *Previous assessment:* _<date or "none">_
 
 *Current Grade:* X
@@ -59,7 +59,7 @@ Below B, any publication must be explicitly abstract or provisional.
 
 '''
 
-== 2. Headline Evidence (as of {{CURRENT_DATE}})
+== 2. Headline Evidence (as of 2026-11-12)
 
 [cols="2,3,3", options="header"]
 |===
@@ -67,7 +67,7 @@ Below B, any publication must be explicitly abstract or provisional.
 
 | Test count | _<N>_ | `docs/status/ROADMAP.adoc` or CI
 | Formal-verification posture | _<N `believe_me` / `sorry` / `Admitted` — irreducible only>_ | grep of proof dirs
-| Dangerous patterns (`assert_total`, `unsafeCoerce`, `Obj.magic`) | _<N>_ | grep {{CURRENT_DATE}}
+| Dangerous patterns (`assert_total`, `unsafeCoerce`, `Obj.magic`) | _<N>_ | grep 2026-11-12
 | Per-unit README coverage | _<M/N (percentage)>_ | filesystem scan of unit dirs
 | CI status | _<workflow name + last green run>_ | `.github/workflows/`
 | RSR mandatory workflows | _<N/17>_ | `.github/workflows/`
@@ -87,9 +87,9 @@ unless noted.
 |===
 | Component | Grade | Posture | Evidence Summary | Promotion blocker | Last Assessed
 
-| _<component 1>_ | X/F/E/D/C/B/A | _<shorthand>_ | _<what was checked + counts>_ | _<specific, actionable gap to next grade>_ | {{CURRENT_DATE}}
-| _<component 2>_ | … | … | … | … | {{CURRENT_DATE}}
-| _<component 3>_ | … | … | … | … | {{CURRENT_DATE}}
+| _<component 1>_ | X/F/E/D/C/B/A | _<shorthand>_ | _<what was checked + counts>_ | _<specific, actionable gap to next grade>_ | 2026-11-12
+| _<component 2>_ | … | … | … | … | 2026-11-12
+| _<component 3>_ | … | … | … | … | 2026-11-12
 |===
 
 *Rules of thumb for populating this table:*
@@ -164,7 +164,7 @@ Real-world external feedback confirming value. Populate
 
 '''
 
-== 7. Summary ({{CURRENT_DATE}})
+== 7. Summary (2026-11-12)
 
 * Project grade: _<grade>_. Why: _<1-2 line justification>_.
 * Delta since last assessment: _<what changed; none if first assessment>_.
@@ -177,7 +177,7 @@ Real-world external feedback confirming value. Populate
 
 * `docs/governance/CRG-CRITERIA.adoc` — grade definitions (boilerplate).
 * `docs/governance/CRG-AUDIT-<DATE>.adoc` — formal audit (populate from
-  `rsr-template-repo/docs/governance/CRG-AUDIT-TEMPLATE.adoc`).
+  `sholes/docs/governance/CRG-AUDIT-TEMPLATE.adoc`).
 * `docs/practice/DOGFOOD-LOG.adoc` — dated dogfood evidence (required for C).
 * `docs/status/ROADMAP.adoc` — evidence journal (sections
   `== Dogfooding status`, `== External targets`, `== Issues fed back`,

@@ -4,13 +4,13 @@ Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 -->
 # Project Governance
 
-This document describes the governance model for **{{PROJECT_NAME}}**.
+This document describes the governance model for **sholes**.
 
 ---
 
 ## Project Governance Model
 
-{{PROJECT_NAME}} follows a **Benevolent Dictator For Life (BDFL)** governance model.
+sholes follows a **Benevolent Dictator For Life (BDFL)** governance model.
 This model is well-suited for solo maintainers and small project teams where rapid,
 consistent decision-making is more valuable than formal consensus processes.
 
@@ -157,4 +157,4 @@ with the community before adoption, even though the BDFL retains final authority
 
 ---
 
-<sub>Copyright (c) {{CURRENT_YEAR}} {{OWNER}}. Licensed under MPL-2.0.</sub>
+<sub>Copyright (c) 2026 hyperpolymath. Licensed under MPL-2.0.</sub>

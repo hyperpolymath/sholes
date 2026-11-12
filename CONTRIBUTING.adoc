@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // SPDX-FileCopyrightText: Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
-= Contributing — rsr-template-repo
+= Contributing — sholes
 :toc: left
 
 Contributors work on the *spine*: the template every RSR repo is minted
@@ -12,15 +12,15 @@ is the estate's bar.
 [source,bash]
 ----
 # Clone the repository
-git clone https://github.com/hyperpolymath/rsr-template-repo.git
-cd rsr-template-repo
+git clone https://github.com/hyperpolymath/sholes.git
+cd sholes
 
 # Using Guix (recommended for reproducibility)
 guix shell -D -f build/guix.scm
 
 # Or using toolbox/distrobox
-toolbox create rsr-template-repo-dev
-toolbox enter rsr-template-repo-dev
+toolbox create sholes-dev
+toolbox enter sholes-dev
 # Install dependencies manually
 
 # Verify setup
@@ -80,10 +80,10 @@ and include:
 
 Look for issues labelled:
 
-* https://github.com/hyperpolymath/rsr-template-repo/labels/good%20first%20issue[`good first issue`] — Simple Perimeter 3 tasks
-* https://github.com/hyperpolymath/rsr-template-repo/labels/help%20wanted[`help wanted`] — Community help needed
-* https://github.com/hyperpolymath/rsr-template-repo/labels/documentation[`documentation`] — Docs improvements
-* https://github.com/hyperpolymath/rsr-template-repo/labels/perimeter-3[`perimeter-3`] — Community sandbox scope
+* https://github.com/hyperpolymath/sholes/labels/good%20first%20issue[`good first issue`] — Simple Perimeter 3 tasks
+* https://github.com/hyperpolymath/sholes/labels/help%20wanted[`help wanted`] — Community help needed
+* https://github.com/hyperpolymath/sholes/labels/documentation[`documentation`] — Docs improvements
+* https://github.com/hyperpolymath/sholes/labels/perimeter-3[`perimeter-3`] — Community sandbox scope
 
 == Development workflow
 

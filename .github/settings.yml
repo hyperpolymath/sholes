@@ -12,10 +12,10 @@
 # It carries NO `name`, `description`, `homepage` or `private` key, and it must
 # never gain one. The reason is a real incident, not a hypothetical:
 #
-#   This file previously read `name: "rsr-template-repo"`. probot/settings applies it on
+#   This file previously read `name: "sholes"`. probot/settings applies it on
 #   every push to the default branch, so it submitted the literal string
-#   `rsr-template-repo` as the repository name. GitHub sanitises an invalid name by
-#   collapsing each run of illegal characters to a dash — `rsr-template-repo` became
+#   `sholes` as the repository name. GitHub sanitises an invalid name by
+#   collapsing each run of illegal characters to a dash — `sholes` became
 #   `-REPO-`. The template renamed itself on every push, its old URL 404'd, and
 #   it was mistaken for a deleted repository. `description` was likewise left
 #   reading the literal `Canonical RSR (Rhodium Standard Repository) template — governance, CI/CD, machine-readable metadata, ABI/FFI seam and formal-verification scaffolding that hyperpolymath projects are instantiated from.` on the live repo.

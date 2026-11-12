@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-// SPDX-FileCopyrightText: {{CURRENT_YEAR}} {{AUTHOR}} ({{OWNER}}) <{{AUTHOR_EMAIL}}>
-= Contributing — {{PROJECT_NAME}}
-:revdate: {{CURRENT_YEAR}}-MM-DD
+// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+= Contributing — sholes
+:revdate: 2026-MM-DD
 
 == Audience
 
-Developers working *on* `{{PROJECT_NAME}}`. For consumers (people calling
+Developers working *on* `sholes`. For consumers (people calling
 or depending on it) see link:./usage.adoc[usage.adoc].
 
 == Local-dev setup
@@ -23,8 +23,8 @@ One-shot setup:
 
 [source,bash]
 ----
-git clone git@github.com:{{OWNER}}/{{PROJECT_NAME}}.git
-cd {{PROJECT_NAME}}
+git clone git@github.com:hyperpolymath/sholes.git
+cd sholes
 just setup       # installs deps, sets up hooks
 just test        # runs the full test suite
 ----
@@ -86,6 +86,6 @@ When you make a non-obvious design decision, write it down:
 
 == Reporting issues
 
-* Bugs in `{{PROJECT_NAME}}`: file at `{{OWNER}}/{{PROJECT_NAME}}/issues`.
+* Bugs in `sholes`: file at `hyperpolymath/sholes/issues`.
 * Estate-wide concerns (policy, conventions, CI): file at
   `hyperpolymath/standards/issues`.

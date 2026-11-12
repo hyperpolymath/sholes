@@ -51,7 +51,7 @@ Two obligations follow from this, and they are not optional:
 * *Find the source.* Before acting, trace the thing back to where it is actually
   defined — the template, the generator, the canon, the single point that
   everything else inherits from. The estate's structure is
-  `standards → rsr-template-repo → (every repo)`; a fix that belongs at the
+  `standards → sholes → (every repo)`; a fix that belongs at the
   template does not belong in 380 leaves.
 * *Be mindful of every up- and down-stream.* A change at a source propagates.
   Before you make it, know what feeds into the thing you are changing (upstream)

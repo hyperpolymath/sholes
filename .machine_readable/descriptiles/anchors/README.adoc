@@ -10,7 +10,7 @@ anchor file lives in this directory, and no `.a2ml` file may be created here.
 
 - `(anchor)` - Project recalibration, scope intervention, canonical authority
 
-Read a field with `scripts/deed-field.sh rsr-template-repo_chora.deed anchor <key>`.
+Read a field with `scripts/deed-field.sh sholes_chora.deed anchor <key>`.
 
 ## Multiple Versions
 

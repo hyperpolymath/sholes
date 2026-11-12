@@ -2,7 +2,7 @@
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 = AI Conventions
 // SPDX-License-Identifier: CC-BY-SA-4.0
-// Copyright (c) {{CURRENT_YEAR}} {{AUTHOR}} ({{OWNER}}) <{{AUTHOR_EMAIL}}>
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 == AI Conventions (Authoritative Source)
 
@@ -38,9 +38,9 @@ Per estate policy (hyperpolymath/standards `LICENCE-POLICY.adoc` Rule 1 + Addend
 
 === Author Attribution
 
-- Name: **{{AUTHOR}}**
-- Email: **{{AUTHOR_EMAIL}}**
-- Copyright: `Copyright (c) {{CURRENT_YEAR}} {{AUTHOR}} ({{OWNER}}) <{{AUTHOR_EMAIL}}>`
+- Name: **Jonathan D.A. Jewell**
+- Email: **j.d.a.jewell@open.ac.uk**
+- Copyright: `Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>`
 
 === State Files
 

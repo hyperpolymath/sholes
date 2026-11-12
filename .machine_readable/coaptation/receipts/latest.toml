@@ -5,7 +5,7 @@
 
 [receipt]
 schema = "hyperpolymath.coaptation/1"
-repo = "rsr-template-repo"
+repo = "sholes"
 band = "amber"
 proposed-action = "advisory — soft drift within bands (posture/intend). Open an advisory issue; no re-anchor."
 

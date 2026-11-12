@@ -1,6 +1,6 @@
 ;; SPDX-License-Identifier: MPL-2.0
 ;
-; The repo deed of rsr-template-repo: one-deed-per-repo doctrine (standards#837,
+; The repo deed of sholes: one-deed-per-repo doctrine (standards#837,
 ; owner ruling 2026-09-19, Option A). Folds the former ply manifest tree
 ; (82 per-directory manifests) and the family-7 AI allocation manifest
 ; into deed clauses.
@@ -16,9 +16,9 @@
 ; field; scripts/deed-clause.sh is the one writer.
 (repo-deed
   :schema-version "1.0.0"
-  :canonical-name "rsr-template-repo"
+  :canonical-name "sholes"
   :beholding-chora #u5"estate/chora"
-  :repo-uuid #u5"github.com/hyperpolymath/rsr-template-repo"
+  :repo-uuid #u5"github.com/hyperpolymath/sholes"
   ; The canon pin: which release of hyperpolymath/standards canon.lock this
   ; repo implements. It is the ONLY canon pin in this deed (deed_canon
   ; refuses zero or two); the (rsr-profile) clause below declares
@@ -30,46 +30,83 @@
   ; equal canon.lock [canon.artifacts]; canon.lock [canon.lockstep].order is
   ; spine-adopts-then-canon-releases, so this clause moves FIRST.
   (canon
-    :version "2.1.2"
+    :version "2.1.5"
     :criteria-sha256 "6a5aa8857bd0d0d58ef48827938ca17c251b6b854dacf59d306388d61694d82a"
-    :gates-sha256 "e70efd2f53c9445e30da4baf770366f04a4a84ffd844a01426e587e565b53e6a"
+    :gates-sha256 "5c510bba025be718deebb12d0333bfe7db2da43c66578b728b1a334df65290b1"
     :lockstep-since "2026-09-17"
     ; A canon change this repo cannot satisfy is a change made in the WRONG
     ; ORDER, not a rejected change: land the spine's adoption first, then the
     ; canon change is a one-line bump.
     :order "spine-adopts-then-canon-releases")
-  ; >>> repo-identity (repo-init replaces this block at mint)
-  ; The template's OWN identity. `just repo-init` swaps everything between
-  ; these two markers for build/templates/identity.deed.in, filled for the
-  ; new repo. Before that swap existed every minted repo inherited this
-  ; block's uuid and canonical-name and told arriving agents it WAS the
-  ; template (corrected in chronicles-of-slavia and scaffoldia 2026-07-16).
-  ; The uuid is not stored: it is uuid5(URL namespace, the header
-  ; :repo-uuid name). Only that typed name is written down; a hex form here
-  ; fails ADR-008's strict v8 gate.
-  ; Identity, clade, forges, lineage, status: mapping clade-to-repo-deed.
+  ; >>> repo-identity
+  ; Written by `just repo-init` from build/templates/identity.deed.in, in
+  ; place of the block the template repo ships (template issue #209). It replaces
+  ; descriptiles/CLADE.a2ml and ECOSYSTEM.a2ml; the mapping is standards
+  ; 1-formats/deed/mappings/clade-to-repo-deed.adoc and
+  ; meta-ecosystem-to-repo-deed.adoc.
+  ;
+  ; THE UUID IS DERIVED, NOT ALLOCATED, NOT INVENTED. It is not stored: it is
+  ;     uuid5(namespace = URL, name = the header :repo-uuid string)
+  ; and anyone can recompute it (gv-clade-index:
+  ; docs/SPEC-clade-verisim-portal.adoc §Identity Model):
+  ;     uuidgen --sha1 --namespace @url --name "github.com/hyperpolymath/sholes"
+  ; The owner is part of the name, so part of the identity: record the owner
+  ; that is true today, and re-derive if the repo ever moves.
+  ;
+  ; CHOOSE A CLADE. A CLOSED TAXONOMY OF 12 CATEGORIES, NOT AN ABBREVIATION
+  ; SCHEME: the two letters abbreviate the clade's name, never your repo's.
+  ;   fv  Formal Verification & Proofs   provable correctness, dependent types, theorem proving
+  ;   nl  Nextgen Languages              compilers, runtimes, language tooling
+  ;   rm  Repo Management & Tooling      scaffolding, graph analysis, bots, templates
+  ;   gv  Governance & Standards         licensing, compliance, policy enforcement
+  ;   db  Databases                      database engines, query languages, storage
+  ;   ap  Applications                   end-user apps, web, desktop, services
+  ;   ix  Infrastructure & Cloud         containers, deployment, sysadmin
+  ;   dx  Developer Ecosystem            dev tools, package managers, editors, bindings
+  ;   pt  Protocols & Interop            internet standards, protocol implementations
+  ;   ax  AI & Neurosymbolic             ML, neural proof synthesis, AI governance
+  ;   gm  Games & Interactive            game engines, interactive experiences
+  ;   sc  Security                       scanning, vulnerability management, access control
+  ; paint-type once chose `pt` reading it as "PainT-type" (an image editor is
+  ; `ap`); gossamer chose `gv` reading it as "Graphical/Visual" (`gv` is
+  ; GoVernance). Both codes were valid, so every check passed.
+  ; HOW TO CHOOSE: the primary clade reflects the project's core value
+  ; proposition, not its implementation. A game written in Idris2 is `gm`.
+  ; Set BOTH :primary and :primary-name, and make them agree; then set
+  ; :prefixed-name to "<primary>-sholes". `just validate-rsr` fails while
+  ; :primary is UNASSIGNED. That is deliberate: an unchosen clade must never
+  ; look like a chosen one.
+  ;
+  ; REGISTRATION IS NOT DERIVATION. Registering means an entry in
+  ; gv-clade-index verisim/seed/repos.a2ml. It is outward-facing and it is the
+  ; OWNER's act; an agent must not do it.
   (identity
     :primary-forge github
     :owner "hyperpolymath"
-    :prefixed-name "rm-rsr-template-repo")
+    :prefixed-name "UNASSIGNED-sholes")
   (clade
-    :primary rm
-    :primary-name "Repo Management & Tooling"
+    :primary UNASSIGNED
+    :primary-name "UNASSIGNED"
     :secondary ()
-    :assigned "2026-03-16"
-    :rationale "Repo Management & Tooling (`rm`): the core value proposition is scaffolding repositories — CI/CD, AI manifests, ABI/FFI seams, governance — that other projects are instantiated from. `gv` was previously claimed as a secondary and is dropped: the template SHIPS governance files, but shipping them is not being a governance project. That authority lives in `standards` and `metadatastician-governance`. The inherited [\"gv\"] propagated into every repo created from this template, where it was even less meant.")
+    :assigned "2026-11-12"
+    :rationale "")
   (forges
-    :github "hyperpolymath/rsr-template-repo"
-    :gitlab "hyperpolymath/rsr-template-repo"
-    :bitbucket "hyperpolymath/rsr-template-repo")
+    :github "hyperpolymath/sholes")
+  ; :type is one of standalone monorepo monorepo-child inflated deflated hub
+  ; satellite. A hub COORDINATES an ecosystem family; a satellite is
+  ; coordinated by one and keeps :parent "" (parent names a monorepo parent,
+  ; never the coordinating hub).
   (lineage
     :type standalone
     :parent ""
-    :born "2026-03-16"
-    :previous-names ())
+    :born "2026-11-12"
+    :previous-names ()
+    :instantiated-from "rsr-template-repo")
+  ; :phase is one of reserved incubating active dormant merged superseded
+  ; archived extinct. A repo created today has not proven anything yet.
   (status
-    :phase active
-    :since "2026-03-16"
+    :phase incubating
+    :since "2026-11-12"
     :present #t
     :aliases ()
     :merged-into ""
@@ -77,33 +114,25 @@
     :successors ()
     :ended ""
     (history
-      (entry :phase active :since "2026-03-16" :note "the estate's canonical repository template; in production use")))
-  ; Maturity has its own clause (owner decision 2026-10-02; standards
-  ; 1-formats/deed/vocabulary/maturity.adoc). No :since: the date the
-  ; template reached production was never recorded. Milestones, next actions
-  ; and blockers live in docs/status/ROADMAP.adoc.
+      (entry :phase incubating :since "2026-11-12" :note "created from rsr-template-repo; clade not yet chosen; not yet registered")))
+  ; :level is one of experimental alpha beta production lts (standards
+  ; 1-formats/deed/vocabulary/maturity.adoc).
   (maturity
-    :level production)
-  ; Ecosystem: mapping meta-ecosystem-to-repo-deed.
+    :level experimental
+    :since "2026-11-12")
+  ; Fill in what this repo IS and IS NOT, and the repos it relates to.
+  ; :relationship is one of standard-source build-tooling validation-tooling
+  ; signing-tooling verification-tooling minted-from registry.
   (ecosystem
-    :project "rsr-template-repo"
+    :project "sholes"
     :ecosystem "hyperpolymath"
-    :position-type "repository-template"
-    :purpose "Canonical RSR-compliant repository template: scaffolding (CI/CD, AI manifests, ABI/FFI standards, container ecosystem, governance) that new hyperpolymath projects are instantiated from."
-    :not ("a project in its own right"
-          "Scaffoldia (the full-featured repo designer)"
-          "standards (the canon source this template operationalises)")
-    :pipeline-position "foundation"
-    :chain "standards → rsr-template-repo → (every estate repo)"
-    :pipeline-notes "rsr-template-repo turns the RSR standard into runnable scaffolding. New repos are created from it via `just repo-init`, which substitutes the {{PLACEHOLDER}} tokens."
+    :position-type "UNASSIGNED"
+    :purpose "UNASSIGNED"
+    :not ()
+    :pipeline-position "UNASSIGNED"
+    :chain "UNASSIGNED"
     :coordination standards
-    (related :name "standards" :relationship standard-source :notes "Defines the RSR standard, contractile canon, and policies that this template operationalises.")
-    (related :name "stapeln" :relationship build-tooling :notes "Layer-based container build system; the template ships stapeln.toml scaffolding.")
-    (related :name "selur-compose" :relationship build-tooling :notes "Service composition; the template ships selur-compose.toml scaffolding.")
-    (related :name "k9-svc" :relationship validation-tooling :notes "Runs the self-validating k9.ncl checks (.machine_readable/self-validating/).")
-    (related :name "cerro-torre" :relationship signing-tooling :notes "Container/image signing provider referenced by the container scaffolding.")
-    (related :name "svalinn" :relationship verification-tooling :notes "Supply-chain verification referenced by the container scaffolding.")
-    (related :name "vordr" :relationship verification-tooling :notes "Build/artifact verification referenced by the container scaffolding."))
+    (related :name "rsr-template-repo" :relationship minted-from :notes "the template this repo was minted from by just repo-init"))
   ; <<< repo-identity
   ; Meta: mapping meta-ecosystem-to-repo-deed. A minted repo keeps this
   ; clause (self-name pass applied) and edits it as its own.
@@ -168,8 +197,8 @@
     (methodology :instructions-clause "bot-directives" :default-mode hybrid))
   (manifest
     :version "0.1.0"
-    :last-updated "{{CURRENT_DATE}}"
-    :project "[YOUR-REPO-NAME]"
+    :last-updated "2026-11-12"
+    :project "sholes"
     :purpose "Canonical RSR (Rhodium Standard Repository) template — governance, CI/CD, machine-readable metadata, ABI/FFI seam and formal-verification scaffolding that hyperpolymath projects are instantiated from."
     (agent :name CLAUDE :role "proofs, compilers, repo-local implementation, CI/CD, formal verification, Rust/Idris2/Zig")
     (agent :name CHATGPT :role "prose, papers, publication review, standards docs, outreach drafts, letters")
@@ -184,8 +213,8 @@
   (ply
     (directory :ply 1 :path ".github")
     (directory :id "machine-readable-pillar" :ply 1 :path ".machine_readable" :description "Registry for all machine-readable metadata, policies, and internal\nautomation scripts."
-      (canonical-locations :ai_configs "ai/" :anchor "rsr-template-repo_chora.deed (anchor)" :compliance "compliance/" :neurosym "rsr-template-repo_chora.deed (neurosym)" :playbook "rsr-template-repo_chora.deed (playbook)" :policies "rsr-template-repo_chora.deed (policies)" :scripts "scripts/")
-      :invariants ("Repo metadata MUST live in the repo deed (rsr-template-repo_chora.deed) and follow the DEED grammar" "Internal automation MUST live in scripts/ subfolder")
+      (canonical-locations :ai_configs "ai/" :anchor "sholes_chora.deed (anchor)" :compliance "compliance/" :neurosym "sholes_chora.deed (neurosym)" :playbook "sholes_chora.deed (playbook)" :policies "sholes_chora.deed (policies)" :scripts "scripts/")
+      :invariants ("Repo metadata MUST live in the repo deed (sholes_chora.deed) and follow the DEED grammar" "Internal automation MUST live in scripts/ subfolder")
       (directory :id "ai-registry" :ply 2 :path ".machine_readable/ai" :description "Sub-registry for ai metadata.")
       (directory :id "configs-registry" :ply 2 :path ".machine_readable/configs" :description "Sub-registry for configs metadata.")
       (directory :ply 0 :path ".machine_readable/descriptiles" :description "This manifest declares the AI-assistant context for the descriptiles machine-readable metadata directory."
@@ -307,7 +336,7 @@
   ; and the golden path. The CLAUDE.md arrival pack reads anchor/golden-path and hashes this clause (ANCHOR@…).
   (anchor
     :schema "hyperpolymath.anchor/1"
-    :repo "{{OWNER}}/{{REPO}}"
+    :repo "hyperpolymath/sholes"
     :authority "upstream-canonical"
     :purpose (
       "Define canonical semantics and policy boundaries for this repository."
@@ -316,13 +345,13 @@
       )
     (metadata
       :version "1.0.0"
-      :last-updated "{{CURRENT_DATE}}")
+      :last-updated "2026-11-12")
     (identity
-      :project "{{PROJECT_NAME}}"
+      :project "sholes"
       ; language | library | service | tool
-      :kind "{{PROJECT_KIND}}"
-      :one-sentence "{{PROJECT_PURPOSE}}"
-      :domain "{{PROJECT_DOMAIN}}")
+      :kind "UNASSIGNED"
+      :one-sentence "Tired of phantom 40,000-line diffs and /usr/bin/env: 'bash' errors? Formally proven quotient canonicalization that neutralizes line-ending chaos at the storage boundary. The 50-year war between Ken Thompson and Gary Kildall is settled by mathematics."
+      :domain "UNASSIGNED")
     (semantic-authority
       :policy "canonical"
       :owns (
@@ -477,7 +506,7 @@
     (methodology
       (metadata
         :version "1.0.0"
-        :last-updated "{{CURRENT_DATE}}"
+        :last-updated "2026-11-12"
         :spec "https://github.com/hyperpolymath/standards/blob/main/1-formats/a2ml/agentic/docs/ADR-002-methodology-layer.adoc")
       ; ============================================================================
       ; MODE SELECTION
@@ -521,7 +550,7 @@
         ; What makes this project special. Agents should DEEPEN this, not broaden it.
         ; Customise this per project — the template default is generic.
         (unique-strength
-          :description "{{PROJECT_UNIQUE_STRENGTH}}"
+          :description "UNASSIGNED"
           :deepen-not-broaden #t)
         ; ============================================================================
         ; DIVERGENT INVARIANTS
@@ -560,7 +589,7 @@
         ; These rules detect corrupt/template/stale state files.
         (state-validation
           ; A regex, not a literal list. The list form named the exact strings it was
-          ; meant to catch ("{{PROJECT}}"), so `just repo-init` substituted the detector along
+          ; meant to catch ("SHOLES"), so `just repo-init` substituted the detector along
           ; with everything else and shipped reject-if-contains = ["MY_PROJECT", ...] —
           ; a guard against unfilled tokens that had been eaten by the filling. The
           ; escaped pattern below contains no token for init to match, and covers every
@@ -579,7 +608,7 @@
     (coverage
       (metadata
         :version "1.0.0"
-        :last-updated "{{CURRENT_DATE}}")
+        :last-updated "2026-11-12")
       ; ============================================================================
       ; COVERAGE STATE
       ; ============================================================================
@@ -597,7 +626,7 @@
     (debt
       (metadata
         :version "1.0.0"
-        :last-updated "{{CURRENT_DATE}}"))
+        :last-updated "2026-11-12"))
     ; rra — directives for Robot Repo Automaton (RRA) enforcing the Platonic Ideal root.
     (rra
       :target "robot-repo-automaton"
@@ -612,7 +641,7 @@
         ; The pattern ".*" allows hidden dotfiles implicitly; RRA checks specific
         ; dotfile rules below.
         (allow-list
-          :files ("README.adoc" "CHANGELOG.adoc" "Justfile" "LICENSE" "rsr-template-repo_chora.deed" "CITATION.cff" "CLAUDE.md")
+          :files ("README.adoc" "CHANGELOG.adoc" "Justfile" "LICENSE" "sholes_chora.deed" "CITATION.cff" "CLAUDE.md")
           :patterns (".*"))
         ; Relocation rules: move heavy prose out of the root
         (relocations
@@ -710,8 +739,8 @@
     ; See: https://github.com/hyperpolymath/standards/tree/main/groove-protocol
     (groove
       :version "1.0"
-      ; Service identity — replace {{REPO}} with your project name
-      :service "{{REPO}}"
+      ; Service identity — replace sholes with your project name
+      :service "sholes"
       :service-version "0.1.0"
       ; Primary port — MUST be unique across the ecosystem. Check PORT-REGISTRY.md
       ; in the standards repo before assigning:
@@ -740,7 +769,7 @@
     (maintenance-axes
       (metadata
         :version "1.0.0"
-        :last-updated "{{CURRENT_DATE}}"
+        :last-updated "2026-11-12"
         :scope "repo")
       (discovery
         :human-entrypoints (
@@ -1015,69 +1044,62 @@
         "Axis 2 type governs commit categorisation"
         "Axis 3 focus governs audit depth")))
   ; rsr-profile — this repo's declared RSR v2.0 capabilities.
-  ; It carries no canon pin: the (canon) clause above is the pin, exactly once.
-  ;
-  ; It declares which capabilities this repo has,
-  ; per 0-canon/TEMPLATE-APPLICABILITY-POLICY.adoc; the RSR v2.0 conformance oracle
-  ; (hypatia Hypatia.Rules.RsrConformance) uses `capabilities` to compute the
-  ; APPLICABLE criteria set — a gated criterion is scored only when its gating
-  ; capability appears below; everything else is `na` and excluded from the
-  ; denominator.
-  ;
-  ; rsr-template-repo is deliberately MAXIMAL: it ships scaffolding for FFI/ABI
-  ; seams, in-tree formal proofs, a container, a reproducible build, benchmarks,
-  ; a docs site, and the full governance trio — so a repo scaffolded FROM it can
-  ; adopt any of them. Its declared set is therefore near-total, which is exactly
-  ; what makes it the dogfood target (the gate requires Gold on the applicable
-  ; set). Every capability below is grounded in a file/dir that actually exists
-  ; in this tree; capabilities it does NOT have (rust, affinescript, mobile,
-  ; web-ui, api-service, published-package) are omitted so the oracle does not
-  ; score this repo against modules it does not carry.
+  ; Written by just repo-init on 2026-11-12. The template's maximal
+  ; profile was replaced at mint: declare only what this tree carries.
   (rsr-profile
     :version "1.0.0"
     :spec "rsr-criteria-v2"
     :declares-against "2.1.1-draft"
-    ; Role in the estate pipeline: standards (canon) -> THIS (spine) -> scaffoldia
-    ; (composer) -> minted repos. A spine may carry capability-gated modules it
-    ; does not declare, for the repos minted from it; see [carrier] in the canon
-    ; gates table. A minted repo doing the same is still drift.
-    :role "spine"
-    ; Effective capability set (direct declaration; no preset shorthand used).
-    :capabilities (
-      ; src/interface/ffi/build.zig + Zig FFI layer
-      "zig"
-      ; src/interface/abi.ipkg + src/interface/Abi/ (dependent-typed ABI)
-      "idris2"
-      ; scripts/*.sh automation
-      "bash"
-      ; src/ command-line entry scaffolding
-      "cli"
-      ; consumed/published as a library surface
-      "library"
-      ; C-ABI FFI seam (Zig), src/interface/ffi/
-      "ffi"
-      ; formally specified ABI: src/interface/abi.ipkg + src/interface/Abi/ proofs
-      "abi"
-      ; verification/proofs/ (in-tree mechanised proofs)
-      "formal-proofs"
-      ; .github/workflows/pages.yml (casket/Pages)
-      "docs-site"
-      ; build/container/ + .devcontainer/Containerfile
-      "container"
-      ; build/guix.scm
-      "reproducible-build"
-      ; benches/
-      "benchmarks"
-      ; full AUDIT/AFFIRMATION/GOVERNANCE/MAINTAINERS trio
-      "governance-tier"
-      )
-  (notes
-    ; Capabilities intentionally NOT declared (no corresponding code in tree):
-    ;   rust           — no *.rs / Cargo.toml (the FFI/ABI layer is Zig + Idris2)
-    ;   affinescript   — no *.affine
-    ;   mobile         — no Tauri/Dioxus app
-    ;   web-ui         — no browser UI
-    ;   api-service    — not a network daemon
-    ;   published-package — a scaffold template, not itself a registry artifact
-    :omitted-rationale "Declaring a capability this repo lacks would make the oracle score it against a module it does not carry — the over-scaffolding failure v2.0 fixes. See 0-canon/TEMPLATE-APPLICABILITY-POLICY.adoc."))
+    ; UNASSIGNED: declare capabilities (or a preset) — see standards
+    ; .machine_readable/template-capability-gates.toml
+    :capabilities ())
+  ; variant — provenance contract (ADR-0002 shape; ADR-0003 use).
+  ; Records what this repo was minted from so the drift gate
+  ; (scripts/check-variant-drift.sh <parent-checkout>) and future
+  ; re-templating tooling have a defined input. Placeholder rendering
+  ; means many files differ from the parent by design; folding rendered
+  ; answers into (normalise) is future work (ADR-0003), so the gate is
+  ; informational for minted repos until then.
+  (variant
+    :project "sholes"
+    :schema-version "0.1.0"
+    :last-updated "2026-11-12"
+    :parent "hyperpolymath/rsr-template-repo"
+    ; template tip at mint
+    :parent-pin "8c7baf794b8abb34c08f85b4446396f00342a364"
+    :role "minted-repo"
+    :stack "unspecified"
+    :direction "generated-from-core"
+    (normalise :rules "action-pins self-name")
+    ; Files a minted repo owns from birth are (paths :diverged …).
+    (paths
+      :added ()
+      :removed ()
+      :diverged ("sholes_chora.deed" "docs/status/ROADMAP.adoc")))
+  ; provenance — what this repo was minted FROM. Written once, at mint,
+  ; by build/just/repo-init.just. Tools that want "what is this repo" read
+  ; the rest of the deed; tools that want "where did it come from" read this.
+  (provenance
+    :minted-at "2026-11-12"
+    :template-repo "hyperpolymath/rsr-template-repo"
+    :template-branch "main"
+    :template-commit "8c7baf794b8abb34c08f85b4446396f00342a364"
+    :template-tree "7e5f626e08ae43ee44dc079dabf9be314d543188"
+    ; Contract: branches this repo is EXPECTED to carry beyond the default.
+    ; Empty means default-only. A mint must never inherit template work
+    ; branches (coderabbit/, chore/, bot-task or stale branches) — that is
+    ; how knot-knot received a byte-identical copy of a template work branch
+    ; with no common ancestor (#203). Enforced by
+    ; scripts/check-template-conformance.sh.
+    :extra-branches ()
+    :canon-version "2.1.2"
+    :criteria-sha256 "6a5aa8857bd0d0d58ef48827938ca17c251b6b854dacf59d306388d61694d82a"
+    :gates-sha256 "e70efd2f53c9445e30da4baf770366f04a4a84ffd844a01426e587e565b53e6a"
+    :archetype ""
+    ; Which minting path actually ran (#201/#203 needed this signal).
+    :minted-by "repo-init"
+    :mint-mode "interactive"
+    ; A non-empty :unassigned list means the mint did not fully render;
+    ; the validation step below already fails on a leftover token.
+    (substitutions :rendered 34 :unassigned ()))
 )

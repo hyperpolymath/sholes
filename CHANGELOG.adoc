@@ -87,7 +87,7 @@ https://semver.org/spec/v2.0.0.html[Semantic Versioning].
 ==== Fixed
 
 * The mint's self-name pass keeps issue references. It rewrote
-  `rsr-template-repo#N`, a reference to this template's own issue, into
+  `sholes#N`, a reference to this template's own issue, into
   `<child>#N`, which names an issue of the child that does not exist or is
   unrelated. resource-algebra carried such references after its mint.
   `tests/workflows/self_name_pass_test.sh` (wired into Estate Rules) runs

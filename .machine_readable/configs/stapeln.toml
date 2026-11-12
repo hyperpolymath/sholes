@@ -1,16 +1,16 @@
 # SPDX-License-Identifier: MPL-2.0
-# stapeln.toml — Layer-based container build for {{SERVICE_NAME}}
+# stapeln.toml — Layer-based container build for sholes
 #
 # stapeln builds containers as composable layers (German: "to stack").
 # Each layer is independently cacheable, verifiable, and signable.
 
 [metadata]
-name = "{{SERVICE_NAME}}"
+name = "sholes"
 version = "0.1.0"
-description = "{{SERVICE_NAME}} container service"
+description = "sholes container service"
 author = "Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"
 license = "MPL-2.0"
-registry = "{{REGISTRY}}"
+registry = "ghcr.io/hyperpolymath"
 
 [build]
 containerfile = "Containerfile"
@@ -32,7 +32,7 @@ packages = []
 cache = true
 
 [layers.build]
-description = "{{SERVICE_NAME}} build"
+description = "sholes build"
 extends = "toolchain"
 commands = []
 
@@ -43,7 +43,7 @@ packages = ["ca-certificates", "curl"]
 copy-from = [
     { layer = "build", src = "/app/", dst = "/app/" },
 ]
-entrypoint = ["/app/{{SERVICE_NAME}}"]
+entrypoint = ["/app/sholes"]
 user = "nonroot"
 
 # ── Security ───────────────────────────────────────────────────

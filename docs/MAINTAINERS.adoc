@@ -12,9 +12,9 @@ earlier duplicates at `.github/MAINTAINERS` and `docs/attribution/MAINTAINERS.ad
 |===
 | Name | Role | Contact
 
-| {{AUTHOR}}
+| Jonathan D.A. Jewell
 | Lead Maintainer
-| https://github.com/{{OWNER}}[@{{OWNER}}]
+| https://github.com/hyperpolymath[@hyperpolymath]
 |===
 
 == Responsibilities

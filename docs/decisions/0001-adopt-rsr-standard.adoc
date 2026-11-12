@@ -2,7 +2,7 @@
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 = Architecture Decision Record: 0001-adopt-rsr-standard
 // SPDX-License-Identifier: CC-BY-SA-4.0
-// Copyright (c) {{CURRENT_YEAR}} {{AUTHOR}} ({{OWNER}}) <{{AUTHOR_EMAIL}}>
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
 NOTE: Superseded in part (2026-10-06, rsr-template-repo#209): the `.a2ml` files named below no longer exist; their facts are clauses of the repo deed (`*_chora.deed`).
 
@@ -58,7 +58,7 @@ New repositories are created by cloning the template:
 
 [source,bash]
 ----
-git clone https://github.com/{{OWNER}}/rsr-template-repo new-repo-name
+git clone https://github.com/hyperpolymath/rsr-template-repo new-repo-name
 cd new-repo-name
 rm -rf .git && git init
 ----

@@ -1,30 +1,30 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 // Template: QUICKSTART-MAINTAINER.adoc — packaging, deploying, and maintaining
-// Replace rsr-template-repo, {{PACKAGE_NAME}}, {{DEPS}} with actuals
-= rsr-template-repo — Quick Start for Platform Maintainers
+// Replace sholes, UNASSIGNED, UNASSIGNED with actuals
+= sholes — Quick Start for Platform Maintainers
 :toc:
 :toclevels: 2
 
 == Overview
 
-This guide covers packaging, deploying, and maintaining rsr-template-repo for
+This guide covers packaging, deploying, and maintaining sholes for
 distribution on your platform.
 
 == Runtime Dependencies
 
-{{DEPS}}
+UNASSIGNED
 
 == Build from Source
 
 [source,bash]
 ----
-git clone https://github.com/hyperpolymath/rsr-template-repo.git
-cd rsr-template-repo
+git clone https://github.com/hyperpolymath/sholes.git
+cd sholes
 just build-release
 ----
 
-Output: `{{BUILD_OUTPUT_PATH}}`
+Output: `UNASSIGNED`
 
 == Packaging
 
@@ -40,7 +40,7 @@ guix build -f build/guix.scm
 [source,bash]
 ----
 just stapeln-export    # Generates Containerfile
-podman build -t rsr-template-repo .
+podman build -t sholes .
 ----
 
 === Manual Package
@@ -59,10 +59,10 @@ Files installed:
 | `$PREFIX/bin/`
 | Executables
 
-| `$PREFIX/share/{{PACKAGE_NAME}}/`
+| `$PREFIX/share/UNASSIGNED/`
 | Data files, assets
 
-| `$PREFIX/share/doc/{{PACKAGE_NAME}}/`
+| `$PREFIX/share/doc/UNASSIGNED/`
 | Documentation
 
 | `$PREFIX/share/applications/`
@@ -74,9 +74,9 @@ Files installed:
 
 == Configuration
 
-Default config location: `$XDG_CONFIG_HOME/{{PACKAGE_NAME}}/config.toml`
+Default config location: `$XDG_CONFIG_HOME/UNASSIGNED/config.toml`
 
-Fallback: `$HOME/.config/{{PACKAGE_NAME}}/config.toml`
+Fallback: `$HOME/.config/UNASSIGNED/config.toml`
 
 == Health Checks
 
@@ -96,7 +96,7 @@ just build-release
 just install --prefix=/usr/local
 ----
 
-Or via OPSM: `opsm update {{PACKAGE_NAME}}`
+Or via OPSM: `opsm update UNASSIGNED`
 
 == Security Notes
 
@@ -111,13 +111,13 @@ For deploying multiple instances (e.g., different users or tenants):
 
 [source,bash]
 ----
-just install --prefix=/opt/{{PACKAGE_NAME}}-instance1 --config=/etc/{{PACKAGE_NAME}}/instance1.toml
-just install --prefix=/opt/{{PACKAGE_NAME}}-instance2 --config=/etc/{{PACKAGE_NAME}}/instance2.toml
+just install --prefix=/opt/UNASSIGNED-instance1 --config=/etc/UNASSIGNED/instance1.toml
+just install --prefix=/opt/UNASSIGNED-instance2 --config=/etc/UNASSIGNED/instance2.toml
 ----
 
 Each instance has isolated config, data, and logs.
 
 == Reporting Issues
 
-* Upstream: https://github.com/hyperpolymath/rsr-template-repo/issues
+* Upstream: https://github.com/hyperpolymath/sholes/issues
 * With diagnostic: `just help-me` (pre-fills context)

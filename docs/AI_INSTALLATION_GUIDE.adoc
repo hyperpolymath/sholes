@@ -30,7 +30,7 @@ local checkouts across this estate are routinely stale or carry sweep debris.
 
 [source,bash]
 ----
-git clone https://github.com/hyperpolymath/rsr-template-repo.git my-project
+git clone https://github.com/hyperpolymath/sholes.git my-project
 cd my-project
 rm -rf .git && git init
 ----

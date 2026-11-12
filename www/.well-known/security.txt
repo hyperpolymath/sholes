@@ -7,8 +7,8 @@
 # field had nothing to reference and shipped the literal token instead — which
 # also made this file unparseable. Report via the Policy: URL below.
 
-Contact: mailto:{{SECURITY_EMAIL}}
-Expires: {{CURRENT_YEAR}}-12-31T23:59:59.000Z
+Contact: mailto:j.d.a.jewell@open.ac.uk
+Expires: 2026-12-31T23:59:59.000Z
 Preferred-Languages: en
-Canonical: https://{{FORGE}}/{{OWNER}}/{{REPO}}/.well-known/security.txt
-Policy: https://{{FORGE}}/{{OWNER}}/{{REPO}}/blob/main/.github/SECURITY.md
+Canonical: https://github.com/hyperpolymath/sholes/.well-known/security.txt
+Policy: https://github.com/hyperpolymath/sholes/blob/main/.github/SECURITY.md

@@ -69,7 +69,7 @@ let base    = import "../_base.ncl" in
       signed_by = {
         user = "Jonathan D.A. Jewell",
         date = "2026-04-18",
-        context = "bust trident — canonical template in rsr-template-repo. Completes the blocking-authority triple (must + trust + bust). Specialises in deprecated-path-reintroduction catchment. Declares hard-stop / expiry / must-not-run conditions. Copy this trident into a new repo and declare its real breakage / expiry conditions.",
+        context = "bust trident — canonical template in sholes. Completes the blocking-authority triple (must + trust + bust). Specialises in deprecated-path-reintroduction catchment. Declares hard-stop / expiry / must-not-run conditions. Copy this trident into a new repo and declare its real breakage / expiry conditions.",
       },
       history = [
         { date = "2026-04-18", event = "trident-born", note = "Bustfile.a2ml and bust.ncl pre-existed. This manifest + bust.k9.ncl complete the trident. Inherits the full negotiation+accountability schema from intend.k9.ncl v2.0.0 + trust/must extensions; adds flag_deprecated_reintroduction for C2-defense specificity." },
@@ -87,8 +87,8 @@ let base    = import "../_base.ncl" in
   # Read by .machine_readable/coaptation/extract-clauses.sh.
   # -------------------------------------------------------------------
   declaration = {
-    preamble = "# SPDX-License-Identifier: MPL-2.0\n# Bustfile — failure mode contractile for rsr-template-repo\n# Author: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>\n#\n# Paired runner: bust.ncl\n# Verb:          bust\n# Semantics:     Every declared failure mode must have a working recovery path\n#                that has been exercised. Status moves:\n#                  declared → drilled (probe run) → verified (recovery confirmed)\n#                  or → failing (recovery broken)\n#\n# CLI:\n#   contractile bust check  → list failure modes + recovery status\n#   contractile bust drill  → inject failures, verify recovery paths\n#\n# This repository: rsr-template-repo is the canonical template for RSR compliance.\n# Failure modes here relate to template distribution and substitution.\n",
-    abstract = "Bustfile for rsr-template-repo. Lists failure modes specific to the template\nrepository itself, particularly around template distribution, substitution,\nand synchronization across the hyperpolymath estate.",
+    preamble = "# SPDX-License-Identifier: MPL-2.0\n# Bustfile — failure mode contractile for sholes\n# Author: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>\n#\n# Paired runner: bust.ncl\n# Verb:          bust\n# Semantics:     Every declared failure mode must have a working recovery path\n#                that has been exercised. Status moves:\n#                  declared → drilled (probe run) → verified (recovery confirmed)\n#                  or → failing (recovery broken)\n#\n# CLI:\n#   contractile bust check  → list failure modes + recovery status\n#   contractile bust drill  → inject failures, verify recovery paths\n#\n# This repository: sholes is the canonical template for RSR compliance.\n# Failure modes here relate to template distribution and substitution.\n",
+    abstract = "Bustfile for sholes. Lists failure modes specific to the template\nrepository itself, particularly around template distribution, substitution,\nand synchronization across the hyperpolymath estate.",
     prose = [
     ],
     failure_modes = [
@@ -97,7 +97,7 @@ let base    = import "../_base.ncl" in
         section = "Failure Modes",
         class = 'template_processing,
         description = "Template substitution fails when initializing a new repo from this template",
-        injection_probe = "cp -r rsr-template-repo test-repo && cd test-repo && sed -i 's/rsr-template-repo/TEST/g' .machine_readable/contractiles/intend/intend.k9.ncl && grep -q 'TEST' .machine_readable/contractiles/intend/intend.k9.ncl",
+        injection_probe = "cp -r sholes test-repo && cd test-repo && sed -i 's/sholes/TEST/g' .machine_readable/contractiles/intend/intend.k9.ncl && grep -q 'TEST' .machine_readable/contractiles/intend/intend.k9.ncl",
         recovery_probe = "git -C test-repo diff --quiet .machine_readable/contractiles/intend/intend.k9.ncl",
         expected_recovery_time_seconds = 10,
         status = 'declared,
@@ -107,7 +107,7 @@ let base    = import "../_base.ncl" in
         id = "sync-drift-between-repos",
         section = "Failure Modes",
         class = 'synchronization,
-        description = "Drift occurs between rsr-template-repo and other repos after template updates",
+        description = "Drift occurs between sholes and other repos after template updates",
         injection_probe = "echo 'template_updated' > /tmp/test_drift_marker",
         recovery_probe = "test -f /tmp/test_drift_marker && rm /tmp/test_drift_marker",
         expected_recovery_time_seconds = 60,
@@ -119,8 +119,8 @@ let base    = import "../_base.ncl" in
         section = "Failure Modes",
         class = 'contractile_format,
         description = "A contractile file fails to parse due to syntax errors",
-        injection_probe = "echo 'invalid syntax' >> rsr-template-repo/.machine_readable/contractiles/intend/intend.k9.ncl",
-        recovery_probe = "git checkout rsr-template-repo/.machine_readable/contractiles/intend/intend.k9.ncl",
+        injection_probe = "echo 'invalid syntax' >> sholes/.machine_readable/contractiles/intend/intend.k9.ncl",
+        recovery_probe = "git checkout sholes/.machine_readable/contractiles/intend/intend.k9.ncl",
         expected_recovery_time_seconds = 5,
         status = 'declared,
         notes = "Every <verb>.k9.ncl must typecheck; validate with .github/hooks/validate-k9.sh and nickel typecheck",

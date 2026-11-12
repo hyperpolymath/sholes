@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-= TEST-NEEDS: rsr-template-repo
+= TEST-NEEDS: sholes
 
 == CRG Grade: C — ACHIEVED 2026-04-04
 
@@ -65,7 +65,7 @@ output only.
 === Zig FFI Tests ✅
 
 * [x] `src/interface/ffi/test/integration_test.zig` — template with examples
-** Converted from `{{project}}` placeholders to "template" namespace
+** Converted from `sholes` placeholders to "template" namespace
 ** Added comprehensive comments for how to instantiate
 ** Tests grouped by category (lifecycle, operations, strings, errors, version, memory safety, threading)
 ** Compiles and passes placeholder test

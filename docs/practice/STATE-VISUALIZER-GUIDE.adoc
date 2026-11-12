@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 = TOPOLOGY.md — Generation Guide
-{{AUTHOR}} ({{OWNER}}) <{{AUTHOR_EMAIL}}>
+Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 :toc:
 :sectnums:
 
@@ -62,7 +62,7 @@ The file must contain exactly three sections:
 Add a header comment with SPDX-License-Identifier and Last updated date.
 End with an "Update Protocol" section explaining how to maintain the file.
 
-Use the template at TOPOLOGY.md in rsr-template-repo as a structural reference,
+Use the template at TOPOLOGY.md in sholes as a structural reference,
 but make the content completely specific to THIS project.
 ----
 
@@ -70,7 +70,7 @@ but make the content completely specific to THIS project.
 
 [source,bash]
 ----
-cp /path/to/rsr-template-repo/TOPOLOGY.md ./TOPOLOGY.md
+cp /path/to/sholes/TOPOLOGY.md ./TOPOLOGY.md
 # Then edit: replace placeholders, draw the real architecture, fill the dashboard
 ----
 
@@ -154,4 +154,4 @@ _structured data_ for tooling. Both should agree.
 
 == Copyright
 
-Copyright (c) {{CURRENT_YEAR}} {{AUTHOR}} ({{OWNER}}) <{{AUTHOR_EMAIL}}>
+Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>

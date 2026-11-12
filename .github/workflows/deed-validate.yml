@@ -50,7 +50,7 @@ jobs:
 
           :warning: **No .deed manifest found.** Every RSR-compliant repo should have a repo deed (`<reponame>_chora.deed`) at its root.
 
-          Copy it from [rsr-template-repo](https://github.com/hyperpolymath/rsr-template-repo). Manifests are validated against the DEED grammar (standards `1-formats/deed/`). The `.a2ml` format is retired; no `.a2ml` file may exist.
+          Copy it from [sholes](https://github.com/hyperpolymath/sholes). Manifests are validated against the DEED grammar (standards `1-formats/deed/`). The `.a2ml` format is retired; no `.a2ml` file may exist.
           EOF
           else
             echo "## DEED Manifest Validation" >> "$GITHUB_STEP_SUMMARY"

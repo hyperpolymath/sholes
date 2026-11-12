@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-= Privacy Policy — {{PROJECT_NAME}}
+= Privacy Policy — sholes
 
 Rendered into `public/policies/privacy.html` at deploy time (see
 `www/runbooks/deploy.adoc`); this AsciiDoc file is the source of record.

@@ -82,7 +82,7 @@ let base    = import "../_base.ncl" in
       signed_by = {
         user = "Jonathan D.A. Jewell",
         date = "2026-04-18",
-        context = "intend trident — canonical template in rsr-template-repo. North-star verb: reports progress toward committed next-actions ([[intents]]) and lists horizon aspirations ([[wishes]]). Non-gating (reporting authority). Copy this trident into a new repo and replace the declaration with project-specific content.",
+        context = "intend trident — canonical template in sholes. North-star verb: reports progress toward committed next-actions ([[intents]]) and lists horizon aspirations ([[wishes]]). Non-gating (reporting authority). Copy this trident into a new repo and replace the declaration with project-specific content.",
       },
       history = [
         { date = "2026-04-18", event = "trident-born", note = "intend/Intentfile.a2ml pre-existed (f380b62, lust absorption). This manifest + intend.k9.ncl complete the trident for the first time." },
@@ -101,12 +101,12 @@ let base    = import "../_base.ncl" in
   # Read by .machine_readable/coaptation/extract-clauses.sh.
   # -------------------------------------------------------------------
   declaration = {
-    preamble = "# SPDX-License-Identifier: MPL-2.0\n# Intentfile — north-star contractile for rsr-template-repo\n# Author: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>\n#\n# Paired runner: intend.ncl\n# Verb:          intend\n#\n# Semantics: North-star contractile. Declares BOTH concrete committed\n#            next-actions AND horizon aspirations the project wishes to\n#            become. Two sections share one file because they answer\n#            the same question at different ranges:\n#              [[intents]] — \"we WILL do this; track progress\"\n#                            status: declared → in_progress → done |\n#                                    deferred | retired\n#              [[wishes]]  — \"we WISH this were true; revisit later\"\n#                            status: declared → in_progress → achieved |\n#                                    abandoned\n#                            grouped by horizon: near / mid / far.\n#            Non-gating — this is a report, not a gate. See the `must`\n#            contractile for hard gates.\n",
-    abstract = "North-star contractile for rsr-template-repo. This repository is the\ncanonical template for Rhodium Standard Repository compliance. It provides\nthe scaffold that all hyperpolymath repos should copy and customize.",
+    preamble = "# SPDX-License-Identifier: MPL-2.0\n# Intentfile — north-star contractile for sholes\n# Author: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>\n#\n# Paired runner: intend.ncl\n# Verb:          intend\n#\n# Semantics: North-star contractile. Declares BOTH concrete committed\n#            next-actions AND horizon aspirations the project wishes to\n#            become. Two sections share one file because they answer\n#            the same question at different ranges:\n#              [[intents]] — \"we WILL do this; track progress\"\n#                            status: declared → in_progress → done |\n#                                    deferred | retired\n#              [[wishes]]  — \"we WISH this were true; revisit later\"\n#                            status: declared → in_progress → achieved |\n#                                    abandoned\n#                            grouped by horizon: near / mid / far.\n#            Non-gating — this is a report, not a gate. See the `must`\n#            contractile for hard gates.\n",
+    abstract = "North-star contractile for sholes. This repository is the\ncanonical template for Rhodium Standard Repository compliance. It provides\nthe scaffold that all hyperpolymath repos should copy and customize.",
     prose = [
       {
         section = "Purpose",
-        text = "The rsr-template-repo serves as the master template for all hyperpolymath\nrepositories. It contains the complete set of contractile files, machine-readable\nspecifications, and governance documentation that define the Rhodium Standard.\n\nEvery new repository in the hyperpolymath estate should be initialized by\ncopying this template and substituting the placeholder values with\nrepo-specific content.",
+        text = "The sholes serves as the master template for all hyperpolymath\nrepositories. It contains the complete set of contractile files, machine-readable\nspecifications, and governance documentation that define the Rhodium Standard.\n\nEvery new repository in the hyperpolymath estate should be initialized by\ncopying this template and substituting the placeholder values with\nrepo-specific content.",
       },
       {
         section = "Anti-Purpose",

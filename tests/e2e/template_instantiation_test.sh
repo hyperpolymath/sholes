@@ -12,7 +12,6 @@
 # 4. Verifies builds work after instantiation
 # 5. Cleans up
 
-
 # Test configuration
 TEMPLATE_ROOT="${1:-.}"
 TEST_DIR="${TMPDIR:-/tmp}/rsr-template-test-$$"
@@ -223,7 +222,7 @@ for guix_file in build/guix.scm; do
         log_error "$guix_file does not contain the rendered project home page"
         exit 1
     fi
-    if grep -q 'rsr-template-repo' "$TEST_REPO_PATH/$guix_file"; then
+    if grep -q 'sholes' "$TEST_REPO_PATH/$guix_file"; then
         log_error "$guix_file still contains the template repository identity"
         exit 1
     fi

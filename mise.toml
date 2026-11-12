@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 #
-# The toolchain for rsr-template-repo (idris2, zig). Specs are `latest`; mise.lock
+# The toolchain for sholes (idris2, zig). Specs are `latest`; mise.lock
 # records the concrete version and per-platform checksum of each, so every
 # checkout installs the same bits. Refresh both with: just toolchain-refresh
 # Canon: hyperpolymath/standards 3-practice/provisioning (TRUST-DEFAULTS §toolchain).

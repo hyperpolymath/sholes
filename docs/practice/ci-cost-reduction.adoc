@@ -214,8 +214,8 @@ Recommendations:
 === 7. Reusable workflow (longer-term)
 
 Ship the above patterns in a single reusable workflow under
-`rsr-template-repo/.github/workflows/rsr-ci-defaults.yml`, and adopt
-it estate-wide via `uses: hyperpolymath/rsr-template-repo/.github/workflows/rsr-ci-defaults.yml@main`
+`sholes/.github/workflows/rsr-ci-defaults.yml`, and adopt
+it estate-wide via `uses: hyperpolymath/sholes/.github/workflows/rsr-ci-defaults.yml@main`
 in downstream repos. Single PR propagates improvements.
 
 === 8. Self-hosted runner for heavy work (long-term)
@@ -274,5 +274,5 @@ frequency × job count).
   incident that motivated this spec.
 * `007-lang/audits/audit-dependabot-automation-gap-2026-04-17.md` —
   separate defect stack also addressed in the same session.
-* `rsr-template-repo/.github/workflows/dependabot-automerge.yml` —
+* `sholes/.github/workflows/dependabot-automerge.yml` —
   canonical pattern for auto-merge pattern referenced above.

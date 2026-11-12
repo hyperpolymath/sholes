@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 // Template: QUICKSTART-USER.adoc — 5-minute path to working software
-// Replace rsr-template-repo, Rsr Template Repo — See README.adoc for details., just run, Rsr Template Repo started successfully. with actuals
-= rsr-template-repo — Quick Start for Users
+// Replace sholes, Rsr Template Repo — See README.adoc for details., just run, Rsr Template Repo started successfully. with actuals
+= sholes — Quick Start for Users
 :toc:
 :toclevels: 2
 
-== What is rsr-template-repo?
+== What is sholes?
 
 Rsr Template Repo — See README.adoc for details.
 
@@ -38,8 +38,8 @@ Before you begin, ensure you have:
 [source,bash]
 ----
 # Clone and set up
-git clone https://github.com/hyperpolymath/rsr-template-repo.git
-cd rsr-template-repo
+git clone https://github.com/hyperpolymath/sholes.git
+cd sholes
 just setup
 ----
 
@@ -62,7 +62,7 @@ just stapeln-run
 
 [source,bash]
 ----
-just install --portable --prefix=./rsr-template-repo-portable
+just install --portable --prefix=./sholes-portable
 ----
 
 == First Run
@@ -103,7 +103,7 @@ just heal
 * **In-app**: `just run --help`
 * **Guided tour**: `just tour`
 * **Report a problem**: `just help-me` (pre-fills diagnostic context)
-* **Wiki**: https://github.com/hyperpolymath/rsr-template-repo/wiki
+* **Wiki**: https://github.com/hyperpolymath/sholes/wiki
 
 == Uninstall
 

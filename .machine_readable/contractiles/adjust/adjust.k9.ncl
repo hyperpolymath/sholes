@@ -67,7 +67,7 @@ let base    = import "../_base.ncl" in
       signed_by = {
         user = "Jonathan D.A. Jewell",
         date = "2026-04-18",
-        context = "adjust trident — canonical template in rsr-template-repo. (Yard, advisory) authority pattern. Specialises in cumulative-drift catchment — tolerance bands + trend tracking + auto-fix-where-declared. Advisory (continue-with-warnings). Copy this trident into a new repo and define its drift tolerances and corrective actions.",
+        context = "adjust trident — canonical template in sholes. (Yard, advisory) authority pattern. Specialises in cumulative-drift catchment — tolerance bands + trend tracking + auto-fix-where-declared. Advisory (continue-with-warnings). Copy this trident into a new repo and define its drift tolerances and corrective actions.",
       },
       history = [
         { date = "2026-04-18", event = "trident-born", note = "Adjustfile.a2ml and adjust.ncl pre-existed. This manifest + adjust.k9.ncl complete the trident. Exercises the Yard tier + advisory authority for the first time; on_exceeded = 'warn_and_attempt_fix rather than 'fail. adjust-specific track_drift_trend_over_sessions + flag_accelerating_drift." },
@@ -85,8 +85,8 @@ let base    = import "../_base.ncl" in
   # Read by .machine_readable/coaptation/extract-clauses.sh.
   # -------------------------------------------------------------------
   declaration = {
-    preamble = "# SPDX-License-Identifier: MPL-2.0\n# Adjustfile — Drift-tolerance contract for rsr-template-repo\n# Author: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>\n#\n# Cumulative-drift catchment: tolerance bands + corrective actions.\n# Authority: advisory (Yard) — continue-with-warnings; auto_fix where deterministic.\n# Run with: adjust check\n# Fix with: adjust fix (applies deterministic patches; advisory otherwise)\n",
-    abstract = "Drift tolerances and corrective actions for rsr-template-repo. Unlike\nMUST (hard gate), ADJUST tracks cumulative drift against tolerance bands\nand proposes corrective actions. Advisory — it warns and trends, it does\nnot block.",
+    preamble = "# SPDX-License-Identifier: MPL-2.0\n# Adjustfile — Drift-tolerance contract for sholes\n# Author: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>\n#\n# Cumulative-drift catchment: tolerance bands + corrective actions.\n# Authority: advisory (Yard) — continue-with-warnings; auto_fix where deterministic.\n# Run with: adjust check\n# Fix with: adjust fix (applies deterministic patches; advisory otherwise)\n",
+    abstract = "Drift tolerances and corrective actions for sholes. Unlike\nMUST (hard gate), ADJUST tracks cumulative drift against tolerance bands\nand proposes corrective actions. Advisory — it warns and trends, it does\nnot block.",
     prose = [
     ],
     requirements = [

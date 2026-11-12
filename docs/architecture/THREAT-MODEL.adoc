@@ -2,19 +2,19 @@
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 = Threat Model
 // SPDX-License-Identifier: CC-BY-SA-4.0
-// Copyright (c) {{CURRENT_YEAR}} {{AUTHOR}} ({{OWNER}}) <{{AUTHOR_EMAIL}}>
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
-== Threat Model: {{PROJECT_NAME}}
+== Threat Model: sholes
 
 === Document Info
 
 |===
 | Field | Value
 
-| Project | {{PROJECT_NAME}}
+| Project | sholes
 | Version | 1.0
-| Last Reviewed | {{DATE}}
-| Author | {{AUTHOR}}
+| Last Reviewed | 2026-11-12
+| Author | Jonathan D.A. Jewell
 | Methodology | STRIDE
 |===
 
@@ -39,7 +39,7 @@
 
 === System Overview
 
-Brief description of {{PROJECT_NAME}} and its architecture.
+Brief description of sholes and its architecture.
 
 NOTE: See link:../STATE-VISUALIZER.adoc[STATE-VISUALIZER.adoc] for the full architecture diagram and completion dashboard.
 

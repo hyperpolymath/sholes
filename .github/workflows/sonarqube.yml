@@ -3,7 +3,7 @@
 # SonarQube Cloud (SonarCloud) static analysis. Analysis scope + exclusions live
 # in sonar-project.properties. Requires the SONAR_TOKEN repository secret
 # (Settings -> Secrets and variables -> Actions) and a SonarCloud project:
-# https://sonarcloud.io/project/overview?id=hyperpolymath_rsr-template-repo
+# https://sonarcloud.io/project/overview?id=hyperpolymath_sholes
 # Mirrors the boj-server arrangement.
 #
 # WHY THE TOKEN GUARD (added 2026-07-28)

@@ -30,7 +30,7 @@
 #
 # The rest of www/ is deliberately NOT propagated:
 #
-#   www/public/       per-repo placeholders ({{PROJECT_NAME}} and friends)
+#   www/public/       per-repo placeholders (sholes and friends)
 #   www/policies/     per-repo placeholders
 #   www/dns/          a DNS scaffold most repositories do not operate
 #   www/tls/          as above

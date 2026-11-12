@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: MPL-2.0
-# Copyright (c) {{CURRENT_YEAR}} {{AUTHOR}} ({{OWNER}}) <{{AUTHOR_EMAIL}}>
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 #
-# Dev Container image for {{PROJECT_NAME}}
+# Dev Container image for sholes
 # Base: Chainguard Wolfi (minimal, supply-chain-secure)
-# Build: podman build -t {{PROJECT_NAME}}-dev -f .devcontainer/Containerfile .
+# Build: podman build -t sholes-dev -f .devcontainer/Containerfile .
 # `:latest` suits a dev container (rebuilt daily); pin by digest
 # (...@sha256:<digest>) if you need a reproducible dev environment.
 #
@@ -44,7 +44,7 @@ RUN set -eu; \
 # devcontainer.json maps your host user onto it with --userns=keep-id.
 
 # Set workspace directory
-WORKDIR /workspaces/{{PROJECT_NAME}}
+WORKDIR /workspaces/sholes
 
 # Default shell
 ENV SHELL=/bin/bash

@@ -1,7 +1,7 @@
 ;; SPDX-License-Identifier: MPL-2.0
 ;; SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 ;;
-;; manifest.scm — the Guix development shell for rsr-template-repo.
+;; manifest.scm — the Guix development shell for sholes.
 ;;
 ;;   guix shell -m manifest.scm                  # or: just dev-shell
 ;;   guix time-machine -C channels.scm -- shell -m manifest.scm   # the pinned Guix
