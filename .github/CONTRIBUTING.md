@@ -44,7 +44,7 @@ which is precisely why the map is now generated rather than typed.
 
 **When reporting**:
 
-Use the [bug report template](.github/ISSUE_TEMPLATE/bug_report.md) and include:
+Use the [bug report template](ISSUE_TEMPLATE/bug_report.yml) and include:
 
 - Clear, descriptive title
 - Environment details (OS, versions, toolchain)
@@ -61,7 +61,7 @@ Use the [bug report template](.github/ISSUE_TEMPLATE/bug_report.md) and include:
 
 **When suggesting**:
 
-Use the [feature request template](.github/ISSUE_TEMPLATE/feature_request.md) and include:
+Use the [feature request template](ISSUE_TEMPLATE/feature_request.yml) and include:
 
 - Problem statement (what pain point does this solve?)
 - Proposed solution
