@@ -352,7 +352,7 @@
       :project "sholes"
       ; language | library | service | tool
       :kind "UNASSIGNED"
-      :one-sentence "Tired of phantom 40,000-line diffs and /usr/bin/env: 'bash' errors? Formally proven quotient canonicalization that neutralizes line-ending chaos at the storage boundary. The 50-year war between Ken Thompson and Gary Kildall is settled by mathematics."
+      :one-sentence "Tired of phantom 40,000-line diffs and /usr/bin/env: 'bash' errors? Formally proven quotient canonicalization that neutralizes line-ending chaos at the storage boundary. The 50-year war between Ken Thompson and Gary Kildall is settled by mathematics."
       :domain "UNASSIGNED")
     (semantic-authority
       :policy "canonical"
