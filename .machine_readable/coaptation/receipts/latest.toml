@@ -6,12 +6,12 @@
 [receipt]
 schema = "hyperpolymath.coaptation/1"
 repo = "sholes"
-band = "amber"
-proposed-action = "advisory — soft drift within bands (posture/intend). Open an advisory issue; no re-anchor."
+band = "green"
+proposed-action = "none — the descriptile self-model coapts with the contractile set-point within tolerance."
 
 [coverage]
 clauses-total = 52
-descriptile-witnessed = 1
+descriptile-witnessed = 2
 probe-deferred-to-hunt = 26
 must-trust-unmeasured-gaps = 0
 note = "Yard sees descriptile evidence only; probe-deferred obligations need a Hunt-tier run for a full hard-gate."
@@ -26,8 +26,8 @@ gate = "pass"
 
 [reading.adjust]
 grade = "posture (advisory; accessibility / inclusive design)"
-satisfied = "0/1"
-posture-ok = false
+satisfied = "1/1"
+posture-ok = true
 
 [reading.intend]
 grade = "tropical (min-plus distance-to-north-star; wishes excluded)"
@@ -78,7 +78,7 @@ trust.no-dockerfile = "probe-deferred"
 trust.site-security-headers = "probe-deferred"
 trust.site-well-known = "probe-deferred"
 trust.site-resource-records = "probe-deferred"
-adjust.placeholder-drift = "refuted"
+adjust.placeholder-drift = "witnessed"
 adjust.template-version-drift = "unmeasured"
 adjust.readme-completeness = "unmeasured"
 adjust.example-accuracy = "unmeasured"
@@ -98,5 +98,5 @@ bust.sync-drift-between-repos = "latent"
 bust.contractile-parse-error = "latent"
 
 [provenance]
-contractiles = "intend@feaaa58c4690 must@6a15dd3ccc3a trust@71566e6b64fc adjust@d7e4225fe5a8 dust@448489330834 bust@ea93d531c781"
-descriptiles = "deed@ab944221ee82 anchor@51194a4e21e8"
+contractiles = "intend@02574b97f185 must@45779f8ce43c trust@1ab63514471f adjust@5dc58844431b dust@bddd9e7c5b5e bust@38a8e968fe56"
+descriptiles = "deed@0a43f2268ff6 anchor@74f24421da8c"
