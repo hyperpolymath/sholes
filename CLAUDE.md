@@ -116,3 +116,35 @@ hand; that migration is done per repo (ADR-008 phase P3). In deed files use
 **ENFORCEMENT:** these rulings are recorded on `standards#787`. Some are
 ruled but not yet gated: check the gate on `standards` main before
 relying on it.
+
+<!-- Hand-authored (owner ruling 2026-10-26): kept below the generated region. -->
+## Proofs — which prover for which obligation
+
+Normative source: `3-practice/PROOF-POLICY.adoc` in `hyperpolymath/standards`.
+Read it there; `verification/proofs/README.adoc` maps it onto this repo.
+
+| Code or obligation | Verifier |
+|---|---|
+| Rust code | **Creusot** with **Pearlite** contracts, and **Verus**, by default and on the code (§1.2). Kani for `unsafe`/FFI seams and Aeneas for Rust that implements an Agda theorem run alongside, never instead |
+| Ada code | **SPARK** |
+| APIs, ABIs, engineering properties | **Idris2** |
+| Theory | **Agda**, rechecked in **Rocq** and **Lean** (no Mathlib) |
+
+Always name Creusot, Pearlite and Verus in Rust verification plans and in
+`docs/status/PROOF-STATUS.adoc`. Pearlite is Creusot's specification
+language, not a third verifier. Plan scopes for both verifiers, and record
+any that is unsupported, inapplicable or not yet run, with its reason; never
+present an unexecuted check as a pass. Using both does not make two
+independent witnesses (policy §1.2).
+
+Third-party code (crates such as Bevy, libraries, forks) is **not** converted
+or re-proved. State what a proof relies on as an `ASSUMED` boundary
+specification, and when choosing between dependencies that fit equally well,
+prefer one that carries its own verification. A preference, not a gate.
+
+Proof grades are policy §8, *Proof Witness Grades*: `PWG-3` < `PWG-2i` <
+`PWG-2ii` < `PWG-1`, where `PWG-1` is strongest. A grade is derived from
+receipts, never asserted. A "verified" or "machine-checked" claim needs
+current receipts. Report a census with its denominator, never a
+percentage. Always write the `PWG-` prefix: CRG, TRG, ARG and FRG letters,
+and ECHIDNA's `TrustLevel`, are different schemes.
