@@ -23,15 +23,11 @@ predecessors did.
 
 | `.clinerules`
 | yes
-| AI editor rules. Cline/Cursor/Windsurf read these from the project
+| AI editor rules. Cline reads them from the project ROOT, so the copies formerly under .machine_readable/ai/ were inert (.cursorrules and .windsurfrules were retired 2026-10-26)
 
 | `.coderabbit.yaml`
 | optional
 | CodeRabbit reads its config from the root only; pins Docstring Coverage to mode: warning (estate decision, not a vendor default). Optional: only the template and the repos whose rulesets require the CodeRabbit context carry it
-
-| `.cursorrules`
-| yes
-| ROOT, so the copies formerly under .machine_readable/ai/ were inert.
 
 | `.devcontainer/`
 | optional
@@ -48,6 +44,10 @@ predecessors did.
 | `.gitattributes`
 | yes
 | -
+
+| `.gitbot-fleet/`
+| yes
+| fleet enrolment manifest + report-backs/ (empty in git; filled per run by the fork-governance fleet job). Read by the Hypatia verdict grid at this path and no other
 
 | `.github/`
 | yes
@@ -77,10 +77,6 @@ predecessors did.
 | yes
 | git reads .mailmap from the worktree root only
 
-| `.windsurfrules`
-| yes
-| -
-
 | `CHANGELOG.adoc`
 | yes
 | AsciiDoc is the estate-standard documentation format
@@ -93,6 +89,10 @@ predecessors did.
 | yes
 | generated arrival pack; the generator, pre-commit and Claude Code all read it from the ROOT (do not hand-edit; edit the repo deed)
 
+| `CODE_OF_CONDUCT.adoc`
+| optional
+| community health file; GitHub accepts it at root, docs/ or .github/
+
 | `CONTRIBUTING.adoc`
 | optional
 | estate docs gate (standards scripts/check-docs-presence.sh) requires CONTRIBUTING at the ROOT; this is the copy it verifies
@@ -101,17 +101,17 @@ predecessors did.
 | yes
 | project explainer authored for this repo (sholes); referenced from README.adoc
 
-| `GEMINI.md`
-| optional
-| pointer to CLAUDE.md for repos without AGENTS.md yet
-
 | `Justfile`
 | yes
 | thin; delegates phases to build/just/*.just
 
 | `LICENSE`
+| optional
+| forge-facing copy of LICENSES/MPL-2.0.txt. Optional, not required:
+
+| `LICENSE.adoc`
 | yes
-| -
+| the licence (MPL-2.0); renamed from LICENSE to the estate AsciiDoc format 2026-10-26
 
 | `LICENSES/`
 | yes
@@ -127,7 +127,7 @@ predecessors did.
 
 | `build/`
 | yes
-| build orchestration: just/ phase modules, container/, docs-seed/, templates/, guix.scm (canon 1.2.1 guix-primary template_ref = build/)
+| build orchestration: just/ phase modules, container/, docs-seed/, templates/, guix.scm (canon 1.2.1 guix-primary template_ref = "build/")
 
 | `ci/`
 | yes
@@ -155,11 +155,11 @@ predecessors did.
 
 | `mise.lock`
 | yes
-| makes latest concrete: version + per-platform checksum; mise reads it beside mise.toml
+| makes "latest" concrete: version + per-platform checksum; mise reads it beside mise.toml
 
 | `mise.toml`
 | yes
-| the toolchain: every tool at latest (PROVISIONING-STANDARD §4)
+| the toolchain: every tool at "latest" (PROVISIONING-STANDARD §4)
 
 | `scripts/`
 | yes
@@ -178,8 +178,8 @@ predecessors did.
 | only where the repo is analysed by SonarCloud
 
 | `src/`
-| yes
-| -
+| optional
+| source tree; optional for non-code/specification/governance repositories (issue #233, e.g. standards)
 
 | `tests/`
 | yes
@@ -220,7 +220,6 @@ your own repo - but do not read their emptiness as neglect here.
 | `docs/governance/planning/could/`
 | `docs/governance/planning/must/`
 | `docs/governance/planning/should/`
-| `docs/reports/compliance/`
 | `docs/reports/maintenance/`
 | `docs/reports/performance/`
 | `docs/reports/quality/`
