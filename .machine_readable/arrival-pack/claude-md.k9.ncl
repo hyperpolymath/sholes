@@ -12,6 +12,7 @@ K9!
 {
   pedigree = {
     schema_version = "1.0.0",
+    component_type = "drift-check:claude-md-arrival-pack",
     contractile_verb = "trust",   # provenance: the view must equal its source
     semantics = "projection-fidelity",
     security = {
@@ -19,7 +20,7 @@ K9!
       trust_level = "read-only comparison",
       allow_network = false,
       allow_filesystem_write = false,
-      allow_subprocess = true,    # runs extract.sh + nickel to reproduce the view
+      allow_subprocess = false,   # verify.sh runs extract.sh + nickel; this record does not
     },
     metadata = {
       name = "claude-md-arrival-pack",
