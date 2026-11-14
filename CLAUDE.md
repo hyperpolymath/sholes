@@ -63,7 +63,7 @@ Put every question that needs the owner's decision through the selector (the Ask
 
 # This repo: `sholes`  ·  clade `UNASSIGNED-sholes`
 
-- **Identity** — uuid `#u5"github.com/hyperpolymath/sholes"`; clade `UNASSIGNED` (secondary ``); born 2026-11-12; forge `hyperpolymath/sholes`.
+- **Identity** — uuid `#u8"gv-clade-index:github.com/hyperpolymath/sholes"`; clade `UNASSIGNED` (secondary ``); born 2026-11-12; forge `hyperpolymath/sholes`.
 - **IS** — UNASSIGNED
 - **IS-NOT** — (not yet declared — add (ecosystem :not (…)) to the deed)
 - **Where it sits** — pipeline position **UNASSIGNED**; chain `UNASSIGNED`; coordination = `standards`.
