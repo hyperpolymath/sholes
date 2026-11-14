@@ -14,6 +14,11 @@ set -euo pipefail
 
 REPO_ROOT="${1:-.}"
 VERBOSE="${2:-0}"
+# This script's own directory, for the gates it now delegates to. It was
+# referenced by the SPDX phase without ever being set; under `set -euo pipefail`
+# that aborted the run at Phase 6 with "SCRIPT_DIR: unbound variable" — the
+# validator stopped before its last two phases and reported a bare exit 1.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ERRORS=0
 WARNINGS=0
 
@@ -138,14 +143,6 @@ check_abi_file_exists() {
     return 1
 }
 
-has_spdx_header() {
-    local file="$1"
-    if head -10 "$file" | grep -q "SPDX-License-Identifier"; then
-        return 0
-    fi
-    return 1
-}
-
 has_placeholder() {
     local file="$1"
     if grep -q "{{REPO\|{{OWNER\|{{FORGE\|{{PROJECT\|{{project\|{{AUTHOR" "$file" 2>/dev/null; then
@@ -166,7 +163,13 @@ echo ""
 check_deed_exists "repo deed (universal AI entry point)"
 check_file_exists "README.adoc" "High-level pitch"
 check_file_either "EXPLAINME.adoc" "docs/EXPLAINME.adoc" "Developer deep-dive"
-check_file_exists "LICENSE" "License file"
+# Either spelling: `LICENSE` is the forge-facing copy, `LICENSE.adoc` the estate
+# document (root-allow.txt permits both, requires neither specifically).
+if [ -f "$REPO_ROOT/LICENSE" ] || [ -f "$REPO_ROOT/LICENSE.adoc" ]; then
+    log_pass "License file"
+else
+    log_error "Required file missing: LICENSE (or LICENSE.adoc)"
+fi
 check_file_exists "Justfile" "Task runner"
 check_file_either "AUDIT.adoc" "docs/AUDIT.adoc" "Release audit gate"
 
@@ -222,7 +225,11 @@ REQUIRED_WORKFLOWS=(
     # none of the 55 repos carrying it ever adopted Bun. This list was not
     # updated, so it has required two files the template deliberately no longer
     # ships — which is why validate-template.sh has been red since that merge.
-    "runtime-policy.yml"
+    # runtime-policy.yml is folded into governance in turn (standards
+    # cicd-regularisation spec §14): "Language / package anti-pattern policy"
+    # fails any tracked package-lock.json and the "JS runtimes" jobs check each
+    # lock against package.json. So governance.yml is what this list requires.
+    "governance.yml"
     "secret-scanner.yml"
 )
 
@@ -342,51 +349,20 @@ echo ""
 log_info "Phase 6: SPDX License Headers"
 echo ""
 
-# Check source files for SPDX headers (excluding build artifacts).
+# Check source files for SPDX headers, using the language-derived gate.
 #
-# Scans the whole repository, not just src/, and every estate source language —
-# not just Idris2 and Zig.
-#
-# This used to be `find "$REPO_ROOT/src" ... \( -name "*.idr" -o -name "*.zig" \)`.
-# That is fine for the template, whose only sources are src/interface/{abi,ffi},
-# but wrong for the repos instantiated from it: a multi-language project keeps
-# code in core-zig/, beam/, clients/, normalizer/ and so on, so the scan saw a
-# handful of files and printed "SPDX headers: 10/10 (100%)". Measured across all
-# languages the same repo was at 172/188 (91%) — the number was not wrong, it was
-# answering a much narrower question than it appeared to.
-#
-# Uses `git ls-files` so it follows .gitignore and never descends into vendored
-# or build directories; falls back to `find` outside a work tree.
-SPDX_EXTS='idr|zig|rs|ex|exs|res|resi|factor|fs|lean|jl|gleam|ml|mli|hs|sh|nix|scm'
-if git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    SOURCE_FILES=$(git -C "$REPO_ROOT" ls-files \
-        | grep -E "\.($SPDX_EXTS)$" \
-        | sed "s|^|$REPO_ROOT/|" || true)
+# This phase used to carry its own extension glob (SPDX_EXTS='idr|zig|rs|…').
+# Two problems, both of the fake-gate class: the glob is the same in every repo,
+# so the gate cannot notice a language arriving that it does not name; and when
+# the glob matched nothing it printed nothing and counted no error — a pass for
+# having examined nothing. scripts/check-spdx-headers.sh derives the set from the
+# languages the repository declares (via build/just/provision-lib.sh langs),
+# scans every matched file with no cap, fails on a declared language with no
+# files, and fails when it matched zero files.
+if bash "$SCRIPT_DIR/check-spdx-headers.sh" --root "$REPO_ROOT" --quiet; then
+    log_pass "SPDX headers: every source file of every declared language"
 else
-    SOURCE_FILES=$(find "$REPO_ROOT" -type f \
-        ! -path "*/.git/*" ! -path "*/.zig-cache/*" ! -path "*/zig-cache/*" \
-        ! -path "*/node_modules/*" ! -path "*/target/*" ! -path "*/_build/*" \
-        ! -path "*/.lake/*" ! -path "*/deps/*" \
-        2>/dev/null | grep -E "\.($SPDX_EXTS)$" || true)
-fi
-SOURCE_COUNT=$(echo "$SOURCE_FILES" | grep -c "." || true)
-SPDX_COUNT=0
-
-while IFS= read -r src_file; do
-    if [ -z "$src_file" ]; then continue; fi
-    if has_spdx_header "$src_file"; then
-        SPDX_COUNT=$((SPDX_COUNT + 1))
-    else
-        log_warning "Source file missing SPDX header: $(basename "$src_file")"
-    fi
-done <<< "$SOURCE_FILES"
-
-if [ "$SOURCE_COUNT" -gt 0 ]; then
-    PERCENT=$((SPDX_COUNT * 100 / SOURCE_COUNT))
-    log_pass "SPDX headers: $SPDX_COUNT/$SOURCE_COUNT ($PERCENT%)"
-    if [ "$PERCENT" -lt 100 ]; then
-        log_warning "Not all source files have SPDX headers"
-    fi
+    log_error "SPDX header gate failed — see the findings above (scripts/check-spdx-headers.sh)"
 fi
 
 #==============================================================================
@@ -458,11 +434,15 @@ if [ -f "$REPO_ROOT/TOPOLOGY.adoc" ] || [ -f "$REPO_ROOT/TOPOLOGY.md" ] || \
 else
     log_error "Required file missing: TOPOLOGY (root or docs/architecture/, .adoc or .md)"
 fi
-# CONTRIBUTING.md may live at root or in .github/ (GitHub auto-discovers either)
-if [ -f "$REPO_ROOT/CONTRIBUTING.md" ] || [ -f "$REPO_ROOT/.github/CONTRIBUTING.md" ]; then
+# CONTRIBUTING may live at root or in .github/, and this estate writes .adoc.
+# The check demanded `.md` and failed a repository whose CONTRIBUTING.adoc has
+# been there all along — a required-file check that names the wrong spelling is
+# a permanent red build, which is indistinguishable from a build nobody reads.
+if [ -f "$REPO_ROOT/CONTRIBUTING.md" ] || [ -f "$REPO_ROOT/.github/CONTRIBUTING.md" ] \
+   || [ -f "$REPO_ROOT/CONTRIBUTING.adoc" ] || [ -f "$REPO_ROOT/.github/CONTRIBUTING.adoc" ]; then
     [ "$VERBOSE" = "1" ] && log_pass "Contribution guide found"
 else
-    log_error "Required file missing: CONTRIBUTING.md (root or .github/)"
+    log_error "Required file missing: CONTRIBUTING.{md,adoc} (root or .github/)"
 fi
 
 # Governance can be at root or in docs/governance/

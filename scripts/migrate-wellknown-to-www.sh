@@ -53,6 +53,7 @@ IN_PLACE=0
 STRICT=0
 DRY_RUN=0
 REPORT=""
+STAMP_DATE=""
 
 usage() {
     cat <<'EOF'
@@ -66,6 +67,8 @@ Options:
                     (pre-stage-5 contract; for hand resolution)
   --strict          exit 1 if anything had to be quarantined
   --report FILE     write a TSV report: action<TAB>path<TAB>detail
+  --date YYYY-MM-DD the date that names the quarantine (default: today, UTC);
+                    repo-init passes its mint date, so a replay names it alike
   -h, --help        this message
 
 Report actions: moved, deduped, quarantined, conflict, left.
@@ -81,6 +84,8 @@ while [ $# -gt 0 ]; do
         --dry-run)  DRY_RUN=1; shift ;;
         --report)   [ $# -ge 2 ] || die "--report requires a path"; REPORT="$2"; shift 2 ;;
         --report=*) REPORT="${1#--report=}"; shift ;;
+        --date)     [ $# -ge 2 ] || die "--date requires YYYY-MM-DD"; STAMP_DATE="$2"; shift 2 ;;
+        --date=*)   STAMP_DATE="${1#--date=}"; shift ;;
         -h|--help)  usage; exit 0 ;;
         *)          die "unknown option: $1" ;;
     esac
@@ -111,7 +116,12 @@ if [ ! -d "$ROOT" ]; then
     exit 0
 fi
 
-STAMP="$(date -u +%Y%m%d)"
+# The quarantine is named by a date. At mint it is the mint's own date, so the
+# drift gate's replay of the mint, on a later day, names it the same (Codex
+# review of #275); otherwise it is today's.
+STAMP_DATE="${STAMP_DATE:-$(date -u +%Y-%m-%d)}"
+[[ "$STAMP_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || die "--date must be YYYY-MM-DD (got '$STAMP_DATE')"
+STAMP="${STAMP_DATE//-/}"
 QUARANTINE="www/.legacy-well-known-$STAMP"
 
 git_tracked() { git ls-files --error-unmatch "$1" >/dev/null 2>&1; }

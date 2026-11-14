@@ -44,11 +44,21 @@ jobs:
           echo "SECURITY file: OK ($SECFILE, $LINES lines)"
       - name: Check LICENSE exists
         run: |
-          if [ ! -f "LICENSE" ] && [ ! -f "LICENSE.txt" ] && [ ! -f "LICENSE.md" ]; then
-            echo "::error::LICENSE file is required for OpenSSF Best Practices"
-            exit 1
+          # A root licence file in any of the usual spellings, or a REUSE
+          # LICENSES/ directory holding at least one licence text: a non-empty
+          # <SPDX-ID>.<ext> file, per the REUSE spec (dotfiles and READMEs do not count).
+          for f in LICENSE LICENSE.txt LICENSE.md LICENSE.adoc; do
+            if [ -f "$f" ]; then
+              echo "LICENSE: OK ($f)"
+              exit 0
+            fi
+          done
+          if [ -n "$(find LICENSES -maxdepth 1 -type f -size +0c -name '*.*' ! -name '.*' ! -iname 'README*' 2>/dev/null | head -n 1)" ]; then
+            echo "LICENSE: OK (REUSE LICENSES/)"
+            exit 0
           fi
-          echo "LICENSE: OK"
+          echo "::error::LICENSE file is required for OpenSSF Best Practices"
+          exit 1
       - name: Check CONTRIBUTING exists
         run: |
           if [ ! -f "CONTRIBUTING.md" ] && [ ! -f "CONTRIBUTING.adoc" ] \

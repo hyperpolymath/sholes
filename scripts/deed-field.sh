@@ -16,7 +16,11 @@
 #   deed-field.sh --clause DEED PATH      the clause, one token per line (for hashing)
 #   deed-field.sh --has DEED PATH         exit 0 iff the clause exists
 #   deed-field.sh --find [DIR]            print the one *_chora.deed in DIR (default .)
-#   deed-field.sh --uuid DEED             the repo uuid, derived from :repo-uuid
+#   deed-field.sh --uuid DEED             the repo uuid: the body of :repo-uuid #uuid"…" as
+#                                         written (legacy #u5 / #u8 forms are derived)
+#   deed-field.sh --typed DEED PATH KEY   like the first form, but a tagged literal keeps its
+#                                         tag and quotes: #u5"github.com/o/r" (a plain value
+#                                         prints as it does without --typed)
 #
 # PATH names clauses below (repo-deed …), slash-separated: `status`,
 # `agentic/integrity`, `meta/maintenance-axes`. An empty PATH is (repo-deed …)
@@ -30,9 +34,15 @@
 # literal prints its string: `:repo-uuid #u5"github.com/o/r"` gives
 # github.com/o/r, the uuid5 name (uuidgen --sha1 --namespace @url --name …).
 #
-# --uuid derives the uuid5 (RFC 9562, URL namespace) of the header :repo-uuid
-# name. It uses uuidgen when that supports --sha1, else bun, and exits 2 when
-# neither is available or the result is not uuid-shaped: it never guesses.
+# --uuid prints the repo id. The chora id is minted once and carried opaquely
+# as `:repo-uuid #uuid"<v8 id of the birth path>"` (standards A1 V8, A7 J11), so
+# for that form it prints the body as written and NEVER re-derives it: a
+# transfer or rename does not change the id (ruling U1). Legacy literals are
+# still read, with a note on stderr: #u5"NAME" gives the uuid5 (RFC 9562, URL
+# namespace) of NAME, through uuidgen with --sha1, else scripts/uuid5-url.sh,
+# else bun; #u8"DOMAIN:NAME" gives the profile C id through scripts/uuid-v8.sh.
+# It exits 2 when no tool is available or the result is not uuid-shaped: it
+# never guesses.
 #
 # Exit: 0 found; 1 clause or key absent (nothing printed); 2 usage error or no
 # readable deed. --find exits 1 unless exactly one deed is present.
@@ -40,7 +50,7 @@ set -euo pipefail
 
 mode=value
 case "${1:-}" in
-  --list|--clause|--has|--uuid) mode="${1#--}"; shift ;;
+  --list|--clause|--has|--uuid|--typed) mode="${1#--}"; shift ;;
   --find)
     shopt -s nullglob
     deeds=("${2:-.}"/*_chora.deed)
@@ -54,7 +64,7 @@ deed="${1:-}"; path="${2-}"; key="${3:-}"
 if [ -z "$deed" ] || [ ! -r "$deed" ]; then
   echo "deed-field.sh: no readable deed: '${deed}'" >&2; exit 2
 fi
-if { [ "$mode" = value ] || [ "$mode" = list ]; } && [ -z "$key" ]; then
+if [[ ( "$mode" = value || "$mode" = typed || "$mode" = list ) && -z "$key" ]]; then
   echo "deed-field.sh: KEY is required" >&2; exit 2
 fi
 
@@ -137,10 +147,13 @@ END {
     if (tok[t] == ")") { d--; continue }
     if (d != 0 || tok[t] != "A:" key) continue
     nx = tok[t + 1]
-    if (mode == "value") {
+    if (mode == "value" || mode == "typed") {
       if (nx == "(" || nx == ")" || nx == "") exit 1
       # A tagged literal such as #u5"github.com/o/r" prints its string.
-      if (nx ~ /^A#[a-z0-9]+$/ && substr(tok[t + 2], 1, 1) == "S") nx = tok[t + 2]
+      if (nx ~ /^A#[a-z0-9]+$/ && substr(tok[t + 2], 1, 1) == "S") {
+        if (mode == "typed") { print substr(nx, 2) "\"" substr(tok[t + 2], 2) "\""; exit 0 }
+        nx = tok[t + 2]
+      }
       print show(nx); exit 0
     }
     if (nx != "(") exit 1
@@ -161,6 +174,9 @@ END {
 uuid5_url() {
   if uuidgen --sha1 --namespace @url --name x >/dev/null 2>&1; then
     uuidgen --sha1 --namespace @url --name "$1"
+  elif [ -f "$(dirname "${BASH_SOURCE[0]}")/uuid5-url.sh" ] && bash "$(dirname "${BASH_SOURCE[0]}")/uuid5-url.sh" x >/dev/null 2>&1; then
+    # The same derivation repo-init mints with (sha1sum, shasum or openssl).
+    bash "$(dirname "${BASH_SOURCE[0]}")/uuid5-url.sh" "$1"
   elif command -v bun >/dev/null 2>&1; then
     bun -e '
       const h = new Bun.CryptoHasher("sha1");
@@ -173,15 +189,29 @@ uuid5_url() {
       console.log([x.slice(0, 8), x.slice(8, 12), x.slice(12, 16), x.slice(16, 20), x.slice(20)].join("-"));
     ' "$1"
   else
-    echo "deed-field.sh: --uuid needs uuidgen with --sha1, or bun" >&2; return 2
+    echo "deed-field.sh: --uuid needs uuidgen with --sha1, sha1sum, shasum, openssl, or bun" >&2; return 2
   fi
 }
 
 if [ "$mode" = uuid ]; then
-  name="$(read_deed value)" || exit $?
-  id="$(uuid5_url "$name")" || exit 2
-  [[ "$id" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]] \
-    || { echo "deed-field.sh: derived uuid is not uuid5-shaped: '$id'" >&2; exit 2; }
+  lit="$(read_deed typed)" || exit $?
+  re_uuid='^[0-9a-f]{8}-[0-9a-f]{4}-[58][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+  case "$lit" in
+    '#uuid"'*'"')
+      # The chora id, minted once: print it as written, never re-derive it.
+      id="${lit#\#uuid\"}"; id="${id%\"}" ;;
+    '#u5"'*'"')
+      name="${lit#\#u5\"}"; name="${name%\"}"
+      echo "deed-field.sh: :repo-uuid is the legacy #u5 literal; the chora id is #uuid\"<v8 id of the birth path>\" (standards A1 V8)" >&2
+      id="$(uuid5_url "$name")" || exit 2 ;;
+    '#u8"'*:*'"')
+      body="${lit#\#u8\"}"; body="${body%\"}"
+      echo "deed-field.sh: :repo-uuid is the legacy #u8 literal; the chora id is #uuid\"<v8 id of the birth path>\" (standards A1 V8)" >&2
+      id="$(bash "$(dirname "${BASH_SOURCE[0]}")/uuid-v8.sh" "${body%%:*}" "${body#*:}")" || exit 2 ;;
+    *) echo "deed-field.sh: :repo-uuid is not a #uuid, #u5 or #u8 literal: '$lit'" >&2; exit 2 ;;
+  esac
+  [[ "$id" =~ $re_uuid ]] \
+    || { echo "deed-field.sh: :repo-uuid is not a lowercase v5 or v8 uuid: '$id'" >&2; exit 2; }
   printf '%s\n' "$id"
   exit 0
 fi

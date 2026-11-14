@@ -12,7 +12,10 @@
 # fields that can bear witness to contractile obligations into one
 # deterministic JSON document. Fact IDs keep their old family prefixes
 # (clade., state., ecosystem., agentic.) so witness-map.ncl and coapt.ncl
-# address them unchanged.
+# address them unchanged. The (neurosym …) and (playbook …) clauses, which
+# canon names as descriptile carriers alongside (agentic …), emit neurosym.
+# and playbook. facts the same way. Every prefix is a constructor of `Family`
+# in core/Coaptation.idr, lower-cased.
 #
 # READER only — authors nothing; the deed remains the single source of truth.
 #
@@ -60,7 +63,7 @@ read_clauses() {
   local c
   bash "$READ" "$DEED" '' canonical-name
   bash "$READ" "$DEED" '' repo-uuid
-  for c in identity clade lineage forges status maturity ecosystem agentic; do
+  for c in identity clade lineage forges status maturity ecosystem agentic neurosym playbook; do
     bash "$READ" --clause "$DEED" "$c" || [ "$?" -eq 1 ] || return 2
   done
 }
@@ -77,7 +80,8 @@ fact() {
   emit "$id" "$v"
 }
 
-# The uuid is derived from the header :repo-uuid name, never stored (deed.abnf).
+# The repo id: the opaque #uuid body of the header :repo-uuid, read as written
+# (standards A1 V8, A7 J11); deed-field.sh --uuid derives only legacy literals.
 uuid_name="$(field '' repo-uuid)"
 uuid=""
 [ -z "$uuid_name" ] || uuid="$(bash "$READ" --uuid "$DEED")"
@@ -104,6 +108,14 @@ rows="$(
   fact 'agentic.require-evidence-per-step'         field agentic/integrity require-evidence-per-step
   fact 'agentic.release-claim-requires-hard-pass'  field agentic/integrity release-claim-requires-hard-pass
   fact 'agentic.default-mode'                      field agentic/methodology default-mode
+  # --- the meaning of operations / scan posture: (neurosym) ---
+  fact 'neurosym.scan-enabled'                     field neurosym/hypatia-config scan-enabled
+  fact 'neurosym.scan-depth'                       field neurosym/hypatia-config scan-depth
+  fact 'neurosym.report-format'                    field neurosym/hypatia-config report-format
+  # --- how permitted actions run: (playbook) ---
+  fact 'playbook.skeleton-version'                 field playbook/rsr-repo-skeleton skeleton-version
+  fact 'playbook.authority-allowlist'              field playbook/rsr-repo-skeleton authority-allowlist
+  fact 'playbook.enforcement-workflow'             field playbook/rsr-repo-skeleton enforcement-workflow
   # --- (anchor): semantic authority + golden path ---
   fact 'anchor.authority'            field anchor authority
   fact 'anchor.policy'               field anchor/semantic-authority policy

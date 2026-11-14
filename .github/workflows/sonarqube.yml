@@ -38,13 +38,17 @@ jobs:
     name: SonarQube
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    # Secrets cannot be referenced from a job-level `if:`, so the presence test
-    # is carried through an env var set at job scope and read in a first step.
-    env:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     steps:
       - name: Report configuration state
         id: cfg
+        # A job-level `if:` cannot read a secret. This step reads the token
+        # and gives the result to the steps after it. The token is in the
+        # environment of this step and of the scan step only.
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        # The script of this step is Bash. `shell: bash` says so in the step:
+        # a default shell or a runner with a different shell cannot change it.
+        shell: bash
         run: |
           if [ -z "${SONAR_TOKEN}" ]; then
             echo "configured=false" >> "$GITHUB_OUTPUT"

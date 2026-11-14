@@ -1,0 +1,8 @@
+# Reviewed allowances for scripts/check-internal-links.sh.
+# Format: <repo-relative path the link resolves to> | <reason>
+# An entry must still be missing and still be linked, or the check fails: the
+# list only shrinks. Reasons are mandatory.
+build/.github/SECURITY.md | build/docs-seed/ is copied into docs/ by just repo-init; the link is written for its minted home (docs/ -> ../.github/SECURITY.md) and cannot resolve from the seed directory
+docs/decisions/NNNN-title.md | docs/decisions/0000-template.adoc is a template: NNNN-title is the placeholder for the next decision record's name
+.github/SECURITY-ACKNOWLEDGMENTS.md | genuine dead link: the acknowledgments page was never written; needs an owner decision (write it or drop the sentence), out of scope for the stale-link fix
+docs/onboarding/INSTALL-SECURITY-REPORT.adoc | genuine dead link: the scan-report page does not exist in the template; needs an owner decision (drop the line or add the page), out of scope for the stale-link fix

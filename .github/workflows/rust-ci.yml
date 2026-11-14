@@ -1,19 +1,54 @@
 # This workflow is managed by gh actions-lock.
 # SPDX-License-Identifier: MPL-2.0
-# Rust CI — thin wrapper calling the shared estate reusable in
-# hyperpolymath/standards. Configure once, propagate everywhere.
-# See: docs/CI-REUSABLE-WORKFLOWS.adoc in standards.
+# Rust CI — compiles standalone scripts/*.rs utilities with -D warnings and
+# runs cargo check/test/clippy when a Cargo.toml is present.
 name: Rust CI
+
 on:
   push:
     branches: [main, master]
   pull_request:
+  workflow_dispatch:
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
 permissions:
-  actions: read
   contents: read
+
 jobs:
   rust-ci:
-    uses: hyperpolymath/standards/.github/workflows/rust-ci-reusable.yml@6a9251037760690d56022ad6fab2cfe9d887dd76
+    name: Rust standalone tools and workspace gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Compile standalone Rust helpers and run tests
+        run: |
+          set -euo pipefail
+          rustc --version
+          mkdir -p "$RUNNER_TEMP/rust-bins"
+          for src in scripts/*.rs; do
+            [ -f "$src" ] || continue
+            bin_name="$(basename "$src" .rs)"
+            echo "Compiling $src (-D warnings)..."
+            rustc --edition 2021 -D warnings "$src" -o "$RUNNER_TEMP/rust-bins/$bin_name"
+          done
+          if [ -f tests/workflows/archetype_lock_merge_test.sh ]; then
+            bash tests/workflows/archetype_lock_merge_test.sh
+          fi
+          if [ -f Cargo.toml ]; then
+            # The runner's default toolchain may lack these components.
+            rustup component add rustfmt clippy
+            cargo fmt --all -- --check
+            cargo clippy --locked --all-targets -- -D warnings
+            cargo check --all-targets --locked
+            cargo test --locked
+          fi

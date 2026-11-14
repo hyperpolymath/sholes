@@ -38,4 +38,4 @@ This document defines the quality assessment criteria for individual project com
 6. Has it been tested on 6+ diverse external targets? (Broad → **B**)
 7. Do external users confirm it works and is useful? (Field-proven → **A**)
 
-See link:READINESS.adoc[READINESS.adoc] for the current project assessment.
+See link:../status/READINESS.adoc[READINESS.adoc] for the current project assessment.

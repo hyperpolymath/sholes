@@ -135,11 +135,11 @@ echo ""
 # now its only caller was benches/template_bench.sh, which discards the exit
 # code with `|| true` because a benchmark wants a duration, not a verdict —
 # so the test could fail on every run and nothing said so.
-INSTANTIATION_TEST="$(dirname "$0")/e2e/template_instantiation_test.sh"
+INSTANTIATION_TEST="$SCRIPT_DIR/e2e/template_instantiation_test.sh"
 if [ -f "$INSTANTIATION_TEST" ]; then
     echo ""
     echo "── Template instantiation ─────────────────────────────────────"
-    if bash "$INSTANTIATION_TEST" "$(dirname "$0")/.."; then
+    if bash "$INSTANTIATION_TEST" "$PROJECT_DIR"; then
         green "PASS: template instantiation"
         PASS=$((PASS + 1))
     else

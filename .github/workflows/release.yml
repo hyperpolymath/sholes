@@ -139,7 +139,7 @@ jobs:
           # files: |
           #   artifacts/*
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
       # GitHub native artifact attestation (build provenance). Generates a
       # signed, verifiable claim binding each released artifact to this build
       # (commit, workflow, runner) via OIDC + Sigstore — verify with

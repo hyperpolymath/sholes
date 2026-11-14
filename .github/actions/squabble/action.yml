@@ -1,0 +1,68 @@
+# SPDX-License-Identifier: MPL-2.0
+#
+# squabble: install the pinned, attested squabble release binary and,
+# optionally, run it. Call it pinned to a commit of this repository:
+#
+#   uses: hyperpolymath/cicd-squabbler/.github/actions/squabble@<40-hex sha>
+#
+# The binary itself is pinned inside install.sh by sha256 and by its
+# build-provenance attestation. See README.adoc next to this file.
+#
+# This file is KYAML (standards YAML-POLICY, D280). Regenerate it with
+# standards/scripts/kyaml-format.sh after an edit; keep each run: to one line
+# that calls a script, so the KYAML stays readable.
+{
+  name: "squabble",
+  description: "Install the pinned squabble release (sha256 and build attestation checked), and optionally run it.",
+  author: "hyperpolymath",
+  inputs: {
+    args: {
+      description: "Arguments for squabble, one per line, taken literally. Empty means install only.",
+      required: false,
+      default: "",
+    },
+    token: {
+      description: "GH_TOKEN for squabble itself in run mode. verify-satisfied needs Administration:read, which github.token cannot hold, so pass an App token for it. Installing always uses github.token.",
+      required: false,
+      default: "${{ github.token }}",
+    },
+  },
+  outputs: {
+    path: {
+      description: "Absolute path of the installed squabble binary.",
+      value: "${{ steps.install.outputs.path }}",
+    },
+    exit-code: {
+      description: "squabble's exit code in run mode; empty when args is empty.",
+      value: "${{ steps.run.outputs.exit-code }}",
+    },
+  },
+  runs: {
+    using: "composite",
+    steps: [
+      # Install with the workflow's own token, never the caller's run-mode token:
+      # an App installation token for the caller's repo need not reach this one.
+      {
+        name: "Install pinned squabble (sha256 + attestation)",
+        id: "install",
+        shell: "bash",
+        env: {
+          GH_TOKEN: "${{ github.token }}",
+        },
+        run: "bash \"${GITHUB_ACTION_PATH}/install.sh\"",
+      },
+      {
+        name: "Run squabble",
+        id: "run",
+        if: "inputs.args != ''",
+        shell: "bash",
+        env: {
+          GH_TOKEN: "${{ inputs.token }}",
+          SQUABBLE_ARGS: "${{ inputs.args }}",
+          SQUABBLE_BIN: "${{ steps.install.outputs.path }}",
+        },
+        run: "bash \"${GITHUB_ACTION_PATH}/run.sh\"",
+      },
+    ],
+  },
+}

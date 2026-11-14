@@ -27,11 +27,24 @@ src="$scripts_dir/$name.rs"
 
 cache="${RSR_MINT_TOOL_CACHE:-${TMPDIR:-/tmp}/rsr-mint-tools}"
 mkdir -p "$cache"
-bin="$cache/$name"
+# The binary is named by the CONTENT of its source, not by the tool name and
+# a modification time. Keyed by name with an mtime check, two checkouts with
+# different versions of a tool shared one binary, and a source whose mtime
+# was older than the cached build (any fresh clone or checkout can produce
+# one) silently ran the OTHER version. strip-instruction-blocks changed its
+# interface in #251 (files, not a directory), so a stale binary would now
+# mis-run a mint rather than merely differ.
+if command -v sha256sum >/dev/null 2>&1; then
+    digest="$(sha256sum "$src" | cut -c1-16)"
+else
+    digest="$(shasum -a 256 "$src" | cut -c1-16)"
+fi
+bin="$cache/$name-$digest"
 
-# Recompile only when the binary is missing or older than its source, so the
-# common case is a straight exec.
-if [ ! -x "$bin" ] || [ "$src" -nt "$bin" ]; then
+# Compile only when no binary exists for this exact source, so the common
+# case is a straight exec. Build to a temporary name and rename, so a
+# concurrent mint never executes a half-written binary.
+if [ ! -x "$bin" ]; then
     # The toolchain is needed to BUILD, not to RUN. Checking for rustc up
     # front made a cached binary unusable on a machine without one, which is
     # the common case in CI: the run is a straight exec. Only ask for rustc
@@ -42,10 +55,13 @@ if [ ! -x "$bin" ] || [ "$src" -nt "$bin" ]; then
         echo "           Install one from https://rustup.rs, then re-run." >&2
         exit 2
     }
-    rustc -O -o "$bin" "$src" >&2 || {
+    tmp_bin="$bin.tmp.$$"
+    rustc -O -o "$tmp_bin" "$src" >&2 || {
+        rm -f "$tmp_bin"
         echo "rust-tool: failed to compile $src" >&2
         exit 2
     }
+    mv -f "$tmp_bin" "$bin"
 fi
 
 exec "$bin" "$@"

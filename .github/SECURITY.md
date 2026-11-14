@@ -5,10 +5,13 @@ Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 # Security Policy
 
 <!--
-The token vocabulary lives in .machine_readable/ai/PLACEHOLDERS.adoc, not here.
+The token vocabulary is not restated here (`just repo-init` substitutes the tokens).
 This file used to restate it in a "delete before publishing" block, but `just
 init` substitutes tokens inside comments too — so the block's own instructions
 were rewritten into nonsense and then shipped, because nothing deleted it.
+Where it lives: the `placeholders` document (`repo-document:…#placeholders`),
+registered under (documents) in *_chora.deed. If that page is gone, contact the maintainer
+(docs/MAINTAINERS.adoc), or ask an AI assistant to read *_chora.deed for its current location.
 -->
 
 We take security seriously. We appreciate your efforts to responsibly disclose vulnerabilities and will make every effort to acknowledge your contributions.
@@ -307,7 +310,7 @@ To stay informed about security updates:
 
 - **Watch this repository**: Click "Watch" → "Custom" → Select "Security alerts"
 - **GitHub Security Advisories**: Published at [Security Advisories](https://github.com/hyperpolymath/sholes/security/advisories)
-- **Release notes**: Security fixes noted in [CHANGELOG](../CHANGELOG.md)
+- **Release notes**: Security fixes noted in [CHANGELOG](../CHANGELOG.adoc)
 
 ### Update Policy
 
@@ -355,8 +358,8 @@ When using sholes, we recommend:
 ## Additional Resources
 
 - [Security Advisories](https://github.com/hyperpolymath/sholes/security/advisories)
-- [Changelog](../CHANGELOG.md)
-- [Contributing Guidelines](CONTRIBUTING.md)
+- [Changelog](../CHANGELOG.adoc)
+- [Contributing Guidelines](../CONTRIBUTING.adoc)
 - [CVE Database](https://cve.mitre.org/)
 - [CVSS Calculator](https://www.first.org/cvss/calculator/3.1)
 

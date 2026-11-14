@@ -99,6 +99,6 @@ Or read the repo deed (`*_chora.deed` at root) and `.claude/CLAUDE.md` directly.
 
 == Get Help
 
-* **Architecture**: link:EXPLAINME.adoc[EXPLAINME.adoc]
+* **Architecture**: link:../EXPLAINME.adoc[EXPLAINME.adoc]
 * **Wiki**: https://github.com/hyperpolymath/sholes/wiki
 * **Report issue**: `just help-me`

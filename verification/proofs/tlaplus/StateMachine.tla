@@ -4,7 +4,12 @@
 (*                                                                          *)
 (* TLA+ Specification Template: State Machine                               *)
 (* Replace with your project's distributed protocol or state machine.       *)
-(* Use TLC model checker to verify properties.                              *)
+(* Use TLC model checker to verify properties: see MC.tla and MC.cfg.       *)
+(*                                                                          *)
+(* PROOF-POLICY §4 exception (standards): TLA+ is used because these        *)
+(* obligations are temporal properties of a state machine, which a finite   *)
+(* model check states directly; Idris2 would need a trace semantics first.  *)
+(* Results are TESTED with the bounds in MC.tla / MC.cfg, never PROVEN.     *)
 (*                                                                          *)
 (* Example: A simple request pipeline with safety properties.               *)
 (* Replace States, Init, Next with your project's actual states.            *)
@@ -72,8 +77,12 @@ Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
 \* State is always valid
 TypeInvariant == state \in States
 
-\* Processed count never decreases (monotonicity)
-ProcessedMonotonic == processed >= 0
+\* Processed count is never negative (a state invariant)
+ProcessedNonNegative == processed >= 0
+
+\* Processed count never decreases between states (an action property: the
+\* invariant above would accept a step from 4 to 3)
+ProcessedMonotonic == [][processed' >= processed]_processed
 
 \* Queue never exceeds max
 QueueBounded == Len(queue) <= MaxRequests
@@ -85,7 +94,9 @@ NoSkipStates ==
 
 \* ---- LIVENESS PROPERTIES ----
 
-\* Every request eventually completes or fails
+\* The pipeline eventually reaches a terminal state (done or failed) at least
+\* once. This is NOT per-request completion: this template never dequeues, so
+\* requests can stay in `queue`. Model per-request progress before claiming it.
 EventualCompletion == <>(state = "done" \/ state = "failed")
 
 ============================================================================

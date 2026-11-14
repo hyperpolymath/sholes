@@ -1,10 +1,19 @@
 # Idris2 proof manifest — read by scripts/check-proofs.sh idris2
 # Format: <source-root>|<module-relative-to-source-root>|gated|quarantine|<note>
 # gated      = must compile.  quarantine = known-broken, must keep failing.
-# Ground-truthed 2026-07-17 with idris2 0.7.0 (developer/tools/opt/pack).
+# Ground-truthed 2026-07-17 with idris2 0.7.0 (developer/tools/opt/pack);
+# rechecked 2026-11-09 with idris2 0.7.0 built from the v0.7.0 tag (Chez 9.5.8).
 verification/proofs/idris2|ABI/Foreign.idr|gated| the one shipped Idris2 module that compiles — real content, not a stub
-verification/proofs/idris2|Types.idr|quarantine| Undefined name LTE (needs Data.Nat); Idris1-era template, has never compiled
+verification/proofs/idris2|Types.idr|gated| compiles under idris2 0.7.0 (imports Data.Nat); promoted 2026-11-09 when check-proofs.sh reported an unexpected pass
+.machine_readable/coaptation/core|Coaptation.idr|gated| coaptation Must/Trust gate: hardGateSound, hardGateComplete, mustCannotGap, trustCannotGap
 verification/proofs/idris2|ABI/Layout.idr|quarantine| Undefined name NonZero (needs Data.Nat); then a genuine unification failure (S ?x vs f .fieldAlignment)
 verification/proofs/idris2|ABI/Platform.idr|quarantine| Undefined name LTE (needs Data.Nat); then Undefined name lteRefl
 verification/proofs/idris2|ABI/Pointers.idr|quarantine| .nonNull declared at quantity 0 (erased) yet projected into a value position, plus a unification failure — design decision, not a typo
 verification/proofs/idris2|ABI/Compliance.idr|quarantine| depends on quarantined ABI.Layout / ABI.Platform
+#
+# The repository's own ABI seam (src/interface/Abi/), checked from its source
+# root so module names match paths. Every repo minted from this template
+# inherits these entries; restate the obligations in PROOF-STATUS.adoc.
+src/interface|Abi/Types.idr|gated| Result code table: fromCodeResultCode (round trip), resultCodeInjective; non-null Handle
+src/interface|Abi/Layout.idr|gated| example struct only; no struct crosses this seam by value (Handle is opaque)
+src/interface|Abi/Foreign.idr|gated| Aspect 3 compares each %foreign name with the export fn text of main.zig (source text, not a built library)

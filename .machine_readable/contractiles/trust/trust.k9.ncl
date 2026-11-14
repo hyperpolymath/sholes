@@ -44,21 +44,33 @@ K9!
 # * Failure-mode defenses cross-referenced — trust carries the most
 #   defenses of any verb because the threat surface is widest.
 
+#
+# 2026-10-19 (K9 contract v1.0.0, D173, standards#1058): this record is a
+# DECLARATION evaluated at 'Yard. The probes it lists are run by the paired
+# runner (trust.ncl and the scripts/run-*.sh runners), which is the execution
+# surface; this file spawns nothing. A 'Hunt record needs signature_required,
+# a signature block and a verified signature (K9-S008/S009/C001); no
+# contractile carries one, so 'Hunt here was a claim the gate could never honour.
+
 let base    = import "../_base.ncl" in
 
 {
   pedigree = base.pedigree_schema & {
     contractile_verb = "trust",
+    schema_version   = "1.0.0",
+    component_type   = "contractile:trust",
+    semantics        = "security + provenance + safe-hacking",
+    side_effects     = [],
     paired_xfile     = "../trust/trust.k9.ncl#declaration",
     paired_runner    = "../trust/trust.ncl",
 
     # α two-axis declaration — capability × authority.
-    # trust is Hunt-capable (active probes shell out, safe-hacking section
-    # runs real fuzz/injection/auth-bypass attempts scoped to the repo)
+    # trust is Yard-tier as a record (the runner, trust.ncl, shells out for the
+    # active probes and the safe-hacking attempts scoped to the repo)
     # AND blocking-authority (failed verification = failed CI).
     # Contrast with intend = (Hunt, reporting). The two verbs exercise
     # the full α surface.
-    tier      = 'Hunt,
+    tier      = 'Yard,
     authority = 'blocking,
 
     metadata = {
@@ -71,12 +83,12 @@ let base    = import "../_base.ncl" in
     },
 
     security = {
-      leash = 'Hunt,
-      signature_required = true,
+      leash = 'Yard,
+      signature_required = false,
       trust_level = "verification + authorised-probe + hard-gate",
       allow_network = false,            # verifications offline by default
       allow_filesystem_write = false,   # evidence sinks are indirected
-      allow_subprocess = true,
+      allow_subprocess = false,   # the paired runner spawns; this record does not
       authorised_probes_only = true,    # probe section explicitly lists allowed targets + probe classes
       probe_scope_enforcement = 'this_repo_only,  # probes NEVER hit external systems
     },
@@ -184,9 +196,14 @@ let base    = import "../_base.ncl" in
       {
         id = "container-images-pinned",
         section = "Container Security",
-        description = "Containerfile uses pinned base images",
-        probe = "test ! -f Containerfile || grep -q 'cgr.dev\\|@sha256:' Containerfile",
-        severity = 'warning,
+        description = "Every base image in a shipped Containerfile is pinned by digest",
+        # The old probe was: test ! -f Containerfile || grep -q 'cgr.dev\|@sha256:' Containerfile
+        # which passes on `FROM cgr.dev/chainguard/wolfi-base:latest` — it asked
+        # "is one of the approved registries named anywhere", not "is every base
+        # image pinned". A template shipping two floating :latest stages passed
+        # it in every repo minted from it. The probe now runs the shipped check.
+        probe = "bash scripts/check-container-pins.sh --quiet",
+        severity = 'critical,
       },
       {
         id = "no-dockerfile",

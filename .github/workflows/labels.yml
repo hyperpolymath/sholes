@@ -37,7 +37,7 @@ jobs:
     steps:
       - name: Apply canonical labels
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           # ⚠ LOAD-BEARING. This workflow deliberately does not check the repo
           # out (no `uses:`, so no actions.lock entry can drift), which means
           # `gh label create` / `gh label edit` have no git remote to infer a

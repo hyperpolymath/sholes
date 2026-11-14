@@ -25,11 +25,23 @@ K9!
 # rollback path; anything retired must preserve the evidence of its
 # previous existence).
 
+#
+# 2026-10-19 (K9 contract v1.0.0, D173, standards#1058): this record is a
+# DECLARATION evaluated at 'Yard. The probes it lists are run by the paired
+# runner (dust.ncl and the scripts/run-*.sh runners), which is the execution
+# surface; this file spawns nothing. A 'Hunt record needs signature_required,
+# a signature block and a verified signature (K9-S008/S009/C001); no
+# contractile carries one, so 'Hunt here was a claim the gate could never honour.
+
 let base    = import "../_base.ncl" in
 
 {
   pedigree = base.pedigree_schema & {
     contractile_verb = "dust",
+    schema_version   = "1.0.0",
+    component_type   = "contractile:dust",
+    semantics        = "rollback / recovery / deprecation / audit-trail preservation",
+    side_effects     = [],
     paired_xfile     = "../dust/dust.k9.ncl#declaration",
     paired_runner    = "../dust/dust.ncl",
 
@@ -53,7 +65,7 @@ let base    = import "../_base.ncl" in
       # execute declared rollback/removal — but only behind explicit
       # --apply flag + per-item approval. Default is dry-run.
       allow_filesystem_write_conditional = true,
-      allow_subprocess = true,
+      allow_subprocess = false,   # the paired runner spawns; this record does not
       destructive_action_gating = {
         default_mode = 'dry_run,
         requires_flag = "--apply",

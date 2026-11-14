@@ -1,0 +1,123 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= squabble action — install the pinned, attested squabble binary
+:toc: preamble
+
+A composite action that installs one exact squabble release binary in a
+workflow and, optionally, runs it. It refuses any file whose sha256 is not
+the pinned digest, and any file whose build provenance does not trace back
+to this repository's release workflow at the pinned tag and source commit.
+Nothing is executed until both checks pass.
+
+== Usage
+
+Pin the action to a full commit SHA of this repository, never to a branch or
+tag:
+
+[source,yaml]
+----
+# Install only: squabble is on PATH from the next step on.
+- uses: hyperpolymath/cicd-squabbler/.github/actions/squabble@<40-hex sha>
+  id: squabble
+- run: squabble --version
+----
+
+Run mode passes `args` to squabble, one argument per line, taken literally
+(no shell parsing, no globbing; blank lines are dropped). The step fails
+when squabble exits non-zero, and `run.sh` records the exit code as the
+`exit-code` output (see <<_not_yet_tested>> for what CI has not yet shown).
+
+[source,yaml]
+----
+- uses: hyperpolymath/cicd-squabbler/.github/actions/squabble@<40-hex sha>
+  with:
+    args: |
+      verify-satisfied
+      ${{ github.repository }}
+      ${{ github.event.pull_request.number }}
+    token: ${{ steps.app-token.outputs.token }}
+----
+
+=== Inputs and outputs
+
+[cols="1,3"]
+|===
+| `args` (input) | squabble's arguments, one per line. Empty (the default) means install only.
+| `token` (input) | `GH_TOKEN` for squabble in run mode. Defaults to `github.token`. `verify-satisfied` reads branch rules, which need *Administration: read*; `github.token` cannot hold that, so pass a GitHub App installation token for it.
+| `path` (output) | Absolute path of the installed binary.
+| `exit-code` (output) | squabble's exit code in run mode; empty when `args` is empty.
+|===
+
+The download and the attestation check always use the workflow's own
+`github.token`, never `token`: an App token minted for the caller's
+repository need not reach this one. This repository is public, so
+`github.token` is enough for both.
+
+== What is checked, in order
+
+`install.sh` does all of this before the binary is made executable:
+
+. The runner is Linux on x86_64. That is the only asset published.
+. The release asset is downloaded into a fresh directory.
+. Its sha256 must equal the pinned digest.
+. `gh attestation verify --format json` must accept it with this repository,
+  the signer workflow `.github/workflows/release.yml`, the source ref
+  `refs/tags/<tag>`, the pinned source commit, the SLSA provenance v1
+  predicate, and `--deny-self-hosted-runners`. The JSON is then read
+  back: it must be a non-empty array in which every result names the asset
+  with the pinned digest. The JSON form is used because the plain-text output
+  has been seen empty, with exit 0, when stdout is not a terminal.
+. Only then is the file made executable, and it must report the pinned
+  version (`squabble 0.1.0`).
+
+== Pins
+
+[cols="1,3"]
+|===
+| Release tag | `v0.1.0` (a locator, not a trust anchor)
+| Asset | `squabble-x86_64-linux-musl`
+| Asset sha256 | `6cbeb4577d83ccf2dea3405a3afb0d34b7fee422af73f2113d413ea7edba026c`
+| Source commit | `b854d17abc0dce296719a349ebe856ff945cf03e`
+| Signer workflow | `hyperpolymath/cicd-squabbler/.github/workflows/release.yml`
+|===
+
+== Bumping to a new release
+
+Read every value from the release itself, never from a tag name alone.
+
+. `gh release download <tag> --repo hyperpolymath/cicd-squabbler --pattern
+  squabble-x86_64-linux-musl --pattern SHA256SUMS`, then `sha256sum -c
+  SHA256SUMS --ignore-missing`.
+. Find the commit the tag points to: `git rev-parse <tag>^{commit}`.
+. Run `gh attestation verify` on the asset with the flags `install.sh` uses
+  and that commit as `--source-digest`. It must pass.
+. Set `SQUABBLE_TAG`, `SQUABBLE_SHA256` and `SQUABBLE_SOURCE_DIGEST` in
+  `install.sh`, and update any version reference in
+  `.github/workflows/squabble.yml`.
+. Run `bash tests/workflows/squabble_gate_test.sh`. It must end with every
+  planned case run and none failed.
+
+== How it is tested
+
+`tests/workflows/squabble_gate_test.sh` exercises the action guards and the
+companion required-context gate with Silence + Firing + Setup cases: the
+`verify_digest` SHA256 mismatch check, the `check_attestation_json` SLSA
+attestation checks (empty array, matching digest, mismatched digest),
+`run.sh` exit-code propagation (`0` and blocking exit `4`) against a stand-in
+binary, and `scripts/check-required-contexts.sh` against missing producers,
+path-filtered workflows, unmapped ruleset contexts, and `gh pr merge --admin`
+bypass invocations.
+
+`.github/workflows/squabble.yml` runs `install.sh` and `run.sh` on a real
+runner against this repository's `.github/workflows` directory and verifies
+`scripts/check-required-contexts.sh`.
+
+=== Not yet tested
+
+GitHub's own evaluation of `action.yml` (composite inputs, outputs and the
+`if:` on the run step) is not exercised here. This repository has an
+`actions.lock`, and the lockfile does not support local-path actions, so a
+workflow here cannot call the action as `uses: ./.github/actions/squabble`.
+It is first exercised by a caller that pins the action at a merged commit of
+`main`, which the lockfile does support. That caller should check in
+particular that `exit-code` is readable when the run step fails.

@@ -11,17 +11,35 @@ not "tidied away" into a real coverage gap.
   Independent; this is the repo's own Hypatia coverage.
 * `static-analysis-gate.yml` -> `hypatia-scan` job — runs Hypatia as part of the
   **gate**, then the `deposit-findings` job hands the results to the
-  **gitbot-fleet learning** pipeline. This job is also a *required status check*.
+  **gitbot-fleet learning** pipeline. This job is *documented here as a
+  required status check*, but as of 2026-11-08 no live rule requires it:
+  `GET /rules/branches/main` returns only `required_linear_history`. It is a
+  gate in the sense that it reddens a run; it is not a merge blocker until a
+  ruleset says so.
 
 Same tool, two different consumers (security scan vs fleet learning). Removing
 either loses real function — keep both.
 
 == Secret scanning is single-sourced *in CI* — and two-tier overall
 
-`secret-scanner.yml` calls the standards reusable (gitleaks + a Rust-secrets
-check). An inline TruffleHog job was removed: the reusable deliberately retired
+`secret-scanner.yml` runs all three estate scanners inline: `scan / gitleaks`,
+`scan / rust-secrets` and `scan / shell-secrets`. An inline TruffleHog job was
+removed earlier: the standards reusable it was paired with deliberately retired
 TruffleHog as redundant with gitleaks, so re-adding it was duplicated work, not
 extra coverage.
+
+The three jobs are inline rather than one `uses:` of the standards
+`secret-scanner-reusable.yml`, and that is deliberate. A job-level reusable call
+reports `<caller job> / <called job>`, so the wrapper's three public check names
+would depend on job names inside a *remote* workflow: rename one there and three
+required contexts move in every generated repository. Inline jobs whose `name:`
+is the context make the names this repository's own, and the whole file stays
+inside `gh actions-lock`'s model — every `uses:` is a step-level action the
+official generator can lock, so regenerating never leaves a dangling edge. Do
+not "simplify" this back into a single wrapper call;
+
+`metadatastician/standards` does it as a wrapper because it *owns* the reusable
+and can keep `./`-local, so its own names cannot re-stale.
 
 **That retirement is scoped to CI.** The estate runs a deliberate *two-tier*
 secret defence, and the second tier is not in this directory:
@@ -32,7 +50,7 @@ secret defence, and the second tier is not in this directory:
 
 | CI
 | gitleaks (+ rust-secrets, shell-secrets)
-| `secret-scanner.yml` -> standards reusable. Runs on pull_request and on push
+| `secret-scanner.yml`, three inline jobs. Runs on pull_request and on push
   to main — i.e. on what has *already reached* the remote.
 
 | Local
@@ -57,7 +75,189 @@ pins), and gitleaks in CI catches a genuine SonarCloud token as `generic-api-key
 
 * `codeql.yml` — CodeQL (matrix defaults to `actions`; every repo has workflows).
 * `sonarqube.yml` — SonarCloud (shell / JS surface; see `sonar-project.properties`).
-* `static-analysis-gate.yml` — panic-attack + Hypatia gate (see above).
+* `static-analysis-gate.yml` — pons gate on ERROR; panic-attack and patch-bridge advisory (Hypatia runs in `hypatia-scan.yml`).
 
 Each targets a different language/surface; together they cover what no single
 analyser does.
+
+== Deed and K9 conformance come from the canon, not from this tree
+
+`dogfood-gate.yml` validates the repo deed and the K9 contracts by calling the
+two reusable lanes in hyperpolymath/standards, `deed-conformance.yml` and
+`k9-conformance.yml`, at the one standards commit every `uses:` in this
+directory pins. That commit supplies the linter, the validator, the K9 contract
+(v1.0.0, D173) and the verdict-grid renderer, so what CI accepts is exactly
+what the canon says (standards `docs/CONTRACTILE-DESCRIPTILE-VALIDATION.adoc`).
+
+* `k9-validate` (reusable) renders the K9 grid into its job summary and the
+  `k9-grid` artifact; it asks for `pull-requests: read` only. `k9-verdict`
+  downloads that artifact and posts `report.md` to the pull request under
+  `<!-- verdict-grid:k9 regenerated on every run -->`, one comment per PR,
+  updated in place. `badges` publishes `badges/k9.json` to the
+  `governance-badges` branch on eligible pushes to `main`; the README badge reads it
+  through the shields endpoint; the section "The README badges are
+  generated output" below states the contract that branch operates under.
+* `hypatia-scan.yml` -> `verdict` job posts the Hypatia grid the same way
+  (artifact `verdict-grid`, marker `<!-- verdict-grid:hypatia … -->`).
+
+There is deliberately no second validator here: the former `k9-validate.yml`
+and `deed-validate.yml` (the `k9-ecosystem` / `deed-ecosystem` actions at
+`@main`) and the grep checks in `.github/hooks/validate-{k9,deed}.sh` accepted
+files the contract rejects. The hooks are now thin wrappers over the same
+canonical tools, run from a standards checkout (`STANDARDS_DIR`), and skip
+with a notice when none is present. k9iser is retired estate-wide: contracts
+are authored to `1-formats/k9/spec/K9-CONTRACT-SPEC.adoc`, never generated.
+
+== The README badges are generated output (`governance-badges`)
+
+Every repository minted from this template publishes one Shields-endpoint JSON
+file per validation lane, on a *separate orphan branch* named
+`governance-badges`:
+
+[cols="1,1,3",options="header"]
+|===
+| Lane | File | Written by
+
+| K9 conformance
+| `badges/k9.json`
+| `dogfood-gate.yml` -> `badges` job, on eligible pushes to `main`
+
+|===
+
+`README.adoc` reads that file through the shields endpoint at a URL that must
+not change:
+
+----
+https://raw.githubusercontent.com/<owner>/<repo>/governance-badges/badges/k9.json
+----
+
+Both halves - rendering the badge and deciding whether to publish it - live in
+`scripts/governance-badge.js`. The workflow only supplies the lane's result and
+the lane's artifact. `tests/workflows/governance_badge_test.sh` exercises the
+helper against a mock of the GitHub API and checks this directory's wiring.
+
+=== It is generated output, not source
+
+* `governance-badges` is an *orphan* branch. Its commits are created with
+  `parents: []`, so there is *no common ancestor with `main`* - not "a little
+  history", none. It is not a variant, a release branch or a staging area.
+* *It must never be merged*, and there is nothing to merge: a pull request from
+  it would show unrelated histories. Do not open one, do not merge one, do not
+  rebase it onto `main`. Merging it would import a badges-only tree over the
+  repository's real content.
+* *Recent pushes are normal.* Eligible pushes to `main` republish the badge. A run
+  whose badge is unchanged makes *no commit at all*, so the branch is quiet
+  when the lane result is stable and moves only when the state changes.
+* It is safe to delete. The next eligible push to `main` recreates it, with no parent,
+  from scratch.
+* It carries no workflows, no code and nothing that runs. Treat it like a
+  generated site deployment, not like a branch of the repository.
+
+=== What each colour means
+
+[cols="1,1,1,3",options="header"]
+|===
+| Lane result | Badge message | Colour | Meaning
+
+| `success`
+| `success`
+| brightgreen
+| The lane ran, passed, and produced its artifact.
+
+| `failure`
+| `failure`
+| red
+| The lane ran and failed.
+
+| `skipped`
+| `skipped`
+| lightgrey
+| The lane did not run for this commit.
+
+| `cancelled`
+| `cancelled`
+| lightgrey
+| The lane started and was cancelled (superseded run, manual cancel, workflow
+  concurrency).
+
+| missing/malformed lane artifact
+| `unavailable`
+| lightgrey
+| The lane claims success but its evidence is missing, unreadable or
+  self-contradictory (for example a `success` message paired with a red
+  colour). Nothing trustworthy happened, so nothing green is published.
+
+| anything else (`timed_out`, `neutral`, `action_required`, empty, a value from
+  a newer GitHub)
+| `unknown`
+| lightgrey
+| Unrecognised. Treated as "no trustworthy result" rather than guessed at.
+|===
+
+*Grey means "this run did not produce a trustworthy success/failure result".*
+It does not mean "pending", "cached" or "about to go green", and it is never a
+stale green left behind by an earlier run: a workflow that runs with a skipped,
+cancelled or unavailable lane *publishes grey*.
+
+The badge reflects the *lane job's* result (`needs.k9-validate.result`), with
+the lane's artifact as a *witness*: a `success` result is only believed when the
+`k9-grid` artifact is present, well formed, byte-identical to the canonical
+render, and itself records `success`. An artifact can never turn a failed lane
+green; it can only stop a green one being published.
+
+[NOTE]
+====
+*Known limit.* If the whole workflow run is cancelled, GitHub does not start
+the publisher at all, so the badge keeps its previous value until the next eligible push
+to `main`. No job can publish a state for a run it was not allowed to execute.
+Because the run that cancels a superseded one is itself publishing, the badge
+converges on the newest run's result rather than staying stuck.
+====
+
+=== Identical content produces no commit
+
+Before writing anything, the publisher fetches the file that is currently on the
+branch and compares it *byte for byte* with the badge it has just rendered.
+
+* Identical -> it prints `unchanged`, writes no commit, and exits 0.
+* Different -> it publishes with the blob sha it just read, so a concurrent
+  publication is detected (HTTP 409) and re-evaluated instead of silently
+  overwriting the other run's commit. Publications are also serialised by a
+  per-repository `concurrency` group.
+* The JSON is never re-serialised or canonicalised to make a comparison
+  succeed. Key order and spacing are fixed by the renderer, and a file that
+  differs only in layout *is* a difference: it gets republished.
+
+=== Missing is not the same as broken
+
+The publisher distinguishes the two, because treating every API error as
+"missing" is how a badge pipeline quietly creates branches it should not:
+
+[cols="1,2",options="header"]
+|===
+| HTTP | What happens
+
+| `404` on the file, `404` on the ref
+| The branch really is absent: create it as an orphan (`parents: []`).
+
+| `404` on the file, `200` on the ref
+| The branch exists but the file does not: add the file, no new branch.
+
+| `404` on the file, anything else on the ref
+| Unknown. Fail the run; do not create a branch.
+
+| `401` / `403`
+| Authentication or permission failure. Fail; do not write.
+
+| `429` / `5xx`, or a network error
+| Transient. Retried a bounded number of times, then fail; nothing is treated
+  as missing.
+
+| Any other status
+| Fail; do not write.
+|===
+
+A malformed file that is already on the branch (not JSON, not an object, no
+`schemaVersion`, no message) is *refused*, not overwritten: it did not come from
+this tool, and silently replacing it would hide a hand edit. Repair or delete it
+and re-run.
