@@ -12,18 +12,19 @@
 // terminator of a preceding comment. That is what keeps an SPDX comment that
 // sits immediately above an instructions block intact.
 //
-// Usage: strip-instruction-blocks.rs [ROOT]        (default ROOT = .)
+// Usage: strip-instruction-blocks.rs FILE...   or   ... - < newline-separated paths
+
+#![forbid(unsafe_code)]
 
 use std::env;
 use std::fs;
+use std::io::{self, Read};
 use std::path::{Path, PathBuf};
+use std::process;
 
 const MARKER: &str = "TEMPLATE INSTRUCTIONS";
 const OPEN: &str = "<!--";
 const CLOSE: &str = "-->";
-
-/// Directories never descended into. Mirrors the Ruby original.
-const SKIP_DIRS: [&str; 5] = [".git", "node_modules", ".venv", "target", "dist"];
 
 /// Remove every HTML comment whose body contains MARKER, then collapse runs of
 /// three or more newlines to two.
@@ -99,70 +100,81 @@ fn collapse_blank_runs(s: &str) -> String {
     out
 }
 
-fn process(path: &Path, changed: &mut usize) {
-    let bytes = match fs::read(path) {
-        Ok(b) => b,
-        Err(_) => return,
-    };
-    // Non-UTF-8 and unreadable files are skipped, never rewritten blind.
+fn process(path: &Path, changed: &mut usize) -> Result<(), String> {
+    let bytes = fs::read(path).map_err(|e| format!("{}: {}", path.display(), e))?;
+    // Non-UTF-8 files are skipped, never rewritten blind.
     let text = match String::from_utf8(bytes) {
         Ok(t) => t,
-        Err(_) => return,
+        Err(_) => return Ok(()),
     };
     if !text.contains(MARKER) {
-        return;
+        return Ok(());
     }
     let updated = strip_blocks(&text);
     if updated == text {
-        return;
+        return Ok(());
     }
-    if fs::write(path, updated).is_err() {
-        return;
-    }
+    fs::write(path, updated).map_err(|e| format!("{}: {}", path.display(), e))?;
     println!("  instruction block: stripped from {}", path.display());
     *changed += 1;
+    Ok(())
 }
 
-fn walk(root: &Path, changed: &mut usize) {
-    // Explicit stack rather than recursion: deep trees must not blow the stack.
-    let mut stack: Vec<PathBuf> = vec![root.to_path_buf()];
-    while let Some(dir) = stack.pop() {
-        let entries = match fs::read_dir(&dir) {
-            Ok(e) => e,
-            Err(_) => continue,
-        };
-        for entry in entries.flatten() {
-            let path = entry.path();
-            let ft = match entry.file_type() {
-                Ok(ft) => ft,
-                Err(_) => continue,
-            };
-            if ft.is_symlink() {
-                continue;
-            }
-            if ft.is_dir() {
-                let skip = path
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .map(|n| SKIP_DIRS.contains(&n))
-                    .unwrap_or(false);
-                if skip {
-                    continue;
-                }
-                stack.push(path);
-                continue;
-            }
-            if ft.is_file() {
-                process(&path, changed);
-            }
+/// The files to clean: every argument, where `-` reads one path per line
+/// from stdin. A directory is refused rather than walked. This tool used to
+/// walk its ROOT argument, and so entered git-ignored caches: minting
+/// metadatastician/lintel it edited the pinned sibling checkouts under
+/// _build/dependencies/, breaking their pins, and it stripped the fixture
+/// blocks of the template's own tests, which the mint's leftover check
+/// exempts. Which files belong to a repository is the caller's question
+/// (repo-init asks git: its mint_files), not a guess made here.
+fn targets(args: &[String]) -> Result<Vec<PathBuf>, String> {
+    let mut out = Vec::new();
+    for a in args {
+        if a == "-" {
+            let mut buf = String::new();
+            io::stdin()
+                .read_to_string(&mut buf)
+                .map_err(|e| format!("stdin: {}", e))?;
+            out.extend(buf.lines().filter(|l| !l.is_empty()).map(PathBuf::from));
+        } else {
+            out.push(PathBuf::from(a));
         }
     }
+    for p in &out {
+        if p.is_dir() {
+            return Err(format!(
+                "{} is a directory; pass files (e.g. `git ls-files | {} -`)",
+                p.display(),
+                "strip-instruction-blocks"
+            ));
+        }
+    }
+    Ok(out)
 }
 
 fn main() {
-    let root = env::args().nth(1).unwrap_or_else(|| ".".to_string());
+    let args: Vec<String> = env::args().skip(1).collect();
+    if args.is_empty() {
+        eprintln!("usage: strip-instruction-blocks FILE... | strip-instruction-blocks - < list");
+        process::exit(2);
+    }
+    let files = match targets(&args) {
+        Ok(f) => f,
+        Err(e) => {
+            eprintln!("strip-instruction-blocks: {}", e);
+            process::exit(2);
+        }
+    };
     let mut changed = 0usize;
-    walk(Path::new(&root), &mut changed);
+    for f in &files {
+        if let Err(e) = process(f, &mut changed) {
+            // Fail loudly: a file the caller named that cannot be read or
+            // written is not "clean", it is unchecked.
+            eprintln!("strip-instruction-blocks: {}", e);
+            process::exit(1);
+        }
+    }
     if changed > 0 {
         println!("  instruction blocks: {} file(s) cleaned", changed);
     } else {

@@ -56,12 +56,12 @@
 #   RUN zig build -Doptimize=ReleaseFast
 #   # Output: /build/zig-out/bin/sholes
 #
-# Base image: `:latest` is right for a template scaffold (Chainguard rebuilds
-# Wolfi daily). For PRODUCTION builds, pin by digest for reproducibility/supply-
-# chain integrity, e.g.:
-#   FROM cgr.dev/chainguard/wolfi-base:latest@sha256:<digest> AS builder
+# Base image: pinned by digest only, with no tag (SonarCloud rule docker:S8431
+# rejects a reference that carries both). A digest gives reproducibility and
+# supply-chain integrity; refresh it by resolving a new digest, e.g.:
+#   FROM cgr.dev/chainguard/wolfi-base@sha256:<digest> AS builder
 # (cerro-torre's .ctp signing in build/container/stapeln/ records the resolved digest.)
-FROM cgr.dev/chainguard/wolfi-base:latest AS builder
+FROM cgr.dev/chainguard/wolfi-base@sha256:1f6b749929164c3d9e7cad0289254f39b2ba51e1dddaeb0fa57532ea03f2db31 AS builder
 
 # TODO: Install your language toolchain
 RUN apk add --no-cache build-base
@@ -79,7 +79,7 @@ COPY . .
 # Minimal production image. Only the compiled binary/release and runtime
 # dependencies are included. No compilers, no source code, no build tools.
 #
-FROM cgr.dev/chainguard/wolfi-base:latest
+FROM cgr.dev/chainguard/wolfi-base@sha256:1f6b749929164c3d9e7cad0289254f39b2ba51e1dddaeb0fa57532ea03f2db31
 
 # OCI image labels (compatible with cerro-torre .ctp bundle metadata)
 LABEL org.opencontainers.image.title="sholes" \

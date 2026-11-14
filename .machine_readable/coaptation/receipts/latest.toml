@@ -10,9 +10,9 @@ band = "amber"
 proposed-action = "advisory — soft drift within bands (posture/intend). Open an advisory issue; no re-anchor."
 
 [coverage]
-clauses-total = 52
+clauses-total = 54
 descriptile-witnessed = 1
-probe-deferred-to-hunt = 26
+probe-deferred-to-hunt = 28
 must-trust-unmeasured-gaps = 0
 note = "Yard sees descriptile evidence only; probe-deferred obligations need a Hunt-tier run for a full hard-gate."
 
@@ -21,7 +21,7 @@ grade = "boolean_gate / boolean_gate_provenance"
 witnessed = 1
 refuted = 0
 unmeasured-gaps = 0
-probe-deferred = 26
+probe-deferred = 28
 gate = "pass"
 
 [reading.adjust]
@@ -53,6 +53,8 @@ intend.formal-verification = "wish:declared"
 intend.ecosystem-visualization = "wish:declared"
 must.license-present = "probe-deferred"
 must.readme-present = "probe-deferred"
+must.spdx-headers = "probe-deferred"
+must.toolchain-matches-language = "probe-deferred"
 must.security-policy = "probe-deferred"
 must.repo-deed = "probe-deferred"
 must.governance-docs = "probe-deferred"
@@ -98,5 +100,5 @@ bust.sync-drift-between-repos = "latent"
 bust.contractile-parse-error = "latent"
 
 [provenance]
-contractiles = "intend@feaaa58c4690 must@6a15dd3ccc3a trust@71566e6b64fc adjust@d7e4225fe5a8 dust@448489330834 bust@ea93d531c781"
-descriptiles = "deed@ab944221ee82 anchor@51194a4e21e8"
+contractiles = "intend@53c58b12670b must@a5104687b244 trust@1b3a747ddcb0 adjust@cfd661debafd dust@a3de1d6db05d bust@72320ddbc891"
+descriptiles = "deed@6860d7e13310 anchor@51194a4e21e8"

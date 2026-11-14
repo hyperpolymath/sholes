@@ -22,15 +22,25 @@ validate-rsr:
     ls *_chora.deed >/dev/null 2>&1 || MISSING="$MISSING repo-deed (*_chora.deed)"
     # .a2ml is retired: a repo carrying one is non-conformant, whatever else holds.
     bash scripts/check-no-a2ml.sh . >/dev/null || MISSING="$MISSING no-a2ml(run scripts/check-no-a2ml.sh)"
+    bash scripts/check-internal-links.sh . >/dev/null || MISSING="$MISSING internal-links(run scripts/check-internal-links.sh)"
     for f in docs/legal/EXHIBIT-A-ETHICAL-USE.txt docs/legal/EXHIBIT-B-QUANTUM-SAFE.txt LICENSES/MPL-2.0.txt; do
         [ -f "$f" ] || MISSING="$MISSING $f"
     done
-    if [ ! -d "src/interface/abi" ] && [ ! -d "src/interface/Abi" ]; then
-        MISSING="$MISSING src/interface/abi"
+    # The polyglot seam (Idris2 ABI over a Zig FFI) is INHERITED from the
+    # template's spine, not required of every repository: an archetype whose
+    # preset declares neither the abi nor the ffi capability prunes src/interface/
+    # at mint (ADR-0003, archetypes/<name>/prune.txt). A minted Rust CLI is not
+    # incomplete for lacking a seam it did not ask for. So: a tree that carries
+    # the seam must carry all of it; a tree that carries none of it is complete
+    # without it. Deleting one part of a present seam still fails.
+    if [ -d src/interface ]; then
+        if [ ! -d "src/interface/abi" ] && [ ! -d "src/interface/Abi" ]; then
+            MISSING="$MISSING src/interface/abi"
+        fi
+        for f in src/interface/ffi src/interface/generated; do
+            [ -d "$f" ] || MISSING="$MISSING $f"
+        done
     fi
-    for f in src/interface/ffi src/interface/generated; do
-        [ -d "$f" ] || MISSING="$MISSING $f"
-    done
     for f in docs/governance/MAINTENANCE-CHECKLIST.adoc docs/governance/SOFTWARE-DEVELOPMENT-APPROACH.adoc; do
         [ -f "$f" ] || MISSING="$MISSING $f"
     done
@@ -44,17 +54,47 @@ validate-rsr:
         want() {
             [ "$(field "$1" "$2")" = "$3" ] || MISSING="$MISSING $DEED:$1:$2"
         }
-        [ -n "$(field "" repo-uuid)" ] || MISSING="$MISSING $DEED:repo-uuid"
-        # CLADE-003/006 on the deed: a closed code set, and the code must agree
-        # with its name. UNASSIGNED fails on purpose: an unchosen clade must
-        # never be mistakable for a chosen one.
-        case "$(field clade primary)|$(field clade primary-name)" in
-            "fv|Formal Verification & Proofs"|"nl|Nextgen Languages"|"rm|Repo Management & Tooling"|\
-            "gv|Governance & Standards"|"db|Databases"|"ap|Applications"|"ix|Infrastructure & Cloud"|\
-            "dx|Developer Ecosystem"|"pt|Protocols & Interop"|"ax|AI & Neurosymbolic"|\
-            "gm|Games & Interactive"|"sc|Security") ;;
-            *) MISSING="$MISSING $DEED:clade(primary/primary-name unset or mismatched)" ;;
+        # Identity is the chora (standards A1, rulings R4, U1 to U4, V1): one
+        # :repo-uuid on the deed header, minted once from the repo's birth
+        # path and carried as the opaque literal #uuid"<lowercase RFC 9562>",
+        # version 5 or 8. The legacy name literals #u5"…" and #u8"…" are still
+        # read and are reported, not failed: their cutover date is the owner's.
+        RAW_UUID="$(sed -n -E 's/^[[:space:]]*:repo-uuid[[:space:]]+(#(uuid|u5|u8)"[^"]*").*/\1/p' "$DEED" | head -1)"
+        case "$RAW_UUID" in
+            '#uuid"'*)
+                printf '%s' "$RAW_UUID" | grep -Eq '^#uuid"[0-9a-f]{8}-[0-9a-f]{4}-[58][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"$' \
+                    || MISSING="$MISSING $DEED:repo-uuid(#uuid literal is not a lowercase v5/v8 RFC 9562 id)"
+                # A version 5 id is v5-identity (standards A1 C10, T30): a warning
+                # here, an error with RSR_STRICT=1. The chora id is version 8 (V8).
+                case "$RAW_UUID" in
+                    '#uuid"'????????-????-5*)
+                        if [ "${RSR_STRICT:-0}" = 1 ]; then
+                            MISSING="$MISSING $DEED:repo-uuid(v5-identity)"
+                        else
+                            echo "WARNING: v5-identity: $DEED :repo-uuid $RAW_UUID is a version 5 id; the chora id is #uuid\"<v8 id of the birth path>\" (standards A1 V8). RSR_STRICT=1 makes this an error."
+                        fi ;;
+                esac ;;
+            '#u5"'?*|'#u8"'?*)
+                echo "NOTE: $DEED :repo-uuid is the legacy literal $RAW_UUID; the chora id is #uuid\"<v8 id of the birth path>\" (standards A1, V1)." ;;
+            *) MISSING="$MISSING $DEED:repo-uuid" ;;
         esac
+        bash scripts/deed-field.sh --has "$DEED" identity || MISSING="$MISSING $DEED:(identity)"
+        [ -n "$(field identity primary-forge)" ] || MISSING="$MISSING $DEED:identity:primary-forge"
+        # Clade placements are identity facts, never the id and never an edict
+        # (standards A1 §11, ruling W10): no clause and no prefixed name are
+        # required. A clade that IS declared must still be one of the 12 and agree
+        # with its name, so a placement cannot point at the wrong shelf.
+        if bash scripts/deed-field.sh --has "$DEED" clade; then
+            case "$(field clade primary)|$(field clade primary-name)" in
+                "fv|Formal Verification & Proofs"|"nl|Nextgen Languages"|"rm|Repo Management & Tooling"|\
+                "gv|Governance & Standards"|"db|Databases"|"ap|Applications"|"ix|Infrastructure & Cloud"|\
+                "dx|Developer Ecosystem"|"pt|Protocols & Interop"|"ax|AI & Neurosymbolic"|\
+                "gm|Games & Interactive"|"sc|Security") ;;
+                "UNASSIGNED|UNASSIGNED"|"|")
+                    echo "NOTE: $DEED (clade …) names no clade; it is optional, so choose one or delete the clause." ;;
+                *) MISSING="$MISSING $DEED:clade(primary/primary-name not one of the 12, or they disagree)" ;;
+            esac
+        fi
         # CLADE-004/005: the lifecycle phase is a closed set.
         case "$(field status phase)" in
             reserved|incubating|active|dormant|merged|superseded|archived|extinct) ;;
@@ -65,7 +105,9 @@ validate-rsr:
             *) MISSING="$MISSING $DEED:maturity:level" ;;
         esac
         # The ecosystem clause names the repo the deed's header names.
-        [ "$(field ecosystem project)" = "$(field "" canonical-name)" ] \
+        # Both empty would compare equal; an identity must be present.
+        [ -n "$(field "" canonical-name)" ] \
+            && [ "$(field ecosystem project)" = "$(field "" canonical-name)" ] \
             || MISSING="$MISSING $DEED:ecosystem:project"
         want meta axis-1 "must > intend > like"
         want meta axis-2 "corrective > adaptive > perfective"
@@ -100,12 +142,17 @@ validate-state:
     if [ -n "$DEED" ] && bash scripts/deed-field.sh --has "$DEED" status; then
         phase=$(bash scripts/deed-field.sh "$DEED" status phase || true)
         level=$(bash scripts/deed-field.sh "$DEED" maturity level || true)
-        if [ -n "$phase" ] && [ -n "$level" ]; then
-            echo "$DEED: valid (phase $phase, maturity $level)"
-        else
-            echo "$DEED: INVALID (needs (status :phase …) and (maturity :level …))"
-            exit 1
-        fi
+        # The same closed sets validate-rsr enforces (CLADE-004/005): a
+        # misspelt phase or level is not a state.
+        case "$phase" in
+            reserved|incubating|active|dormant|merged|superseded|archived|extinct) ;;
+            *) echo "$DEED: INVALID (status :phase '$phase' is not one of reserved|incubating|active|dormant|merged|superseded|archived|extinct)"; exit 1 ;;
+        esac
+        case "$level" in
+            experimental|alpha|beta|production|lts) ;;
+            *) echo "$DEED: INVALID (maturity :level '$level' is not one of experimental|alpha|beta|production|lts)"; exit 1 ;;
+        esac
+        echo "$DEED: valid (phase $phase, maturity $level)"
     else
         echo "No repo state found: the repo deed has no (status …) clause"
         exit 1

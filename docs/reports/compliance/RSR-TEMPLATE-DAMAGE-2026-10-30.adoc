@@ -1,0 +1,486 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= Template damage: what rsr-template-repo shipped, why it survived, and what now stops it
+:toc:
+:toclevels: 3
+:date: 2026-10-30
+
+*Status*: remediation landed in this repository. Estate remediation is inventoried,
+not performed — see <<Remediation>>.
+
+== Summary
+
+`JuliaPackageSpitter.jl` was reported as a broken Julia package: a `mise.toml`
+declaring Python, Node, Go, Rust, Java, Bun and Cargo for a Julia library and no
+Julia; a `Containerfile` built from two floating `:latest` stages and otherwise
+consisting of TODO comments; `sholes` and a `tier` token sitting in
+committed files; an SPDX gate that passed without reading a single file; a
+`Justfile` whose `fmt`, `fmt-check` and `lint` recipes are `@echo` statements, so
+`just quality` printed "All quality checks passed!" having run only `Pkg.test()`.
+
+None of that was authored in that repository. It was authored here, and copied
+into every repository minted while it was true. Fixing it in the downstream
+repository fixes one repository; fixing it here is what stops the next mint.
+
+== The template, and how it was found
+
+[cols="1,3"]
+|===
+| Search | Result
+
+| `gh search repos rsr-template --owner hyperpolymath --json fullName,description`
+| `hyperpolymath/rsr-template-repo` — the only match. There is no separate
+  Julia template repository: `rsr-julia-library-template-repo` and its variants
+  return 404 (probed), so `JuliaPackageSpitter.jl` came from this template plus
+  the `julia-library` archetype.
+
+| `gh api -X GET search/code -f q='org:hyperpolymath "Juliapackage Reuse Audit"'`
+| 13 files. (`gh search code` has no `--owner` flag; the `gh api search/code`
+  form is the one that works.)
+|===
+
+Provenance of the specific files, from this repository's own history:
+
+* `mise.toml` — introduced at `05fc319a`, corrected here at `cf15de59`. The
+  correction reached this repository only. Repositories minted between those
+  dates have the nine-runtime file, and nothing ever went back for them.
+* `build/container/Containerfile` — introduced at `dbc4d67f`, corrected here at
+  `adb66f51`, with the same one-way reach.
+* Everything else (unfilled tokens, the `@echo` quality verbs, the vacuous SPDX
+  glob) was never corrected at all — it was still true in this tree when this
+  investigation started.
+
+== The defects, and why each survived
+
+=== 1. The SPDX gate could not fail on a non-Rust repository
+
+`Mustfile.a2ml`'s `spdx-headers` check globbed `*.rs`, `*.res` and `*.gleam` and
+capped the scan with `head -20`. In a Julia repository it matched zero files,
+counted zero missing headers, and printed PASS. In a Rust repository with more
+than 20 source files it graded the first 20.
+
+*A gate that examined nothing reported coverage.* It survived because it was
+green everywhere it was read.
+
+=== 2. `container-images-pinned` asked the wrong question
+
+The probe was `grep -q 'cgr.dev\|@sha256:' Containerfile`. Any `cgr.dev` image
+satisfied it, including `FROM cgr.dev/chainguard/wolfi-base:latest`, which is
+what the template shipped. The check asked "is an approved registry named" while
+reporting "images are pinned".
+
+=== 3. The mint never rendered the toolchain
+
+`mise.toml` was copied from the spine as-is. The spine's copy was one file for
+every language, so every minted repository got the union of them all. This
+repository eventually repaired its own copy by hand; the archetype never carried
+a Julia `mise.toml` at all, so mints kept producing the union.
+
+=== 4. Nothing checked that `mise.toml` matched the languages present
+
+The estate had no gate for "the toolchain this repository declares is the
+toolchain its languages need". Consequently the union file was not a red build
+anywhere, in any repository, for two months.
+
+=== 5. Tokens survived because the checker skipped the files they survived in
+
+The placeholder gate excludes `Justfile` and `*.just` (they contain just's own
+`{{...}}` interpolation), and the mint's token list is a fixed set. Between the
+two, `Justfile project := "sholes"`, `tier := "…"` (the `tier` brace token),
+`.envrc`, `.reuse/dep5`, `Containerfile`, `devcontainer.json` and
+`.devcontainer/Containerfile` kept their braces all the way into commits.
+
+Downstream, `JuliaPackageSpitter.jl` still carries *75* unfilled
+token references; the 111-repository survey below found them in 105 of 111.
+
+=== 6. `just quality` echoed over verbs that ran nothing
+
+The provisioning engine prints `info  fmt-check: N/A for julia (archetype:
+library) — nothing to run…` and exits 0. That is honest. The `quality` recipe
+then printed `All quality checks passed!`. A repo with no formatter, no linter
+and no formatter-check reported "all quality checks passed".
+
+=== 7. The archetype could not remove what the preset does not declare
+
+The spine is polyglot on purpose, and an overlay can add files but not subtract
+them. A Julia library that ships no image therefore inherited
+`build/container/Containerfile` and failed `container-images-pinned` — or, before
+this PR, passed it vacuously.
+
+== What changed here
+
+[cols="2,3"]
+|===
+| File | Change
+
+| `scripts/check-spdx-headers.sh` | New. Derives the extension set from the
+  languages the repository declares (via `provision-lib.sh langs`), scans every
+  matched file with no cap, and fails when a declared language has no files or
+  when it matched nothing at all. Names banned-language source it finds.
+
+| `scripts/check-mise-language.sh` | New. Reads the languages and expected tools
+  from the provisioning engine, then requires that every declared tool is needed
+  and every needed tool is declared. Banned tools are findings wherever they
+  appear. `--detect` audits repositories minted before the engine shipped with
+  them.
+
+| `scripts/check-container-pins.sh` | New. Every `FROM` must carry a 64-hex
+  `@sha256:` digest or be `scratch`/a stage name. A pin behind `ARG` is a
+  finding, because the digest is then decided at build time.
+
+| `scripts/check-mint-tokens.sh` | New. Reads the answerable tokens *out of the
+  mint recipe* (not a copy) and fails on any brace token that is not in it.
+  Lowercase tokens included. In a minted tree with no recipe, every brace token
+  is a leak.
+
+| `scripts/render-mise.sh` | New, and now a mint step. Renders `mise.toml` from
+  the detected languages plus the recipe tools. Idempotent; `--check` reports
+  drift.
+
+| `scripts/pin-container-digests.sh` | New. Rewrites `FROM` lines to digest
+  pins. Refuses to run with a placeholder or malformed digest.
+
+| `build/container/Containerfile` | **Deleted.** It had two `FROM …:latest`
+  lines and a body of TODO comments — it could not build, and it failed
+  `container-images-pinned` in every repository that carried it, including the
+  ones that publish no image. Pinning it was not possible from here (no registry
+  access) and would have left a file that still builds nothing. "Pinned or not
+  at all" resolves to *not at all*: a repository that publishes an image adds
+  the file and pins it. `build/container/README.adoc` and `just container-build`
+  say so, and `just container-build` now explains this instead of exiting with
+  "No Containerfile found".
+
+| `scripts/prune-archetype-modules.sh` | New, and now a mint step. Deletes the
+  paths an archetype's `prune.txt` lists, refusing to continue on a path that
+  does not exist.
+
+| `scripts/survey-template-damage.sh` | New. Runs these gates against real
+  repositories (shallow clone each) to inventory the damage.
+
+| `build/just/repo-init.just` | Token gate before the first write; overlay files
+  recorded so only *their* `.in` names are resolved; prune step;
+  `render-mise.sh`; hard gate loop before handoff.
+
+| `archetypes/julia-library/` | `overlay/scripts/julia-quality.jl` (fmt,
+  fmt-check, lint in a private tools env — Aqua and JuliaFormatter must not enter
+  the package's own `[deps]`, where Aqua's own `deps_compat` check would fail
+  them), the `provisioning_praxis.deed` overrides that point the verbs at it, and
+  `prune.txt` removing `build/container/`.
+
+| `archetypes/rust-cli/` | New archetype: `rust-cli_praxis.deed`,
+  `Cargo.toml.in`, `src/{lib,main}.rs.in`, `tests/cli.rs.in`, `prune.txt`.
+
+| `Justfile` | `quality` runs the verbs, fails on a non-zero exit, and fails when
+  a verb reports `N/A for` every detected language. N/A is not a pass.
+
+| `.machine_readable/contractiles/must/must.k9.ncl` | `spdx-headers` now runs the
+  script instead of globbing three extensions; new `toolchain-matches-language`
+  invariant.
+
+| `.machine_readable/contractiles/trust/trust.k9.ncl` | `container-images-pinned`
+  now runs the script; severity raised to `critical`.
+
+| `scripts/validate-template.sh` | Phase 6 delegates to `check-spdx-headers.sh`;
+  the dead fixed-glob implementation is removed.
+
+| `scripts/check-no-placeholders.sh` | Fixed a silent failure: a repository with
+  no `origin` remote (a fresh `git init`, exactly what a mint produces before the
+  first push) made `git config` exit 1, which under `set -e` + `pipefail` killed
+  the gate with exit 1 and no output.
+
+| `.github/workflows/quality.yml` | New `mint-gates` job: the four gates plus
+  both test suites. No new action — `actions/checkout` at its existing pin.
+
+| `LICENSE` | Added — the MPL-2.0 text, identical to `LICENSES/MPL-2.0.txt`.
+  There was no file named `LICENSE`, so `validate-template.sh` failed Phase 1,
+  the Mustfile's `license-present` failed, and every minted repository's
+  `link:LICENSE[LICENSE]` was a dead link. (REUSE keeps `LICENSES/` authoritative;
+  the root copy exists because forges and readers look for it.)
+
+| `scripts/validate-template.sh` | Two more repairs: `SCRIPT_DIR` was referenced
+  but never set, so `set -u` aborted the run at Phase 6 and the last two phases
+  never ran; and the required-file check demanded `CONTRIBUTING.md` in a
+  repository whose `CONTRIBUTING.adoc` has been there all along.
+
+| `.machine_readable/ai/PLACEHOLDERS.adoc` | The Project Identity section now
+  separates the human name, the compiler identifier (upper and lower) and the
+  forge slug, and says they are four tokens filled from four answers.
+|===
+
+== Proof that the gates can fail
+
+`tests/workflows/mint_gates_test.sh` — 30 controls, each pair a positive and a
+negative fixture:
+
+----
+$ bash tests/workflows/mint_gates_test.sh
+── SPDX (language-derived) ────────────────────────────────
+  PASS  SPDX passes on the template tree
+  PASS  SPDX fails on a Julia file with no header
+  PASS  SPDX fails when a declared language has no files
+  PASS  SPDX fails when it matches zero files
+  PASS  SPDX fails on banned-language source (.py)
+  PASS  SPDX passes on a well-formed Julia fixture
+── Container image pins ───────────────────────────────────
+  PASS  pin gate fails on a floating :latest
+  PASS  pin gate fails on a tag without a digest
+  PASS  pin gate passes on a digest-pinned image
+  PASS  pin gate fails when the pin lives in a build argument
+  PASS  pin gate fails on a truncated digest
+  PASS  pin gate allows a stage name and scratch
+  PASS  pin gate fails on a Dockerfile
+  PASS  pin gate passes when no Containerfile ships
+  PASS  pinner refuses without a digest
+  PASS  pinner rewrites both FROM lines
+  PASS  pin gate passes after the pinner ran
+  PASS  pinner removed the floating tag
+── mise.toml matches the declared languages ───────────────
+  PASS  mise gate passes when the toolchain matches
+  PASS  mise gate fails on a banned tool
+  PASS  mise gate fails when the language tool is missing
+  PASS  mise gate fails on a tool no language needs
+  PASS  mise gate fails on an empty [tools] table
+  PASS  mise gate fails when mise.toml is missing
+  PASS  mise gate passes on the template tree
+── Mint tokens ────────────────────────────────────────────
+  PASS  token gate passes on the template
+  PASS  token gate ignores just's own interpolation
+  PASS  token gate fails on a token with no answer
+── Archetype prune ────────────────────────────────────────
+  PASS  prune script runs
+  PASS  prune removed the listed path
+mint gates: 30/30 controls hold
+----
+
+Two of these controls exist because the gates themselves were written badly the
+first time and the tests caught it:
+
+* `check-spdx-headers.sh` read `git ls-files` paths relative to `--root` as if
+  they were relative to the caller's directory. On a fixture that shared a path
+  with the template it graded *the template's file*. Found when the Julia
+  scaffold reported four files missing that plainly carried headers.
+* `check-mint-tokens.sh` piped answers into `grep -q`. `grep -q` exits on its
+  first match, the writer takes SIGPIPE, `pipefail` reports 141, and a *match*
+  became a non-match — a different one or two tokens reported unanswerable on
+  every run of an unchanged tree. Here-strings now.
+
+== A Julia package and a Rust CLI, minted and gated
+
+`tests/e2e/language_profiles_mint_test.sh` builds both from this tree and the
+archetypes, using the recipe's own overlay/prune/rename ordering and its own
+answer list, then runs the gates:
+
+----
+$ bash tests/e2e/language_profiles_mint_test.sh
+── Julia scaffold ─────────────────────────────────────────
+  PASS  Julia: Project.toml has its final name
+  PASS  Julia: package name rendered from the archetype token
+  PASS  Julia: module file named after the package
+  PASS  Julia: build/container/ pruned (no unpinnable Containerfile ships)
+  PASS  Julia: mise declares julia
+  PASS  Julia: mise declares no banned or foreign tool
+  PASS  Julia: quality verbs wired (scripts/julia-quality.jl)
+  PASS  Julia: fmt/fmt-check/lint overrides shipped in the provisioning deed
+── Rust scaffold ──────────────────────────────────────────
+  PASS  Rust: Cargo.toml has its final name
+  PASS  Rust: sources rendered from the overlay's .in files
+  PASS  Rust: crate name is the repo slug
+  PASS  Rust: mise declares rust
+  PASS  Rust: mise declares no banned tool
+  PASS  Rust: build/container/ pruned
+── Gates on both scaffolds ────────────────────────────────
+  PASS  DemoPackage.jl: SPDX gate passes
+  PASS  DemoPackage.jl: mise/language gate passes
+  PASS  DemoPackage.jl: container pin gate passes
+  PASS  DemoPackage.jl: no unanswered token survives the mint
+  PASS  DemoPackage.jl: placeholder gate passes
+  PASS  demo-rust: SPDX gate passes
+  PASS  demo-rust: mise/language gate passes
+  PASS  demo-rust: container pin gate passes
+  PASS  demo-rust: no unanswered token survives the mint
+  PASS  demo-rust: placeholder gate passes
+── Replay the downstream damage ───────────────────────────
+  PASS  damage replay: the nine-runtime mise.toml is caught
+  PASS  damage replay: a floating Containerfile is caught
+  PASS  damage replay: an unanswered token is caught
+language profiles: 27/27 controls hold
+----
+
+The Julia scaffold's rendered `mise.toml` declares `julia` and `just`, nothing
+else. The Rust scaffold's declares `rust` and `just`. Neither declares Python,
+Node, Go, Java, Cargo-for-Julia or Julia-for-Rust, and each is generated from the
+languages the tree carries rather than from a list in a template.
+
+== The estate
+
+=== Method
+
+`scripts/survey-template-damage.sh` shallow-clones each repository and runs these
+four gates against the clone — the same code a minted repository will run, not a
+grep. Reproducible:
+
+----
+gh api -X GET search/code -f q='org:hyperpolymath "sholes"' \
+  --jq '[.items[].repository.full_name] | unique | .[]'
+scripts/survey-template-damage.sh --tsv owner/name owner/name …
+----
+
+Code search totals for the whole organisation, at the time of writing (each is a
+separate query, so the populations overlap and none is a subset of another):
+
+[cols="1,1,3"]
+|===
+| Query | Files | What it establishes
+
+| `org:hyperpolymath "sholes"` | 1536 | Unfilled tokens are not one
+  repository's accident.
+| `org:hyperpolymath filename:mise.toml python` | 175 | 175 `mise.toml` files
+  mention Python. Python is banned estate-wide.
+| `org:hyperpolymath filename:Containerfile ":latest"` | 421 | 421 `Containerfile`
+  files carry a floating tag somewhere.
+| `org:hyperpolymath filename:Justfile "sholes"` | 33 | The mint's
+  own skipped-file class, in 33 `Justfile`s.
+|===
+
+=== What the survey found
+
+111 repositories surveyed (the union of the queries above). Result per gate:
+
+[cols="2,1,3"]
+|===
+| Gate | Repositories failing | Reading
+
+| Unfilled tokens | 105 / 111 | The mint left braces in committed files.
+| Banned tool declared in `mise.toml` | 84 / 111 | Includes every
+  `.jl` repository in the set.
+| SPDX headers incomplete | 78 / 111 | The gate that shipped could not
+  have reported this.
+| Floating container base image | 68 / 111 | `cgr.dev/chainguard`:latest.
+| *All four* | 55 / 111 | The full template signature.
+| Clean | 0 / 111 | —
+|===
+
+The 55 repositories carrying all four, in full:
+
+* `InvestigativeJournalism.jl`
+* `JuliaKids.jl`
+* `JuliaPackageSpitter.jl`
+* `aerie`
+* `alloyiser`
+* `boinc-boinc`
+* `bunsenite`
+* `cafescripto`
+* `cicd-squabbler`
+* `cloud-sync-tuner`
+* `conative-gating`
+* `conflow`
+* `cookie-rebound`
+* `dafniser`
+* `deed-core`
+* `deed-ecosystem`
+* `developer-ecosystem`
+* `echidna`
+* `excel-economic-numbers-tool`
+* `filesoup`
+* `formatrix-docs`
+* `fraying-model-computational-testbed`
+* `gnpl`
+* `gv-clade-index`
+* `http-capability-gateway`
+* `ideas-to-alphas`
+* `idrisiser`
+* `iseriser`
+* `jtv-lang`
+* `julia-ecosystem`
+* `k9-ecosystem`
+* `kitchenspeak`
+* `lithoglyph`
+* `lucidscript`
+* `lustreiser`
+* `natsci-studio`
+* `nesy-solver`
+* `otpiser`
+* `panll`
+* `patallm-gallery`
+* `patch-bridge`
+* `polyglot-i18n`
+* `proof-burrower`
+* `proven-tests-and-benches`
+* `pseudoscript`
+* `rattlescript`
+* `scaffoldia`
+* `session-sentinel`
+* `snifs`
+* `somethings-fishy`
+* `squeakwell`
+* `trigger`
+* `ubicity`
+* `vocarium`
+* `wokelang`
+
+These are the repositories where the four defects coexist, which is the
+signature of a single mint from the damaged template. The remaining 56
+have one or more of them, usually the token leak alone.
+
+Examples of individual rows, verbatim from the survey:
+
+----
+JuliaPackageSpitter.jl  mise:  banned tool(s) declared: black go isort java jest make node npm pip
+                               prettier pytest python ruff vitest yarn
+                        spdx:  SPDX headers: 26/27 files carry a header
+                        pins:  Containerfile: floating base image 'cgr.dev/chainguard/wolfi-base:latest'
+                        tokens: 75 unfilled token(s) in a tree that has no generator left
+----
+
+== Remediation
+
+The template is fixed here; the 111 repositories are not. Each needs a
+per-repository change, and the shape of it is now mechanical:
+
+. Copy `scripts/render-mise.sh` and `build/just/provision-lib.sh` into the repository from the same revision of `hyperpolymath/rsr-template-repo`. Older mints do not contain `scripts/render-mise.sh`, and the renderer exits with an error when `build/just/provision-lib.sh` is missing.
+. Re-render the toolchain: `scripts/render-mise.sh --root .` in the repository,
+   then delete the `[alias]` block (it routes `build`/`test`/`lint` to
+   cargo/npm/go/ruff/prettier/black, which is how a Julia package came to have a
+   `lint` that ran `ruff`).
+. Pin or delete the `Containerfile`. A repository that builds no image should not
+   ship one; `scripts/pin-container-digests.sh` is for the ones that do.
+. Fill the tokens from `PLACEHOLDERS.adoc`, or delete the lines that need them.
+   `scripts/check-mint-tokens.sh` lists every one.
+. Add the SPDX headers `scripts/check-spdx-headers.sh` names.
+. Replace the `@echo` `fmt`/`fmt-check`/`lint` recipes with real ones — for a
+   Julia package, `archetypes/julia-library/overlay/scripts/julia-quality.jl` is
+   the file to copy.
+
+That is a migration, not a merge request, and it is deliberately not attempted
+here: a template PR that also rewrites 111 repositories is a PR nobody can
+review.
+
+== What this PR does not prove
+
+* `just repo-init` was not run end to end. The recipe needs `rustc` (its mint
+  tooling is single-file Rust compiled on demand), `nickel` (the arrival pack)
+  and `uuidgen`; this environment has none of the three and installing them from
+  the package indexes available would have meant an installer outside the
+  estate's provenance. What was verified instead: the recipe body parses as bash
+  (`just --show repo-init | bash -n`), and `tests/e2e/language_profiles_mint_test.sh`
+  reproduces its overlay → prune → substitute → rename → render ordering and runs
+  the gates on the result. The remaining risk is in the parts of the recipe this
+  test does not touch, and the CI job that runs the real mint
+  (`tests/e2e/use_template_mint_test.sh`) is the place that closes it.
+* The contractile probes changed here (`must.k9.ncl`, `trust.k9.ncl`) were not
+  executed: they need `nickel`/`contractile`. The scripts they now call are
+  tested; the plumbing from the contractile to the script is not.
+* Nothing was pushed to any of the 111 repositories, and no issue was opened
+  against them.
+
+== Reproducing this report
+
+----
+bash scripts/check-spdx-headers.sh              # the template: 174/174
+bash scripts/check-mise-language.sh             # the template: consistent
+bash scripts/check-container-pins.sh            # the template: pass
+bash scripts/check-mint-tokens.sh               # 51 answered, none leaked
+bash tests/workflows/mint_gates_test.sh         # 30/30
+bash tests/e2e/language_profiles_mint_test.sh   # 27/27
+bash scripts/survey-template-damage.sh --tsv owner/name …
+----

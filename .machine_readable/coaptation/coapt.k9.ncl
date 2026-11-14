@@ -13,6 +13,7 @@ K9!
 {
   pedigree = {
     schema_version = "1.0.0",
+    component_type = "drift-check:coaptation-receipt",
     contractile_verb = "trust",   # provenance: the reading must equal its sources
     semantics = "coaptation-fidelity",
     security = {
@@ -20,7 +21,7 @@ K9!
       trust_level = "read-only comparison",
       allow_network = false,
       allow_filesystem_write = false,
-      allow_subprocess = true,    # runs the extractors + nickel to reproduce the reading
+      allow_subprocess = false,   # verify.sh runs the extractors + nickel; this record does not
     },
     metadata = {
       name = "coaptation",

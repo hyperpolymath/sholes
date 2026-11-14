@@ -6,7 +6,7 @@ on:
     paths:
       - 'build/container/**'
       - 'build/just/container.just'
-      - '.github/workflows/container-build.yml'
+      - '.github/workflows/docker-build.yml'
   push:
     tags: ['v*']
   workflow_dispatch:
@@ -32,6 +32,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Tooling check
         run: |
@@ -46,9 +48,11 @@ jobs:
         run: just container-verify
 
       - name: Scan image (trivy, best-effort)
+        env:
+          REPO_NAME: ${{ github.event.repository.name }}
         run: |
           if command -v trivy >/dev/null 2>&1; then
-            trivy image --severity HIGH,CRITICAL --exit-code 0 "${{ github.event.repository.name }}:latest" || true
+            trivy image --severity HIGH,CRITICAL --exit-code 0 "${REPO_NAME}:latest" || true
           else
             echo "trivy not installed on this runner — skipping image scan"
           fi

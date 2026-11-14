@@ -22,7 +22,9 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Check file permissions
         run: |
           find . -type f -perm /111 -name "*.sh" | head -10 || true
@@ -56,15 +58,49 @@ jobs:
         run: |
           find . -type f -size +1M -not -path "./.git/*" | head -10 || echo "No large files"
       - name: EditorConfig check
-        uses: editorconfig-checker/action-editorconfig-checker@v3.0.0
+        uses: editorconfig-checker/action-editorconfig-checker@51f63319f592f97930c73d9c46184d20bd206393 # v3.0.0
         continue-on-error: true
+  # The gates this template ships, and the proof that each one can fail.
+  #
+  # Nothing else in this workflow runs them: `just quality` is deliberately not
+  # wired here, because it needs the repository's own toolchain (zig for this
+  # tree) and a CI job that installs a toolchain to run a check is a job that
+  # gets skipped when the toolchain moves. These four gates need bash and git.
+  #
+  # tests/workflows/mint_gates_test.sh is the part that matters: it asserts that
+  # every gate above FAILS on a fixture built to fail it. A gate whose only
+  # exercised path is the passing one is the fake-gate class this estate hunts,
+  # and it cannot be caught by reading the gate.
+  mint-gates:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Gates
+        run: |
+          fail=0
+          for g in check-mint-tokens check-spdx-headers check-mise-language check-container-pins; do
+            echo "── ${g} ──"
+            bash "scripts/${g}.sh" || fail=1
+          done
+          exit "$fail"
+      - name: Every gate must fail on a fixture
+        run: bash tests/workflows/mint_gates_test.sh
+      - name: Language profiles (Julia and Rust scaffolds)
+        run: bash tests/e2e/language_profiles_mint_test.sh
   docs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Check documentation
         run: |
           MISSING=""

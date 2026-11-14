@@ -10,6 +10,30 @@
 set -euo pipefail
 repo=$(git rev-parse --show-toplevel)
 cd "$repo"
+# A legacy minted repository (minted before #275 recorded (mint-answers), so
+# it has no build/templates/identity.deed.in and no answers to replay) cannot
+# be minted again: repo-init refuses before it asks or writes anything (#277).
+# The rest of this test needs a mintable tree, so in such a child it checks
+# that refusal, by name, and stops. It does not skip silently: a legacy child
+# that could be minted again would fail here.
+legacy_deed="$(bash "$repo/scripts/deed-field.sh" --find "$repo" 2>/dev/null || true)"
+if [ ! -f "$repo/build/templates/identity.deed.in" ] \
+   && ! { [ -n "$legacy_deed" ] && bash "$repo/scripts/deed-field.sh" --has "$legacy_deed" mint-answers; }; then
+    legacy_cfg=$(mktemp -d)
+    if legacy_out=$(cd "$repo" && env -i PATH="$PATH" HOME="$legacy_cfg" XDG_CONFIG_HOME="$legacy_cfg" \
+        RSR_NON_INTERACTIVE=1 PROJECT_NAME="Mint Check" REPO=mint-check OWNER=example-owner \
+        AUTHOR="Example Author" AUTHOR_EMAIL=author@example.org CONFIRM=n \
+        timeout 120 just repo-init </dev/null 2>&1); then
+        rm -rf "$legacy_cfg"
+        echo "$legacy_out" >&2
+        echo "FAIL: a legacy minted tree (no (mint-answers)) was allowed to mint again" >&2; exit 1
+    fi
+    rm -rf "$legacy_cfg"
+    grep -q 'cannot be minted again' <<<"$legacy_out" \
+        || { echo "$legacy_out" >&2; echo "FAIL: the legacy minted tree was refused for the wrong reason" >&2; exit 1; }
+    echo "PASS: a legacy minted tree refuses to mint again, by name; the mint checks below need a mintable tree"
+    exit 0
+fi
 recipe=build/just/repo-init.just
 cfg=$(mktemp -d); trap 'rm -rf "$cfg"' EXIT
 before=$(git status --porcelain --untracked-files=all)
@@ -32,6 +56,23 @@ if out=$(env -i PATH="$PATH" HOME="$cfg" XDG_CONFIG_HOME="$cfg" RSR_NON_INTERACT
 fi
 grep -q 'Error: project name required' <<<"$out" || { echo "$out" >&2; echo "FAIL: missing PROJECT_NAME did not fail by name" >&2; exit 1; }
 if grep -q 'unbound variable' <<<"$out"; then echo "$out" >&2; echo "FAIL: unbound variable" >&2; exit 1; fi
+# 3b. RSR_MINT_DATE is validated in bash, without GNU `date -d` (macOS has no
+#     such option and rejected every date): real dates reach "Proceed?",
+#     impossible ones are refused by name.
+date_mint() {
+    env -i PATH="$PATH" HOME="$cfg" XDG_CONFIG_HOME="$cfg" RSR_NON_INTERACTIVE=1 RSR_MINT_DATE="$1" \
+        PROJECT_NAME="Mint Check" REPO=mint-check OWNER=example-owner \
+        AUTHOR="Example Author" AUTHOR_EMAIL=author@example.org CONFIRM=n \
+        timeout 120 just repo-init </dev/null 2>&1
+}
+for d in 2024-02-29 2026-12-31 2000-02-29; do
+    out=$(date_mint "$d") && grep -q '^Aborted\.$' <<<"$out" \
+        || { echo "$out" >&2; echo "FAIL: the real date $d was refused" >&2; exit 1; }
+done
+for d in 2025-02-29 2026-04-31 2026-13-01 2026-00-10 1900-02-29 26-01-01; do
+    if out=$(date_mint "$d"); then echo "FAIL: the impossible date $d was accepted" >&2; exit 1; fi
+    grep -q 'RSR_MINT_DATE must be a real date' <<<"$out" || { echo "$out" >&2; echo "FAIL: $d refused for the wrong reason" >&2; exit 1; }
+done
 # 4. Nothing was written (compared with the tree as this test found it).
 [ "$(git status --porcelain --untracked-files=all)" = "$before" ] || { git status --short >&2; echo "FAIL: the declined mint modified the tree" >&2; exit 1; }
 echo 'PASS: non-interactive prompts resolve from the environment; missing answers fail by name; no read() shim'

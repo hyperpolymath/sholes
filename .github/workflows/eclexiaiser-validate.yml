@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Check and validate eclexiaiser manifest
         id: eclex
@@ -52,8 +54,10 @@ jobs:
           echo "Valid: eclexiaiser.toml structure present (${fns} function block(s))"
 
       - name: "Write summary"
+        env:
+          HAS_MANIFEST: ${{ steps.eclex.outputs.has_manifest }}
         run: |
-          if [ "${{ steps.eclex.outputs.has_manifest }}" = "true" ]; then
+          if [ "$HAS_MANIFEST" = "true" ]; then
             echo "## Eclexiaiser Manifest" >> "$GITHUB_STEP_SUMMARY"
             echo "" >> "$GITHUB_STEP_SUMMARY"
             echo ":white_check_mark: **eclexiaiser.toml** present and valid." >> "$GITHUB_STEP_SUMMARY"

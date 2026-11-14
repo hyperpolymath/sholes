@@ -1,0 +1,2 @@
+SPDX-License-Identifier: MPL-2.0 AND CC-BY-SA-4.0
+Code: MPL-2.0. Prose: CC-BY-SA-4.0.

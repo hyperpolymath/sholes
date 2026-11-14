@@ -225,7 +225,9 @@
         (directory :id "automation-unit-forge" :ply 3 :path ".machine_readable/scripts/forge" :description "Internal automation logic for project forge.")
         (directory :id "automation-unit-lifecycle" :ply 3 :path ".machine_readable/scripts/lifecycle" :description "Internal automation logic for project lifecycle.")
         (directory :id "automation-unit-verification" :ply 3 :path ".machine_readable/scripts/verification" :description "Internal automation logic for project verification.")))
-    (directory :id "container-templates" :ply 1 :path "build/container" :version "1.0.0" :description "Container templates for the stapeln container ecosystem. This directory\nprovides Podman-Chainguard-stapeln templates that are customised via\n`just container-init` or `just repo-init` during project bootstrap.\n\nAll files use {{PLACEHOLDER}} tokens that are substituted with project-\nspecific values during initialisation." :purpose "Provide a complete, security-first container deployment story for any\nRSR-compliant repository. The templates cover the full lifecycle:\nbuild, sign, verify, deploy, monitor, and govern." :overview "The stapeln container ecosystem comprises six tools:\n\nselur       — Container orchestration with zero-copy IPC. Reads compose.toml.\ncerro-torre — Verified container packaging (.ctp bundles), Ed25519 signing.\nsvalinn     — Policy-driven edge gateway (auth, rate limits, CORS, trust).\nvordr       — Runtime monitoring (health, crashes, resources, logs).\nrokur       — Secrets management (runtime injection, no baked secrets).\nk9-svc      — Nickel deployment components (Kennel/Yard/Hunt trust levels)."
+    (directory :id "container-templates" :ply 1 :path "build/container" :version "1.0.0" :description "Container templates for the stapeln container ecosystem. This directory\nprovides Podman-Chainguard-stapeln templates that are customised via\n`just container-init` or `just repo-init` during project bootstrap.\n\nAll files use {{PLACEHOLDER}} tokens that are substituted with project-\nspecific values during initialisation."
+      :purpose "Provide a complete, security-first container deployment story for any\nRSR-compliant repository. The templates cover the full lifecycle:\nbuild, sign, verify, deploy, monitor, and govern."
+      :overview "The stapeln container ecosystem comprises six tools:\n\nselur       — Container orchestration with zero-copy IPC. Reads compose.toml.\ncerro-torre — Verified container packaging (.ctp bundles), Ed25519 signing.\nsvalinn     — Policy-driven edge gateway (auth, rate limits, CORS, trust).\nvordr       — Runtime monitoring (health, crashes, resources, logs).\nrokur       — Secrets management (runtime injection, no baked secrets).\nk9-svc      — Nickel deployment components (Kennel/Yard/Hunt trust levels)."
       :context ("https://stapeln.dev/ns/v1")
       (canonical-locations :build_pipeline "build/container/stapeln/ct-build.sh" :compose "build/container/stapeln/compose.toml" :compose_example "build/container/stapeln/compose.example.toml" :compose_portable "build/container/compose.yaml" :compose_portable_example "build/container/compose.example.yaml" :containerfile "build/container/Containerfile" :containerignore "build/container/.containerignore" :deployment "build/container/stapeln/deploy.k9.ncl" :entrypoint "build/container/entrypoint.sh" :gatekeeper "build/container/stapeln/.gatekeeper.yaml" :just_module "build/just/container.just" :manifest "build/container/stapeln/manifest.toml" :monitoring "build/container/stapeln/vordr.toml" :secrets_gate "build/container/stapeln/rokur.toml")
       :invariants ("Base images MUST be cgr.dev/chainguard/wolfi-base or cgr.dev/chainguard/static" "Container runtime is Podman — never Docker" "Containerfile — never Dockerfile" "All images run as non-root (appuser or project-specific user)" ".ctp bundles are signed with Ed25519 via cerro-torre" "Health endpoints (/health, /ready) must always be public (no auth)")
@@ -1066,7 +1068,7 @@
     :last-updated "2026-11-12"
     :parent "hyperpolymath/rsr-template-repo"
     ; template tip at mint
-    :parent-pin "8c7baf794b8abb34c08f85b4446396f00342a364"
+    :parent-pin "f63b9658c9acdac2dad907c21cb2e35c6c20bdf7"
     :role "minted-repo"
     :stack "unspecified"
     :direction "generated-from-core"
@@ -1083,8 +1085,8 @@
     :minted-at "2026-11-12"
     :template-repo "hyperpolymath/rsr-template-repo"
     :template-branch "main"
-    :template-commit "8c7baf794b8abb34c08f85b4446396f00342a364"
-    :template-tree "7e5f626e08ae43ee44dc079dabf9be314d543188"
+    :template-commit "f63b9658c9acdac2dad907c21cb2e35c6c20bdf7"
+    :template-tree "b342c456368c77c535cbe11a87f3249fadc21a10"
     ; Contract: branches this repo is EXPECTED to carry beyond the default.
     ; Empty means default-only. A mint must never inherit template work
     ; branches (coderabbit/, chore/, bot-task or stale branches) — that is

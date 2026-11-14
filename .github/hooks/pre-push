@@ -6,9 +6,10 @@
 #
 # Runs the SAME DEED + K9 validators the CI Dogfood Gate runs, but here on
 # your machine before the push leaves, so format drift is caught in seconds
-# instead of surfacing as red CI minutes later. The vendored validators in
-# this directory are byte-identical to the pinned CI action scripts and are
-# refreshed by the estate `refresh-githooks` sweep.
+# instead of surfacing as red CI minutes later. The two scripts here are thin
+# wrappers over the canonical linter and validator in a hyperpolymath/standards
+# checkout (STANDARDS_DIR, default ../standards); without one they skip with a
+# notice and the CI lanes remain the gate.
 #
 # Enable once per clone:
 #     git config core.hooksPath .github/hooks

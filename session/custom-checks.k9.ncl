@@ -5,6 +5,7 @@ K9!
 {
   pedigree = {
     schema_version = "1.0.0",
+    component_type = "session:custom-checks",
     metadata = {
       name = "custom-session-checks",
       version = "0.1.0",

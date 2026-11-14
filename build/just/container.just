@@ -46,6 +46,10 @@ container-init:
         exit 1
     fi
 
+    # The configs are reformatted after their tokens are filled, which needs a
+    # KYAML-capable yq: check before anything is written.
+    bash scripts/format-container-kyaml.sh --preflight
+
     echo "=== Container Template Initialisation ==="
     echo ""
 
@@ -65,8 +69,11 @@ container-init:
     read -rp "Primary port [8080]: " _PORT
     PORT="${_PORT:-8080}"
 
-    read -rp "Container registry [ghcr.io/${OWNER:-{{OWNER}}}]: " _REGISTRY
-    REGISTRY="${_REGISTRY:-ghcr.io/${OWNER:-{{OWNER}}}}"
+    # Image paths are lower case; an owner login may not be.
+    _OWNER="${OWNER:-{{OWNER}}}"; _OWNER="${_OWNER,,}"
+    read -rp "Container registry [ghcr.io/${_OWNER}]: " _REGISTRY
+    REGISTRY="${_REGISTRY:-ghcr.io/${_OWNER}}"
+    bash scripts/format-container-kyaml.sh --check-values "$SERVICE_NAME" "$PORT" "$REGISTRY"
 
     echo ""
     echo "  Service:  $SERVICE_NAME"
@@ -89,17 +96,53 @@ container-init:
         -e "s|${LB}REGISTRY${RB}|${REGISTRY}|g"
     )
 
+    # Return success when $1 is classified as text, using a byte-content probe
+    # (which accepts empty files) when the file command is unavailable.
+    is_text_file() {
+        if command -v file >/dev/null 2>&1; then
+            file --brief "$1" | grep -qi 'text\|ascii\|utf'
+        else
+            [ ! -s "$1" ] || LC_ALL=C grep -Iq . "$1"
+        fi
+    }
+
     # Recurses into build/container/stapeln/ as well.
-    find build/container/ -type f | while read -r file; do
-        if file --brief "$file" | grep -qi 'text\|ascii\|utf'; then
+    find build/container/ -type f | while IFS= read -r file; do
+        if is_text_file "$file"; then
             sed -i "${SED_ARGS[@]}" "$file"
         fi
     done
 
+    # Filling a token can change how KYAML quotes it; reformat the configs or
+    # Estate Rules' "Converted YAML stays KYAML" fails the child.
+    bash scripts/format-container-kyaml.sh
+
+    # The k9-svc deploy component ships as a template (deploy.k9.ncl.in): a
+    # file with brace tokens is not a K9 component. Render it once nothing is
+    # left to fill (repo-init fills PROJECT_NAME and VERSION), so the K9 lane
+    # validates the real thing. The bracket spellings keep just from reading
+    # the token pattern as an interpolation.
+    DEPLOY_IN="build/container/stapeln/deploy.k9.ncl.in"
+    DEPLOY_OUT="${DEPLOY_IN%.in}"
+    if [ -f "$DEPLOY_IN" ]; then
+        LEFT=$(grep -oE '[{][{][A-Za-z_]+[}][}]' "$DEPLOY_IN" | sort -u | tr '\n' ' ' || true)
+        if [ -n "$LEFT" ]; then
+            echo "Kept $DEPLOY_IN: unfilled tokens ${LEFT}remain."
+            echo "  Run 'just repo-init', then 'just container-init' again to render it."
+        elif [ -e "$DEPLOY_OUT" ]; then
+            echo "Kept $DEPLOY_IN: $DEPLOY_OUT already exists, so it was not overwritten."
+        else
+            mv "$DEPLOY_IN" "$DEPLOY_OUT"
+            echo "Rendered $DEPLOY_OUT (K9 component, contract v1.0.0)."
+        fi
+    fi
+
     echo "Container templates initialised."
     echo ""
     echo "Next steps:"
-    echo "  1. Edit build/container/Containerfile          — add your build commands (Tier A)"
+    echo "  1. Add build/container/Containerfile            — Tier A; pin every FROM:"
+    echo "       scripts/pin-container-digests.sh --root . build/container/Containerfile"
+    echo "     (the template ships none: it shipped an unpinned, non-building one until 2026-10-30)"
     echo "  2. Edit build/container/entrypoint.sh          — set your application binary"
     echo "  3. Review build/container/compose.yaml         — portable stack (Tier B)"
     echo "  4. Review build/container/stapeln/             — sovereign stack (Tier C)"
@@ -117,7 +160,10 @@ container-build *args:
     elif [ -f "Containerfile" ]; then
         "$ENGINE" build -t {{project}}:latest -f Containerfile .
     else
-        echo "No Containerfile found in build/container/ or project root"
+        echo "No Containerfile found in build/container/ or project root."
+        echo "This template ships none — the one it used to ship was unpinned and"
+        echo "built nothing. Add one, pin it, and the estate gate will accept it:"
+        echo "  scripts/pin-container-digests.sh --root . build/container/Containerfile"
         exit 1
     fi
 
@@ -240,7 +286,7 @@ container-keep +tiers:
     else
         plan+=("build/container/  (entire image + compose + stapeln)")
         plan+=("build/just/container.just  (this module) + its Justfile import")
-        [ -f .github/workflows/container-build.yml ] && plan+=(".github/workflows/container-build.yml")
+        [ -f .github/workflows/docker-build.yml ] && plan+=(".github/workflows/docker-build.yml")
     fi
 
     echo "Keeping: oci=$keep_oci portable=$keep_port stapeln=$keep_stap devcontainer=$keep_dev"
@@ -260,7 +306,7 @@ container-keep +tiers:
     else
         rm -rf build/container
         rm -f .machine_readable/configs/selur-compose.toml
-        rm -f .github/workflows/container-build.yml
+        rm -f .github/workflows/docker-build.yml
         rm -f build/just/container.just
         [ -f Justfile ] && sed -i '/# >>> container-module/,/# <<< container-module/d' Justfile
         for jf in Justfile .machine_readable/contractiles/Justfile; do

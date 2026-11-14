@@ -34,10 +34,39 @@ printf '[x]\n' > "$REPO/AI.A2ML"
 git -C "$REPO" add AI.A2ML
 expect_fail "$REPO" "AI.A2ML"
 
+# Shrink-only ledger: a listed file passes, an unlisted one beside it still
+# fails, and 9-archive/ is out of scope.
+git -C "$REPO" rm -q --cached AI.A2ML && rm "$REPO/AI.A2ML"
+mkdir -p "$REPO/.machine_readable" "$REPO/9-archive/old"
+printf '[x]\n' > "$REPO/LISTED.a2ml"
+printf '[x]\n' > "$REPO/9-archive/old/ARCHIVED.a2ml"
+printf '# ledger\nLISTED.a2ml  # waiting for kyX\n' > "$REPO/.machine_readable/a2ml-legacy-allow.txt"
+git -C "$REPO" add LISTED.a2ml 9-archive .machine_readable
+bash "$CHECKER" "$REPO" | grep -q '^PASS:'
+printf '[x]\n' > "$REPO/NEW.a2ml"
+git -C "$REPO" add NEW.a2ml
+expect_fail "$REPO" "NEW.a2ml"
+
+git -C "$REPO" rm -q --cached NEW.a2ml && rm "$REPO/NEW.a2ml"
+
+# In a git work tree: an untracked file is still a file in the tree, the
+# extension is matched in any case, and a tracked file already deleted from
+# the work tree is not reported.
+printf '[x]\n' > "$REPO/UNTRACKED.a2ml"
+expect_fail "$REPO" "UNTRACKED.a2ml"
+rm "$REPO/UNTRACKED.a2ml"
+printf '[x]\n' > "$REPO/Mixed.A2ml"
+git -C "$REPO" add Mixed.A2ml
+expect_fail "$REPO" "Mixed.A2ml"
+git -C "$REPO" rm -q --cached Mixed.A2ml && rm "$REPO/Mixed.A2ml"
+printf '[x]\n' > "$REPO/GONE.a2ml"
+git -C "$REPO" add GONE.a2ml && rm "$REPO/GONE.a2ml"
+bash "$CHECKER" "$REPO" | grep -q '^PASS:' || { echo "FAIL: a deleted tracked file was reported" >&2; exit 1; }
+
 PLAIN="$FIXTURE/plain"; mkdir -p "$PLAIN/sub"
 printf '[x]\n' > "$PLAIN/sub/ANCHOR.a2ml"
 expect_fail "$PLAIN" "sub/ANCHOR.a2ml"
 rm "$PLAIN/sub/ANCHOR.a2ml"
 bash "$CHECKER" "$PLAIN" | grep -q '^PASS:'
 
-echo "PASS: check-no-a2ml controls (clean, tracked, upper-case, untracked)"
+echo "PASS: check-no-a2ml controls (clean, tracked, upper-case, untracked, ledger)"

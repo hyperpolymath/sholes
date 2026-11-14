@@ -8,11 +8,11 @@
 # (Coverage), grades per verb, aggregates to a band, and renders the coaptation
 # receipt as deterministic TOML text (exported with `nickel export --format raw`).
 #
-# This is the Nickel prototype of the comparator. The dependent-typed sound core
-# (Idris2 `Witnesses`/`Coverage`, where an unwitnessed Must is a COMPILE-TIME
-# error) is build-path step 6 — see core/Coaptation.idr (skeleton). The Nickel and
-# Idris2 readings must agree once the core is wired; today the Nickel reading is
-# authoritative and the core is a forward declaration of its types.
+# This is the authoritative comparator. core/Coaptation.idr models its Must/Trust
+# gate in Idris2 and proves that model sound and complete against a
+# content-bearing witness relation. The correspondence between this file and
+# that model is argued in the model's comments, not kernel-checked, so a change
+# to the gate logic here must be mirrored there.
 let clauses_doc = import "clauses.json" in
 let facts_doc = import "facts.json" in
 let wmap = import "witness-map.ncl" in
@@ -61,8 +61,11 @@ let evals =
           "unmeasured"
       in
       let sat =
+        # A descriptile entry needs at least one witness: `std.array.all` over an
+        # empty list is true, which would read "witnessed" with no evidence.
+        # core/Coaptation.idr proves the gate sound only with this rule.
         if base_kind == "descriptile" then
-          std.array.all eval_w entry.witnesses
+          std.array.length entry.witnesses > 0 && std.array.all eval_w entry.witnesses
         else
           false
       in

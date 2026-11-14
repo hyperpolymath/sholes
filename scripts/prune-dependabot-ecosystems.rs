@@ -17,6 +17,8 @@
 //
 // Usage: prune-dependabot-ecosystems.rs <file> <keep...>
 
+#![forbid(unsafe_code)]
+
 use std::env;
 use std::fs;
 use std::path::Path;

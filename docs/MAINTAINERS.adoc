@@ -58,6 +58,6 @@ For questions about project governance, open an issue in this repository.
 == See also
 
 * link:GOVERNANCE.adoc[Governance model]
-* link:../.github/CODE_OF_CONDUCT.md[Code of Conduct]
-* link:../.github/CONTRIBUTING.md[Contributing guide]
+* link:../CODE_OF_CONDUCT.adoc[Code of Conduct]
+* link:../CONTRIBUTING.adoc[Contributing guide]
 * link:attribution/CODEOWNERS.adoc[Code owners]

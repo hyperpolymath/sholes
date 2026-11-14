@@ -5,6 +5,7 @@ K9!
 {
   pedigree = {
     schema_version = "1.0.0",
+    component_type = "session:coordination-binding",
     metadata = {
       name = "session-coordination",
       version = "0.1.0",

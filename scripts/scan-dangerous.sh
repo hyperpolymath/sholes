@@ -18,6 +18,11 @@
 # `(* *)` block (Coq).  Comment bodies are blanked in place, so reported line
 # numbers still match the source.
 #
+# Usage: scan-dangerous.sh [FILE...]   (paths relative to the repo root)
+#   With no arguments it scans every proof file under verification/proofs/.
+#   check-proofs.sh passes each gated module, so files outside that tree
+#   (the coaptation core) are scanned too.
+#
 # Exit: 0 = clean; 1 = a proof uses a dangerous construct in code.
 
 set -euo pipefail
@@ -62,9 +67,10 @@ while IFS= read -r f; do
     printf '%s\n' "$matches" | sed 's/^/    /'
     dangerous=$((dangerous + 1))
   fi
-done < <(find verification/proofs \
+done < <(if [[ $# -gt 0 ]]; then printf '%s\n' "$@"; else
+           find verification/proofs \
            \( -name '*.idr' -o -name '*.lean' -o -name '*.agda' -o -name '*.v' \) \
-           -not -path '*/build/*' 2>/dev/null | sort)
+           -not -path '*/build/*' 2>/dev/null | sort; fi)
 
 echo
 if [ "$dangerous" -gt 0 ]; then

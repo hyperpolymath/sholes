@@ -25,6 +25,16 @@ fn clearError() void {
     last_error = null;
 }
 
+/// Duplicate a byte slice as a NUL-terminated buffer across Zig 0.15/0.16/0.17
+/// (`Allocator.dupeZ` was removed in Zig 0.17).
+/// The caller owns the returned slice and must free it with `allocator`.
+/// Propagates allocation failure.
+fn dupeZ(allocator: std.mem.Allocator, bytes: []const u8) ![:0]u8 {
+    const buf = try allocator.allocSentinel(u8, bytes.len, 0);
+    @memcpy(buf[0..bytes.len], bytes);
+    return buf;
+}
+
 //==============================================================================
 // Core Types (must match src/abi/Types.idr)
 //==============================================================================
@@ -110,7 +120,9 @@ export fn sholes_process(handle: ?*Handle, input: u32) Result {
 //==============================================================================
 
 /// Get a string result (example)
-/// Caller must free the returned string
+/// Return a NUL-terminated "Example result" owned by the caller; free it with
+/// `sholes_free_string`. Return null and set the thread-local error for a
+/// null or uninitialized handle, or allocation failure. Clear the error on success.
 export fn sholes_get_string(handle: ?*Handle) ?[*:0]const u8 {
     const h = handle orelse {
         setError("Null handle");
@@ -123,7 +135,7 @@ export fn sholes_get_string(handle: ?*Handle) ?[*:0]const u8 {
     }
 
     // Example: allocate and return a string
-    const result = h.allocator.dupeZ(u8, "Example result") catch {
+    const result = dupeZ(h.allocator, "Example result") catch {
         setError("Failed to allocate string");
         return null;
     };
@@ -180,14 +192,15 @@ export fn sholes_process_array(
 // Error Handling
 //==============================================================================
 
-/// Get the last error message
-/// Returns null if no error
+/// Get the last error message.
+/// Return an allocated NUL-terminated copy of the current thread's error, or
+/// null if no error is set or allocation fails. Leave the stored error unchanged.
+/// Caller must free a non-null returned string with `sholes_free_string`.
 export fn sholes_last_error() ?[*:0]const u8 {
     const err = last_error orelse return null;
 
-    // Return C string (static storage, no need to free)
     const allocator = std.heap.c_allocator;
-    const c_str = allocator.dupeZ(u8, err) catch return null;
+    const c_str = dupeZ(allocator, err) catch return null;
     return c_str.ptr;
 }
 
@@ -258,6 +271,10 @@ test "lifecycle" {
     defer sholes_free(handle);
 
     try std.testing.expect(sholes_is_initialized(handle) == 1);
+
+    const str = sholes_get_string(handle) orelse return error.StringFailed;
+    defer sholes_free_string(str);
+    try std.testing.expectEqualStrings("Example result", std.mem.span(str));
 }
 
 test "error handling" {
@@ -265,6 +282,7 @@ test "error handling" {
     try std.testing.expectEqual(Result.null_pointer, result);
 
     const err = sholes_last_error();
+    defer sholes_free_string(err);
     try std.testing.expect(err != null);
 }
 

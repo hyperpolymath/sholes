@@ -12,7 +12,9 @@ Thumbs.db
 .direnv/
 
 # Agent / local session artifacts (Claude Code worktrees, scratch) — never commit
-.claude/
+.claude/*
+!.claude/settings.json
+!.claude/hooks/
 
 # Build
 target/

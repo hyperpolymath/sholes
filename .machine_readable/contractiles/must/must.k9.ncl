@@ -28,18 +28,30 @@ K9!
 # fabrication of success "facts" — invariants ground truth against
 # marketing copy) and D1 (lore fabrication about what the repo contains).
 
+#
+# 2026-10-19 (K9 contract v1.0.0, D173, standards#1058): this record is a
+# DECLARATION evaluated at 'Yard. The probes it lists are run by the paired
+# runner (must.ncl and the scripts/run-*.sh runners), which is the execution
+# surface; this file spawns nothing. A 'Hunt record needs signature_required,
+# a signature block and a verified signature (K9-S008/S009/C001); no
+# contractile carries one, so 'Hunt here was a claim the gate could never honour.
+
 let base    = import "../_base.ncl" in
 
 {
   pedigree = base.pedigree_schema & {
     contractile_verb = "must",
+    schema_version   = "1.0.0",
+    component_type   = "contractile:must",
+    semantics        = "invariant assertion — release-blocking",
+    side_effects     = [],
     paired_xfile     = "../must/must.k9.ncl#declaration",
     paired_runner    = "../must/must.ncl",
 
-    # α two-axis: Hunt tier (subprocess for grep/test/etc.) but
-    # restricted to read-only operations. Blocking authority because
+    # α two-axis: Yard tier (the runner shells out for grep/test/etc.;
+    # this record only declares) and read-only operations. Blocking authority because
     # must is the canonical gating verb.
-    tier      = 'Hunt,
+    tier      = 'Yard,
     authority = 'blocking,
 
     metadata = {
@@ -52,12 +64,12 @@ let base    = import "../_base.ncl" in
     },
 
     security = {
-      leash = 'Hunt,
-      signature_required = true,
+      leash = 'Yard,
+      signature_required = false,
       trust_level = "read-only invariant verification with subprocess",
       allow_network = false,
       allow_filesystem_write = false,
-      allow_subprocess = true,
+      allow_subprocess = false,   # the paired runner spawns; this record does not
       probe_scope = 'read_only,              # must probes NEVER mutate
       probe_kinds_allowed = [
         'file_existence,
@@ -124,8 +136,8 @@ let base    = import "../_base.ncl" in
       {
         id = "license-present",
         section = "File Presence",
-        description = "LICENSE file must exist",
-        probe = "test -f LICENSE",
+        description = "a licence must exist (LICENSE, the forge-facing copy, or LICENSE.adoc)",
+        probe = "test -f LICENSE || test -f LICENSE.adoc",
         severity = 'critical,
       },
       {
@@ -133,6 +145,27 @@ let base    = import "../_base.ncl" in
         section = "File Presence",
         description = "README.adoc must exist",
         probe = "test -f README.adoc",
+        severity = 'critical,
+      },
+      {
+        # The SPDX gate used to be a fixed glob (*.rs, *.res, *.gleam) with a
+        # `head -20` cap. In a Julia/Elixir/Idris2/Zig/OCaml/shell repository it
+        # matched NOTHING, counted 0 missing, and reported PASS — a check that
+        # examined nothing, reporting coverage. scripts/check-spdx-headers.sh
+        # derives the extension set from the languages the repository declares
+        # and fails when it matched zero files, so this probe can only pass by
+        # actually inspecting the tree.
+        id = "spdx-headers",
+        section = "Licensing",
+        description = "Every source file of every declared language carries an SPDX header",
+        probe = "bash scripts/check-spdx-headers.sh --quiet",
+        severity = 'critical,
+      },
+      {
+        id = "toolchain-matches-language",
+        section = "Toolchain",
+        description = "mise.toml declares the detected languages' tools, and no banned or foreign tool",
+        probe = "bash scripts/check-mise-language.sh --quiet",
         severity = 'critical,
       },
       {
@@ -147,6 +180,21 @@ let base    = import "../_base.ncl" in
         section = "File Presence",
         description = "the repo deed (<reponame>_chora.deed) must exist at root",
         probe = "ls *_chora.deed >/dev/null 2>&1",
+        severity = 'critical,
+      },
+      {
+        # Yard cannot test a file's existence (Nickel evaluation does no I/O,
+        # K9 contract v1.0.0), and a Hunt record needs a verified signature, so
+        # the invariant is DECLARED here and the paired runner runs the probe,
+        # as for every must invariant. The probe is the same script CI runs
+        # (estate-rules.yml), so the two cannot disagree. It checks the deed's
+        # (documents) registry (each id well-formed and unique, each path present
+        # unless :removed-at-mint #t) and that no tracked .adoc/.md links to a
+        # missing file, apart from the reviewed internal-links-allow.txt.
+        id = "internal-links-resolve",
+        section = "Documentation",
+        description = "every deed-registered document id resolves to its path, and no tracked doc links to a missing file",
+        probe = "bash scripts/check-internal-links.sh .",
         severity = 'critical,
       },
       {

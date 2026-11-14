@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: MPL-2.0
+#
+# Live required status check contexts on default branch (`main`) and the
+# workflow files in `.github/workflows/` that produce them on `pull_request`.
+#
+# Format: <exact check context> => <.github/workflows/file.yml>
+#
+# Verified by `scripts/check-required-contexts.sh` (3-outcome 0/1/2) so a
+# renamed or path-filtered workflow can never silently strand pull requests
+# behind an unsatisfiable ruleset check (issue #219 class).
+#
+# All three contexts come from ONE workflow and are ordinary job names, not the
+# `<caller> / <called job>` pairs a job-level reusable call would produce:
+#
+#   * `scan / gitleaks` is the historic headline context for the
+#     `Secret-Scan-Floor` ruleset (24309812). NOTE: as of 2026-11-08 that
+#     ruleset reads `rules: []` and enforces nothing on `main`, so this context
+#     is currently PRODUCED but not REQUIRED. Do not describe it as required
+#     without re-reading the live ruleset.
+#   * `scan / rust-secrets` and `scan / shell-secrets` are produced by the same
+#     workflow and are listed here so that (a) the gate certifies that every
+#     generated repository really starts all three scanner jobs, and (b) turning
+#     any of them on in a ruleset needs no mapping edit. Listing a produced
+#     context is not the same as requiring it: this file is a producer map, and
+#     the empty `required_status_checks` in `.github/rulesets/base.json` and in
+#     `.github/settings.yml` is still what keeps the floor where the owner left
+#     it.
+#
+# A context here MUST be a job `name:` (or job id) in its workflow. A remote
+# reusable-workflow call produces nothing this gate can certify, which is why
+# `.github/workflows/secret-scanner.yml` runs its three scanners inline instead
+# of wrapping them in a single reusable call.
+scan / gitleaks => .github/workflows/secret-scanner.yml
+scan / rust-secrets => .github/workflows/secret-scanner.yml
+scan / shell-secrets => .github/workflows/secret-scanner.yml

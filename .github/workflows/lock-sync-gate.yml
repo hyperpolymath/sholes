@@ -62,3 +62,9 @@ jobs:
           test -x scripts/check-lock-sync.sh \
             || { echo "::error::scripts/check-lock-sync.sh missing or not executable"; exit 1; }
           ./scripts/check-lock-sync.sh
+
+      - name: Test lockfile rejection cases
+        run: bash tests/workflows/check_lock_sync_test.sh
+
+      - name: Test lockfile repair script
+        run: bash tests/workflows/lock_sync_fix_test.sh

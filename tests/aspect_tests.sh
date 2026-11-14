@@ -98,23 +98,78 @@ else
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
-# Aspect 3: ABI/FFI Contract (if applicable)
+# Aspect 3: ABI/FFI contract. The Idris2 side and the Zig side name the same
+# symbols, the same library and the same Result codes. Text-level: it reads
+# the two sources, not a built library, and checks names and integer codes,
+# not types. Symbol names may still carry the sholes token before
+# `just repo-init`; both sides carry it alike, so they compare equal.
 # ═══════════════════════════════════════════════════════════════════════
-# Uncomment if your project has Idris2 ABI + Zig FFI:
+bold "Aspect 3: ABI/FFI contract"
 
-# bold "Aspect 3: ABI/FFI contract"
-# if [ -d "src/abi" ] && [ -d "ffi/zig" ]; then
-#     # Check that every exported function in Idris2 ABI has a Zig FFI implementation
-#     ABI_EXPORTS=$(grep -h 'export' src/abi/*.idr 2>/dev/null | wc -l)
-#     FFI_EXPORTS=$(grep -h 'pub export fn' ffi/zig/src/*.zig 2>/dev/null | wc -l)
-#     if [ "$ABI_EXPORTS" -gt 0 ] && [ "$FFI_EXPORTS" -gt 0 ]; then
-#         pass "ABI ($ABI_EXPORTS exports) and FFI ($FFI_EXPORTS exports) both present"
-#     else
-#         fail "ABI/FFI mismatch: $ABI_EXPORTS ABI exports, $FFI_EXPORTS FFI exports"
-#     fi
-# else
-#     pass "ABI/FFI not applicable (no src/abi or ffi/zig)"
-# fi
+ABI_DIR="src/interface/Abi"; FFI_SRC="src/interface/ffi/src"; FFI_BUILD="src/interface/ffi/build.zig"
+if [ -d "$ABI_DIR" ] && [ -d "$FFI_SRC" ]; then
+    # Every C symbol the Idris2 ABI binds: %foreign "C:<name>,<lib>"
+    ABI_SYMS=$(grep -ho '%foreign "C:[{}A-Za-z0-9_]*,' "$ABI_DIR"/*.idr 2>/dev/null | sed -e 's/.*C://' -e 's/,$//' | sort -u)
+    ABI_LIBS=$(grep -ho '%foreign "C:[{}A-Za-z0-9_]*,[{}A-Za-z0-9_]*"' "$ABI_DIR"/*.idr 2>/dev/null | sed -e 's/.*,//' -e 's/"$//' | sort -u)
+    # Every symbol the Zig FFI exports, and the library build.zig builds, if any.
+    FFI_SYMS=$(grep -ho 'export fn [{}A-Za-z0-9_]*' "$FFI_SRC"/*.zig 2>/dev/null | awk '{print $3}' | sort -u)
+    FFI_NAME=""
+    if grep -q 'addLibrary' "$FFI_BUILD" 2>/dev/null; then
+        FFI_NAME=$(sed -n '/addLibrary/,/})/p' "$FFI_BUILD" | grep -o '\.name = "[{}A-Za-z0-9_]*"' | head -1 | sed -e 's/.*"\(.*\)"/\1/')
+    fi
+
+    UNBOUND=$(comm -23 <(printf '%s\n' "$ABI_SYMS") <(printf '%s\n' "$FFI_SYMS") | grep . || true)
+    if [ -z "$ABI_SYMS" ]; then
+        fail "ABI binds no C symbols (no %foreign declarations in $ABI_DIR)"
+    elif [ -n "$UNBOUND" ]; then
+        fail "ABI binds symbols the FFI does not export:"
+        printf '%s\n' "$UNBOUND" | sed 's/^/    /'
+    else
+        pass "Every ABI-bound symbol ($(printf '%s\n' "$ABI_SYMS" | grep -c .)) is exported by the FFI"
+    fi
+
+    if [ -z "$FFI_NAME" ]; then
+        warn "build.zig builds no library, so '$(printf '%s' "$ABI_LIBS" | tr '\n' ' ' | sed 's/ $//')' cannot be loaded; add a b.addLibrary step named after the ABI's library"
+    else
+        BAD_LIB=$(printf '%s\n' "$ABI_LIBS" | grep -v -x -F "lib$FFI_NAME" | grep . || true)
+        if [ -n "$BAD_LIB" ]; then
+            fail "ABI binds library '$(printf '%s' "$BAD_LIB" | tr '\n' ' ')' but build.zig builds 'lib$FFI_NAME'"
+        else
+            pass "ABI library name matches build.zig (lib$FFI_NAME)"
+        fi
+    fi
+
+    UNDECLARED=$(comm -13 <(printf '%s\n' "$ABI_SYMS") <(printf '%s\n' "$FFI_SYMS") | grep . || true)
+    [ -n "$UNDECLARED" ] && warn "FFI exports not bound by the ABI (bind them or stop exporting them): $(printf '%s' "$UNDECLARED" | tr '\n' ' ')"
+
+    # The Result code table, value by value: the Zig `enum(c_int)` members
+    # (snake_case, `@"error"` quoted) against Idris2 `resultCode` clauses
+    # (CamelCase). The Idris2 side proves its table round-trips and is
+    # injective; this is the cross-language half, text-level (TESTED).
+    ZIG_CODES=$(sed -n '/pub const Result = enum(c_int) {/,/};/p' "$FFI_SRC"/main.zig 2>/dev/null \
+        | sed -n 's/^[[:space:]]*@\{0,1\}"\{0,1\}\([a-z_]*\)"\{0,1\}[[:space:]]*=[[:space:]]*\([0-9][0-9]*\),.*/\1 \2/p' \
+        | awk '{ n=split($1, w, "_"); s=""; for (i=1; i<=n; i++) s = s toupper(substr(w[i],1,1)) substr(w[i],2); print s, $2 }' | sort)
+    IDR_CODES=$(sed -n 's/^resultCode \([A-Za-z]*\) = \([0-9][0-9]*\)$/\1 \2/p' "$ABI_DIR"/Types.idr 2>/dev/null | sort)
+    # Every entry must parse: a member or clause in another form (a hex
+    # value, a trailing comment) would otherwise drop out of both lists and
+    # let a mismatch pass. Count the raw entries and compare.
+    ZIG_RAW=$(sed -n '/pub const Result = enum(c_int) {/,/};/p' "$FFI_SRC"/main.zig 2>/dev/null | grep -v -e 'pub const Result' -e '^[[:space:]]*};' -e '^[[:space:]]*//' -e '^[[:space:]]*$' | grep -c . || true)
+    IDR_RAW=$(grep -c '^resultCode [A-Za-z]' "$ABI_DIR"/Types.idr 2>/dev/null || true)
+    ZIG_N=$(printf '%s\n' "$ZIG_CODES" | grep -c . || true)
+    IDR_N=$(printf '%s\n' "$IDR_CODES" | grep -c . || true)
+    if [ "$ZIG_RAW" != "$ZIG_N" ] || [ "$IDR_RAW" != "$IDR_N" ]; then
+        fail "Result code table has entries this check cannot parse (Zig: $ZIG_N of $ZIG_RAW, Idris2: $IDR_N of $IDR_RAW); write each as 'name = <decimal>,' and 'resultCode C = <decimal>'"
+    elif [ -z "$ZIG_CODES" ] || [ -z "$IDR_CODES" ]; then
+        fail "Result code table not found on both sides (Zig: $ZIG_N, Idris2: $IDR_N)"
+    elif [ "$ZIG_CODES" != "$IDR_CODES" ]; then
+        fail "Result code tables differ (Zig vs Idris2):"
+        diff <(printf '%s\n' "$ZIG_CODES") <(printf '%s\n' "$IDR_CODES") | grep '^[<>]' | sed 's/^/    /'
+    else
+        pass "Result code table agrees value by value ($ZIG_N codes)"
+    fi
+else
+    pass "ABI/FFI not applicable (no $ABI_DIR or $FFI_SRC)"
+fi
 
 # ═══════════════════════════════════════════════════════════════════════
 # Aspect 4: Error Handling (no raw panic in production code)

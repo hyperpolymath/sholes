@@ -99,6 +99,7 @@ ARCHETYPE="$(deed archetype "")"
 # estate ABI/FFI pattern nests deeper: Idris2 to two levels down (src/abi/*.ipkg),
 # Zig to three (ffi/zig/build.zig, and sholes's src/interface/ffi/build.zig:
 # 74 repos have their only build.zig at that depth, measured 2026-09-30).
+# Julia to three (src/julia/Project.toml: occupancy-types keeps its package there).
 # Order matters only for display. `docs` is reported when nothing else is.
 # Print the first path matching glob $1 within find depth $2 (default 2),
 # excluding .git, node_modules and root target contents; no match prints nothing.
@@ -108,7 +109,7 @@ detect_langs() {
   local out=()
   [ -n "$(first Cargo.toml)" ]          && out+=(rust)
   [ -n "$(first '*.ipkg' 3)" ]          && out+=(idris2)
-  [ -n "$(first Project.toml 1)" ]      && out+=(julia)
+  [ -n "$(first Project.toml 3)" ]      && out+=(julia)
   [ -n "$(first build.zig 4)" ]         && out+=(zig)
   [ -n "$(first mix.exs)" ]             && out+=(elixir)
   [ -n "$(first gleam.toml)" ]          && out+=(gleam)
@@ -176,7 +177,7 @@ guix_specs() {
 # mise tools per language (registry-checked 2026-09-30, mise 2026.7.5). idris2 comes
 # from pack and haskell from ghcup or Guix: neither is a mise tool. The recipes
 # themselves need just and shellcheck, so those two are always declared.
-MISE_BASE="just shellcheck"
+MISE_BASE="just shellcheck yq"   # yq: scripts/kyaml-format.sh (KYAML configs; the mint formats the container ones)
 # Tools a repo's own recipes call (e.g. `deps-audit` runs trivy): pinned only where used.
 RECIPE_TOOLS="trivy"
 # Print the mise tool names for language $1, if supported.
@@ -196,9 +197,14 @@ recipe_tools() {
 }
 
 # Print deduplicated mise tools needed by the base, detected languages and recipes.
+# Usage: mise_tools [lang ...]
+# The language list defaults to what the tree detects; callers that already know
+# (scripts/render-mise.sh --langs) pass it, so an override actually changes the,
+# toolchain rather than only the label above it.
 mise_tools() {
-  local l t seen=" " out=()
-  for t in $MISE_BASE $(for l in "${LANGS[@]}"; do lang_mise "$l"; done) $(recipe_tools); do
+  local l t seen=" " out=() use=()
+  if [ "$#" -gt 0 ]; then use=("$@"); else use=("${LANGS[@]}"); fi
+  for t in $MISE_BASE $(for l in "${use[@]}"; do lang_mise "$l"; done) $(recipe_tools); do
     case "$seen" in *" $t "*) ;; *) out+=("$t"); seen="$seen$t " ;; esac
   done
   printf "%s\n" "${out[*]}"
@@ -675,7 +681,7 @@ cmd_heal() {
     [ -f mise.lock ] || { $T mise lock 2>/dev/null && info "mise.lock generated"; }
   fi
   if printf '%s\n' "${LANGS[@]}" | grep -qx elixir && have mix; then mix deps.get >/dev/null 2>&1 && info "mix deps fetched"; fi
-  if printf '%s\n' "${LANGS[@]}" | grep -qx bun && have bun; then bun install >/dev/null 2>&1 && info "bun deps installed"; fi
+  if printf '%s\n' "${LANGS[@]}" | grep -qx bun && have bun; then bun install --ignore-scripts >/dev/null 2>&1 && info "bun deps installed"; fi
   if printf '%s\n' "${LANGS[@]}" | grep -qx julia && have julia; then julia --project=. -e 'using Pkg; Pkg.instantiate()' >/dev/null 2>&1 && info "julia deps instantiated"; fi
   local hook=build/just/heal-local.sh
   [ -f "$hook" ] && { info "running $hook"; bash "$hook" || true; }
@@ -938,7 +944,7 @@ cmd_search() {
 
 case "${1:-}" in
   guix-specs)         guix_specs ;;
-  mise-tools)         mise_tools ;;
+  mise-tools)         shift; mise_tools "$@" ;;
   langs)              printf '%s\n' "${LANGS[@]}" ;;
   doctor)             cmd_doctor ;;
   setup)              cmd_setup ;;
