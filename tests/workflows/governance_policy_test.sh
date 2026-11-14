@@ -220,6 +220,17 @@ console.log("PASS: new proof instructions require needs, verification, rechecks 
 // Keep the independently specified release tuple together: a version-only
 // bump or retaining the previous gates hash would misidentify the canon.
 // Update this expectation deliberately when adopting the next canon release.
+// Only the template carries rsr-template-repo_chora.deed. A repo minted from it
+// has its own deed name, so this identity check is template-only, like the other
+// template-only controls (scripts/is-template-tree.sh is the one definition).
+const isTemplateTree = (() => {
+  try { execFileSync("bash", [resolve(root, "scripts/is-template-tree.sh"), root]); return true; }
+  catch { return false; }
+})();
+if (!isTemplateTree) {
+  console.log("SKIP: canon 2.1.5 identity (not the template tree; is-template-tree.sh says no)");
+  process.exit(0);
+}
 const field = (key) => execFileSync("bash", [resolve(root, "scripts/deed-field.sh"),
   resolve(root, "rsr-template-repo_chora.deed"), "canon", key], { encoding: "utf8" }).trim();
 assert.deepEqual([field("version"), field("criteria-sha256"), field("gates-sha256")], [
