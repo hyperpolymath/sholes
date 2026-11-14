@@ -3,7 +3,7 @@
 ||| ABI Type Definitions
 |||
 ||| This module defines the Application Binary Interface (ABI) for
-||| lib{{project}}. It is the Idris2 side of the seam whose Zig side is
+||| libsholes. It is the Idris2 side of the seam whose Zig side is
 ||| src/interface/ffi/src/main.zig; tests/aspect_tests.sh (Aspect 3) checks
 ||| that the two name the same symbols, and `Result` below carries the same
 ||| integer codes as the Zig `Result` enum, in the same order.
