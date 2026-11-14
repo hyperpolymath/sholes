@@ -7,6 +7,26 @@
 
 == Overview
 
+[TIP]
+====
+*This module ships no `Containerfile`.* It used to ship one, and that file had
+two `FROM …:latest` lines and a body of TODO comments: it could not build, and
+it failed `container-images-pinned` in every repository minted from this
+template — including the ones that publish no image at all.
+
+A repository that publishes an image adds the file here, pinned:
+
+[source,bash]
+----
+scripts/pin-container-digests.sh --root . --base <digest> --runtime <digest> \
+    build/container/Containerfile
+----
+
+`scripts/check-container-pins.sh` fails the build until every `FROM` in it
+carries an `@sha256:` digest, and `just container-build` says the same thing
+rather than building an image from two moving tags.
+====
+
 Containerisation in this template is organised in *three tiers*, from the most
 portable to the most sovereign. You can use only the tier you need and ignore —
 or delete — the rest.
@@ -16,7 +36,7 @@ or delete — the rest.
 | Tier | What | Why
 
 | *A — OCI standard*
-| `Containerfile`, `.containerignore`
+| `Containerfile` (you add it — see above), `.containerignore`
 | A plain, multi-stage OCI image on https://www.chainguard.dev/[Chainguard]
   Wolfi. Builds with any OCI engine. No dependency on tiers B or C.
 
@@ -102,9 +122,11 @@ The container engine is *auto-detected* (`podman`, then `nerdctl`, then
 | *cerro-torre* build → pack → sign (Ed25519) → verify → push pipeline.
   Engine-agnostic; degrades gracefully when cerro-torre tools are absent.
 
-| `deploy.k9.ncl`
-| *k9-svc* deployment component at Hunt trust level: full pedigree (L1–L5),
-  dev/staging/prod configs, rolling deployment strategy.
+| `deploy.k9.ncl.in`
+| *k9-svc* deployment component at the Hunt leash (K9 contract v1.0.0):
+  pedigree with capability grant, side effects and signature block;
+  dev/staging/prod configs, rolling deployment strategy. Rendered to
+  `deploy.k9.ncl` by `just container-init`.
 |===
 
 == The stapeln ecosystem
@@ -174,17 +196,29 @@ just container-push                # push the signed bundle
 cd build/container/stapeln && selur-compose up --detach
 ----
 
-k9-svc managed deployment:
+k9-svc managed deployment. The deployment component ships as the template
+`build/container/stapeln/deploy.k9.ncl.in`, in the K9 contract v1.0.0 shape.
+`just repo-init` fills its `PROJECT_NAME` and `VERSION` placeholders and
+`just container-init` fills `SERVICE_NAME`, `PORT` and `REGISTRY`. Once no
+placeholder token is left, `just container-init` renders it to
+`build/container/stapeln/deploy.k9.ncl`; until then it keeps the `.in` file
+and names the tokens still missing. The rendered file is a K9 component, so
+the K9 lane validates it like any other:
 
 [source,bash]
 ----
-nickel typecheck build/container/stapeln/deploy.k9.ncl
+k9-validate.sh --strict --layer L2 build/container/stapeln/deploy.k9.ncl
 k9-svc deploy build/container/stapeln/deploy.k9.ncl --env production
 ----
 
+It is a `'Hunt` component, so it carries a signature block. That block is a
+claim until you sign the rendered file: the validator reports it
+`'Present_Unverified` (K9-C001), and Hunt stays unauthorised until a verifier
+accepts the signature.
+
 == Continuous integration
 
-A `container build` workflow ships in `.github/workflows/container-build.yml`.
+A `container build` workflow ships in `.github/workflows/docker-build.yml`.
 It is **off by default** — it costs nothing in a repository created from this
 template until you opt in.
 
@@ -232,9 +266,9 @@ image build/publish jobs you no longer need.
 
 == Base images
 
-* Builder: `cgr.dev/chainguard/wolfi-base:latest`
-* Runtime: `cgr.dev/chainguard/wolfi-base:latest` (or
-  `cgr.dev/chainguard/static:latest` for static binaries)
+* Builder: `cgr.dev/chainguard/wolfi-base@sha256:<digest>` (pinned by digest, no tag)
+* Runtime: `cgr.dev/chainguard/wolfi-base@sha256:<digest>` (or
+  `cgr.dev/chainguard/static@sha256:<digest>` for static binaries)
 
 Chainguard images are minimal, low-CVE, and rebuilt daily (`apk` package
 manager, Alpine-compatible).

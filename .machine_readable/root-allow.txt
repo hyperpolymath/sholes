@@ -28,7 +28,14 @@
 
 # ─── Baseline: every RSR repo has these ──────────────────────────────────────
 README.adoc
-LICENSE
+LICENSE.adoc               # the licence (MPL-2.0); renamed from LICENSE to the estate AsciiDoc format 2026-10-26
+?LICENSE                   # forge-facing copy of LICENSES/MPL-2.0.txt. Optional, not required:
+                           #   GitHub (and most forges) only detect LICENSE / LICENSE.md /
+                           #   LICENSE.txt to show the licence on the repo page, and readers
+                           #   follow that name. LICENSE.adoc above stays authoritative; this
+                           #   is a byte-identical copy of the REUSE text, not a second licence.
+                           #   Added 2026-10-30 — without it license-present failed and every
+                           #   minted repo's link:LICENSE[LICENSE] was a dead link.
 LICENSES/                  # REUSE licence texts, dual-licence model (code MPL-2.0 / docs CC-BY-SA-4.0)
 CHANGELOG.adoc             # AsciiDoc is the estate-standard documentation format
 CITATION.cff               # citation metadata; GitHub reads it from the root of the default branch only
@@ -53,14 +60,13 @@ mise.toml                  # the toolchain: every tool at "latest" (PROVISIONING
 mise.lock                  # makes "latest" concrete: version + per-platform checksum; mise reads it beside mise.toml
 .hypatia-ignore            # the Hypatia scanner reads it from the repo root
 ?.coderabbit.yaml          # CodeRabbit reads its config from the root only; pins Docstring Coverage to mode: warning (estate decision, not a vendor default). Optional: only the template and the repos whose rulesets require the CodeRabbit context carry it
-.clinerules                # AI editor rules. Cline/Cursor/Windsurf read these from the project
-.cursorrules               # ROOT, so the copies formerly under .machine_readable/ai/ were inert.
-.windsurfrules
+.clinerules                # AI editor rules. Cline reads them from the project ROOT, so the copies formerly under .machine_readable/ai/ were inert (.cursorrules and .windsurfrules were retired 2026-10-26)
 ?.claude/                  # Claude Code project state (checkpoints, history) — created by the tool itself
 
 # ─── Directories ─────────────────────────────────────────────────────────────
 .git/
 .github/                 # community health + workflows (GitHub reads this path and no other) + versioned git hooks (.github/hooks/, wired via core.hooksPath)
+.gitbot-fleet/           # fleet enrolment manifest + report-backs/ (empty in git; filled per run by the fork-governance fleet job). Read by the Hypatia verdict grid at this path and no other
 www/                       # site-operations bundle; canonical .well-known/ lives at www/.well-known/ (issue #53)
 .machine_readable/          # manifests, contractiles, policies. Renamed back from machine-readable/ 2026-09-17 by owner ruling, for one canonical spelling estate-wide (census at the 2026-08 divergence: 48 dotted vs 9 hyphenated — the majority was already dotted). See docs/governance/TEMPLATE-LINEAGE-AUDIT.adoc
 docs/                      # human documentation
@@ -68,10 +74,10 @@ build/                     # build orchestration: just/ phase modules, container
 ci/                        # .gitlab-ci.yml + .pre-commit-config.yaml; ci/README.adoc records the out-of-band GitLab project setting these require
 scripts/                   # repo helper scripts
 session/                   # dispatch.sh, custom-checks.k9.ncl, local-hooks.sh
-src/
 tests/
 
 # ─── Optional: capability-gated or template-only ─────────────────────────────
+?src/                      # source tree; optional for non-code/specification/governance repositories (issue #233, e.g. standards)
 ?archetypes/               # template-only variation seam (ADR-0003); `just repo-init` removes it from minted repos
 ?.devcontainer/            # VS Code dev container spec; present only where the container capability is declared
 ?sonar-project.properties  # only where the repo is analysed by SonarCloud
@@ -82,6 +88,14 @@ tests/
 ?CONTRIBUTING.md           # accepted at root OR .github/; .github/ is the canonical estate location
 ?CONTRIBUTING.adoc          # estate docs gate (standards scripts/check-docs-presence.sh) requires CONTRIBUTING at the ROOT; this is the copy it verifies
 ?SECURITY.md               # accepted at root OR .github/; likewise
+?CODE_OF_CONDUCT.adoc      # community health file; GitHub accepts it at root, docs/ or .github/
+?SUPPORT.adoc              # community health file; GitHub accepts it at root, docs/ or .github/
 ?REQUIRES_INITIALISATION.md  # written by the minting process, removed once `just repo-init` runs
 ?Project.toml              # julia-library archetype: Pkg reads the package manifest from the package root only
 ?test/                     # julia-library archetype: Pkg.test runs test/runtests.jl, a fixed path (the spine keeps tests/)
+?mix.exs                   # elixir: Mix reads the project file from the root only, and build/just/provision.just runs mix at the root
+?mix.lock                  # elixir: Mix writes the dependency lock beside mix.exs
+?.formatter.exs            # elixir: `mix format` reads its config from the project root
+?priv/                     # elixir/OTP: an application's priv dir is fixed at the project root (Application.app_dir/2)
+?Cargo.toml                # rust-cli archetype: Cargo reads the package manifest from the package root only; the overlay mints it from Cargo.toml.in
+?Cargo.lock                # rust-cli archetype: `just repo-init` generates it (cargo generate-lockfile) because the minted CI builds with --locked

@@ -161,6 +161,27 @@ aspect:
 # declares some (e.g. a "bench" step in build.zig, [[bench]] in Cargo.toml).
 bench: provision::bench
 
+# Run the proven-tests-and-benches 3-outcome suite (0 pass / 1 fail / 2 setup)
+proven-tests *flags:
+    bash scripts/run-proven-suite.sh {{flags}}
+
+# Run the Idris2 proof escape-hatch & totality gate (proven-tests-and-benches)
+escape-hatches:
+    bash scripts/check-escape-hatches.sh
+
+# Run template benchmarks and check Six-Sigma leave-one-out regression vs baseline
+bench-check:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    tmp="$(mktemp)"
+    trap 'rm -f "$tmp"' EXIT
+    bash benches/template_bench.sh --json . > "$tmp"
+    bash scripts/check-bench-regression.sh "$tmp" benches/baseline.json
+
+# Check RFC 7493 (I-JSON) + RFC 8785 (JCS) canonical form across tracked JSON
+ijson-check:
+    bash scripts/check-ijson-jcs.sh --enforce .
+
 # Run readiness tests (Component Readiness Grade: D/C/B)
 readiness:
     # TODO: Replace with your readiness test command. Examples:
@@ -194,9 +215,46 @@ crg-badge:
 test-all: test e2e aspect bench readiness
     @echo "All test categories passed — safe to merge!"
 
-# Run all quality checks
-quality: fmt-check lint test
-    @echo "All quality checks passed!"
+# Run all quality checks — and fail when one of them ran nothing.
+#
+# This used to be `quality: fmt-check lint test` plus `@echo "All quality checks
+# passed!"`. The echo is the defect: the provisioning engine reports a verb with
+# no command for any detected language as
+#
+#     info  fmt-check: N/A for julia (archetype: library) — nothing to run…
+#
+# and exits 0. That is honest output, but this recipe turned it into "All
+# quality checks passed!" — so a Julia repo printed green having run only
+# `Pkg.test()`, and a downstream repo shipped `fmt`, `fmt-check` and `lint`
+# recipes that were `@echo` stubs for the same reason.
+#
+# N/A is not a pass. A gating verb that cannot run for this repo's languages is
+# either wired up (the julia-library archetype wires fmt/fmt-check/lint with
+# scripts/julia-quality.jl) or removed from this recipe deliberately — never
+# echoed over.
+quality:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    rc=0
+    for verb in fmt-check lint test; do
+        echo ""
+        echo "── ${verb} ──"
+        out="$(just "${verb}" 2>&1)"; st=$?
+        printf '%s\n' "$out"
+        if [ "$st" -ne 0 ]; then
+            echo "FAIL: '${verb}' exited ${st}" >&2
+            rc=1
+            continue
+        fi
+        if printf '%s\n' "$out" | grep -q 'N/A for'; then
+            echo "FAIL: '${verb}' ran nothing — N/A for every detected language." >&2
+            echo "      N/A is not a pass: wire the verb for this language, or drop" >&2
+            echo "      it from the 'quality' recipe on purpose." >&2
+            rc=1
+        fi
+    done
+    [ "$rc" -eq 0 ] && echo "" && echo "All quality checks ran and passed."
+    exit "$rc"
 
 # Fix all auto-fixable issues [reversible: git checkout]
 fix: fmt
@@ -283,6 +341,10 @@ validate-repo-map:
     fi
     rm -f "$before"
     echo "repository map: up to date"
+
+# Fail if a tracked .adoc/.md links to a missing file, or a deed-registered document id no longer resolves
+check-internal-links:
+     scripts/check-internal-links.sh .
 
 # Fail if CLAUDE.md's generated region drifted from the deed or was hand-edited
 validate-claude-md:
@@ -692,3 +754,13 @@ uncloak:
     else
         echo "Use 'ls -a' to view dotfiles on this OS."
     fi
+
+# Repair .github/workflows/actions.lock after a Dependabot github-actions bump.
+# Dependabot rewrites `uses:` in the workflow YAML but cannot touch the lock, so
+# the Lock Sync Gate goes red. This resolves each new ref (git ls-remote, peeled
+# commit for annotated tags), rewrites the lock, and re-validates with
+# scripts/check-lock-sync.sh. Fails loudly (lock untouched) on anything it cannot
+# resolve. Run it on the Dependabot branch, then commit with a SIGNED commit.
+lock-sync-fix:
+    ./scripts/lock-sync-fix.sh
+    ./scripts/check-lock-sync.sh

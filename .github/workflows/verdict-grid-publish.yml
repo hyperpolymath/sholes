@@ -1,0 +1,170 @@
+# SPDX-License-Identifier: MPL-2.0
+# Trusted publisher for the read-only PR verdict-grid pipeline.
+# This workflow_run file executes only when present on the default branch.
+# Never check out PR-controlled code or run a downloaded artifact as a script.
+name: Publish verdict grid
+
+on:
+  workflow_run: # zizmor: ignore[dangerous-triggers]
+    workflows:
+      - Fork governance
+      - Hypatia Security Scan
+      - Static Analysis Gate
+    types: [completed]
+
+permissions: {}
+concurrency:
+  group: verdict-publish-${{ github.event.workflow_run.head_repository.full_name }}-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    if: github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Authenticate source run and identify current pull request
+        id: source
+        run: |
+          set -euo pipefail
+          run_id=$(jq -r '.workflow_run.id' "$GITHUB_EVENT_PATH")
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" > "$RUNNER_TEMP/source-run.json"
+          jq -e --slurpfile event "$GITHUB_EVENT_PATH" '
+            .id == $event[0].workflow_run.id
+            and .event == "pull_request" and .status == "completed"
+            and .repository.full_name == $event[0].repository.full_name
+            and .head_sha == $event[0].workflow_run.head_sha
+          ' "$RUNNER_TEMP/source-run.json" >/dev/null
+          sha=$(jq -r '.head_sha' "$RUNNER_TEMP/source-run.json")
+          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/commits/$sha/pulls" > "$RUNNER_TEMP/source-prs.json"
+          pr=$(jq -r --arg sha "$sha" --arg repo "$GITHUB_REPOSITORY" '
+            [.[][] | select(.state == "open" and .head.sha == $sha
+              and .base.repo.full_name == $repo)]
+            | if length == 1 then .[0].number else empty end
+          ' "$RUNNER_TEMP/source-prs.json")
+          if [ -z "$pr" ]; then
+            echo "::notice::No unique current PR at the completed run SHA; refusing to publish a stale verdict."
+            exit 0
+          fi
+          echo "pr=$pr" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout trusted default-branch reporter
+        if: steps.source.outputs.pr != ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 # NOSONAR githubactions:S7631: ref is the default branch, not PR code
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+          sparse-checkout: |
+            scripts/verdict-grid-lane.sh
+            .gitbot-fleet
+          sparse-checkout-cone-mode: false
+
+      - name: Checkout pinned renderer
+        if: steps.source.outputs.pr != ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 # NOSONAR githubactions:S7631: fixed trusted repo at a pinned SHA, not fork code
+        with:
+          repository: metadatastician/standards
+          ref: f0b3cd4c464d33e1584f8528c17bce104555e256
+          path: .standards-grid
+          persist-credentials: false
+          sparse-checkout: |
+            scripts/verdict-grid.sh
+            scripts/lib/verdict-grid.jq
+          sparse-checkout-cone-mode: false
+
+      - name: Collect, validate and render diagnostics as data only
+        if: steps.source.outputs.pr != ''
+        env:
+          TARGET_SHA: ${{ steps.source.outputs.sha }}
+          TARGET_PR: ${{ steps.source.outputs.pr }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/evidence"
+          bash scripts/verdict-grid-lane.sh collect \
+            --repo "$GITHUB_REPOSITORY" --sha "$TARGET_SHA" \
+            --out "$RUNNER_TEMP/evidence" \
+            --source hypatia-scan.yml:hypatia-scan-findings \
+            --source static-analysis-gate.yml:static-analysis-findings
+          # Fleet evidence lives in the read-only Fork governance PR run,
+          # not in this privileged publisher's own workflow_run.
+          fleet_run=$(gh run list --repo "$GITHUB_REPOSITORY" \
+            --workflow fork-governance.yml --commit "$TARGET_SHA" --event pull_request --limit 20 \
+            --json databaseId,status,event | jq -r \
+            '[.[] | select(.event == "pull_request" and .status == "completed")] | sort_by(.databaseId) | last | .databaseId // empty')
+          if [ -n "$fleet_run" ]; then
+            mkdir -p "$RUNNER_TEMP/evidence/fleet-report-backs"
+            gh run download "$fleet_run" --repo "$GITHUB_REPOSITORY" \
+              --name fleet-report-backs \
+              --dir "$RUNNER_TEMP/evidence/fleet-report-backs" || \
+              echo "::warning::Fleet evidence unavailable; fleet rows will remain orange"
+          fi
+          ev="$RUNNER_TEMP/evidence"
+          evidence_ok=1
+          if ! bash scripts/verdict-grid-lane.sh validate \
+            --hypatia "$ev/hypatia-scan-findings/hypatia-findings.relativized.json" \
+            --panic "$ev/static-analysis-findings/panic-attack-findings.json" \
+            --pons "$ev/static-analysis-findings/pons-findings.json" \
+            --enrolment .gitbot-fleet/enrolment.json; then
+            echo "::warning::Producer evidence is malformed; publishing an indeterminate (orange) report, never a stale green result."
+            evidence_ok=0
+          fi
+          if ! gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$TARGET_PR/files?per_page=100" \
+            --jq '.[].filename' > "$RUNNER_TEMP/changed-files.txt"; then
+            echo "::warning::Changed-file scope could not be established; refusing a misleading scoped verdict."
+            evidence_ok=0
+          fi
+          if ! bash scripts/verdict-grid-lane.sh previous \
+            --repo "$GITHUB_REPOSITORY" --pr "$TARGET_PR" \
+            --out "$RUNNER_TEMP/previous.md"; then
+            echo "::warning::No trustworthy previous grid is available for a delta."
+            : > "$RUNNER_TEMP/previous.md"
+          fi
+          args=(render --out "$RUNNER_TEMP/verdict-grid" \
+            --renderer-dir .standards-grid \
+            --repo "$GITHUB_REPOSITORY" \
+            --sha "$TARGET_SHA" --run "$GITHUB_RUN_ID" --pr "$TARGET_PR" \
+            --url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            --enrolment .gitbot-fleet/enrolment.json \
+            --hypatia "$ev/hypatia-scan-findings/hypatia-findings.relativized.json" \
+            --hypatia-sarif "$ev/hypatia-scan-findings/hypatia.sarif" \
+            --panic "$ev/static-analysis-findings/panic-attack-findings.json" \
+            --pons "$ev/static-analysis-findings/pons-findings.json" \
+            --hypatia-ref be98f74ce93df200752f3798efa1305bfa3e0e10 \
+            --panic-ref b5530834a839734d1d181bfe6edb0d43d4233cf4 \
+            --pons-ref 51b8920f541782ceb9465ea3f0d33c96104fc1fb)
+          [ ! -d "$ev/fleet-report-backs" ] || args+=(--report-backs "$ev/fleet-report-backs")
+          [ ! -s "$RUNNER_TEMP/previous.md" ] || args+=(--previous "$RUNNER_TEMP/previous.md")
+          args+=(--changed "$RUNNER_TEMP/changed-files.txt")
+          if [ "$evidence_ok" -eq 1 ]; then
+            if ! bash scripts/verdict-grid-lane.sh "${args[@]}"; then
+              echo "::warning::Verdict rendering failed; replacing the report with an explicit indeterminate state."
+              evidence_ok=0
+            fi
+          fi
+          if [ "$evidence_ok" -ne 1 ]; then
+            mkdir -p "$RUNNER_TEMP/verdict-grid"
+            cat > "$RUNNER_TEMP/verdict-grid/report.md" <<'REPORT'
+          <!-- verdict-grid:hypatia regenerated on every run -->
+          ### Verdict grid: indeterminate
+
+          Producer evidence was malformed, unreadable or could not be rendered.
+          No green result or comparative delta can be asserted for this revision.
+          See the trusted publisher workflow run for details.
+          REPORT
+            printf '%s\n' '{"schemaVersion":1,"label":"Hypatia grid","message":"indeterminate","color":"orange"}' > "$RUNNER_TEMP/verdict-grid/badge.json"
+            printf '%s\n' '{"state":"orange","reason":"unverified producer evidence"}' > "$RUNNER_TEMP/verdict-grid/report.json"
+          fi
+          # Recheck freshness immediately before the write; do not publish
+          # a completed scan from a now-superseded head.
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$TARGET_PR" |
+            jq -e --arg sha "$TARGET_SHA" '.state == "open" and .head.sha == $sha' >/dev/null
+          bash scripts/verdict-grid-lane.sh comment \
+            --repo "$GITHUB_REPOSITORY" --pr "$TARGET_PR" \
+            --report "$RUNNER_TEMP/verdict-grid"

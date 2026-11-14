@@ -3,7 +3,7 @@
 --
 -- ABI Proof: FFI function return type proofs
 -- Proves that all FFI functions return expected types.
--- All proofs MUST be constructive (no believe_me, no assert_total).
+-- All proofs MUST be constructive and total; proof escape hatches are forbidden.
 
 module ABI.Foreign
 

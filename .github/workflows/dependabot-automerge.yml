@@ -1,39 +1,21 @@
 # This workflow is managed by gh actions-lock.
 # SPDX-License-Identifier: MPL-2.0
 #
-# dependabot-automerge.yml — enable GitHub's native auto-merge on
-# Dependabot pull requests that match a declared severity / ecosystem
-# policy. Pairs with `.github/dependabot.yml`'s
-# `open-pull-requests-limit: 0` + security-only pattern (see the
-# cargo block there).
+# dependabot-automerge.yml — enable GitHub's native auto-merge on Dependabot
+# pull requests that satisfy the fail-closed severity + semver policy (#204):
+#   1. PR author is Dependabot (verified by immutable numeric user.id 49699333
+#      AND user.login == 'dependabot[bot]', never spoofable github.actor);
+#   2. Security update (GHSA ID present) whose GitHub Advisory severity is
+#      verified via the GitHub Advisory API as `low` or `medium` (CVSS < 7.0;
+#      `high`, `critical`, or unreadable advisories fail closed to human review);
+#   3. Semver update is `patch` or `minor` (never `major`).
 #
-# What this does:
-#   - Triggers on every Dependabot PR.
-#   - Reads the PR's update-type metadata via the dependabot/fetch-metadata
-#     action (no free-text parsing).
-#   - Requires CI to be green before merge (GitHub's auto-merge enforces
-#     required status checks).
-#   - Gates merge behind a severity+ecosystem policy table. Default is
-#     low+medium security updates only.
-#
-# Why auto-merge on GitHub (not via a bot like rhodibot) is the right
-# layer: GitHub enforces branch protection + required checks natively,
-# and the PR author is already `dependabot[bot]`. Rhodibot doesn't need
-# to know anything about ecosystems — GitHub handles the merge mechanics
-# once we approve.
-#
-# Threat model:
-#   - A compromised upstream package with a bogus security advisory
-#     could propose a malicious version bump. Mitigation: require at
-#     least one non-automated reviewer for HIGH+CRITICAL severity
-#     (done below — we explicitly refuse to auto-approve those).
-#   - A compromised Dependabot itself is an Akerlof claim-grounder
-#     problem. Not in scope here; track under
-#     `project_claim_grounders_dual_use_akerlof.md`.
-#
-# Dogfooding: this workflow template is itself subject to the same
-# Dependabot config via the github-actions ecosystem block, so SHA
-# bumps for dependabot/fetch-metadata flow through the same path.
+# Never invokes `--admin`: GitHub's native `--auto` waits for all required
+# status checks, reviews and code-scanning rulesets to pass (`squabble != bypass`).
+# Enabling auto-merge does not require submitting an approving review. Keep
+# any required review pending for a maintainer instead of depending on the
+# repository setting that permits GitHub Actions to approve pull requests.
+# The merge request must match the head commit that triggered this run.
 
 name: Dependabot Auto-Merge
 on:
@@ -44,84 +26,91 @@ concurrency:
   cancel-in-progress: false
 permissions:
   contents: read
-  pull-requests: write # needed to approve
-  # NB: keep narrow — do NOT add secrets: read or id-token: write here.
-  # The write scope auto-merge needs is elevated PER JOB below, not here: a
-  # job-level permissions: block REPLACES this one, so the job restates both.
+  pull-requests: read
 jobs:
   automerge:
-    # Only run for PRs actually authored by Dependabot.
-    if: github.actor == 'dependabot[bot]' && github.event.pull_request.user.login == 'dependabot[bot]'
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.user.id == 49699333
     permissions:
-      contents: write # needed to enable auto-merge (gh pr merge --auto)
-      pull-requests: write # needed to approve
+      contents: write
+      pull-requests: write
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Fetch Dependabot metadata
         id: meta
-        uses: dependabot/fetch-metadata@v3.1.0
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-      # --- Policy gate -------------------------------------------------------
-      # Outputs from fetch-metadata we care about:
-      #   update-type      → version-update:semver-{patch,minor,major}
-      #   dependency-type  → direct:{development,production} | indirect
-      #   alert-state      → AUTO_DISMISSED | DISMISSED | FIXED | OPEN
-      #   ghsa-id          → GHSA-... if this is a security PR
-      # --- Policy -------------------------------------------------------------
-      # AUTO-APPROVE + AUTO-MERGE when:
-      #   1. This is a SECURITY update (ghsa-id present), AND
-      #   2. Update is patch or minor, AND
-      #   3. Severity ≤ moderate (Dependabot doesn't expose severity
-      #      directly in fetch-metadata; infer from the absence of
-      #      HIGH/CRITICAL labels added by Dependabot).
-      # Otherwise: do nothing. Human reviews HIGH+CRITICAL security
-      # updates and all non-security bumps.
-      - name: Decide policy outcome
+          github-token: ${{ github.token }}
+
+      - name: Decide policy outcome (fail-closed on severity & semver)
         id: policy
         env:
-          GHSA_ID: ${{ steps.meta.outputs.ghsa-id }}
+          GH_TOKEN: ${{ github.token }}
+          META_GHSA_ID: ${{ steps.meta.outputs.ghsa-id }}
+          DEP_NAMES: ${{ steps.meta.outputs.dependency-names }}
           UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
-          PR_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
           set -euo pipefail
+          action="manual_review"
+          severity="n/a"
+          reason="routine or non-qualifying update"
 
-          is_security=false
-          [ -n "$GHSA_ID" ] && is_security=true
+          # Populate GHSA_ID from fetch-metadata when available; otherwise extract
+          # the GHSA identifier from Dependabot's security PR body and cross-verify
+          # against the authoritative GitHub Advisory API + dependency name (never
+          # trusting PR text alone, and requiring no PAT secret).
+          GHSA_ID="$META_GHSA_ID"
+          if [ -z "$GHSA_ID" ] && [ -n "$PR_BODY" ]; then
+            GHSA_ID="$(printf '%s\n' "$PR_BODY" | grep -oE 'GHSA-[23456789cfghjmpqrvwx]{4}-[23456789cfghjmpqrvwx]{4}-[23456789cfghjmpqrvwx]{4}' | head -n 1 || true)"
+          fi
 
-          # Owner policy (deliberate: velocity over caution). Auto-merge EVERY
-          # Dependabot update — patch, minor AND major, security or routine.
-          # Safe because GitHub's auto-merge only COMPLETES once the required
-          # checks (secret-scanner, codeql, hypatia-scan, openssf-compliance,
-          # build/test) are green: a bump that breaks fails CI and the PR stays
-          # OPEN with an email ("oi, it broke") instead of landing on a red
-          # main; a bump that passes lands within minutes with no chasing.
-          # This is preferred over making Dependabot a ruleset BYPASS actor,
-          # which would let bumps skip those very checks (no gate, no signal).
-          echo "action=automerge" >> "$GITHUB_OUTPUT"
-          echo "security=$is_security" >> "$GITHUB_OUTPUT"
-          echo "update_type=$UPDATE_TYPE" >> "$GITHUB_OUTPUT"
-          echo "ghsa=$GHSA_ID" >> "$GITHUB_OUTPUT"
-      - name: Approve PR (if policy allows)
+          if [ -n "$GHSA_ID" ]; then
+            if [[ "$UPDATE_TYPE" = "version-update:semver-patch" || "$UPDATE_TYPE" = "version-update:semver-minor" ]]; then
+              adv_json="$(gh api "/advisories/${GHSA_ID}" 2>/dev/null || echo '{}')"
+              severity="$(printf '%s' "$adv_json" | jq -r '.severity // "unknown"')"
+              cvss="$(printf '%s' "$adv_json" | jq -r 'if (.cvss.score | type) == "number" then (.cvss.score | tostring) else "invalid" end')"
+              pkg_match="$(printf '%s' "$adv_json" | jq -r --arg deps "$DEP_NAMES" '
+                ($deps | split(",") | map(gsub("^\\s+|\\s+$"; "") | ascii_downcase) | map(select(length > 0))) as $dlist
+                | [ (.vulnerabilities // [])[].package.name // "" | ascii_downcase ] as $alist
+                | if ($dlist | length) > 0 and any($dlist[]; . as $d | any($alist[]; . == $d)) then "true" else "false" end
+              ')"
+              if [ "$pkg_match" = "true" ] && [[ "$severity" = "low" || "$severity" = "medium" ]] && [[ "$cvss" =~ ^[0-9]+(\.[0-9]+)?$ ]] && awk -v s="$cvss" 'BEGIN { exit !(s + 0 < 7.0) }'; then
+                action="automerge"
+                reason="verified ${severity} security ${UPDATE_TYPE#version-update:} (CVSS ${cvss} < 7.0)"
+              else
+                reason="security advisory ${GHSA_ID} (severity='${severity}', CVSS=${cvss}, pkg_match=${pkg_match}) — human review required"
+              fi
+            else
+              reason="security update ${GHSA_ID} is '${UPDATE_TYPE}' (major or unknown) — human review required"
+            fi
+          fi
+
+          {
+            echo "action=$action"
+            echo "severity=$severity"
+            echo "reason=$reason"
+            echo "update_type=$UPDATE_TYPE"
+            echo "ghsa=$GHSA_ID"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Enable auto-merge (when fail-closed policy allows)
+        id: enable
         if: steps.policy.outputs.action == 'automerge'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          gh pr review --approve "$PR_URL" \
-            --body "Auto-approving Dependabot security update (${{ steps.policy.outputs.ghsa }}, ${{ steps.policy.outputs.update_type }}). Policy: low/moderate security patches/minors only."
-      - name: Enable auto-merge (if policy allows)
-        if: steps.policy.outputs.action == 'automerge'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_URL: ${{ github.event.pull_request.html_url }}
-        run: |
-          gh pr merge --auto --squash "$PR_URL"
+          gh pr merge --auto --squash --match-head-commit "$PR_HEAD_SHA" "$PR_URL"
+
       - name: Write decision to step summary
+        if: always()
         env:
           ACTION: ${{ steps.policy.outputs.action }}
-          IS_SECURITY: ${{ steps.policy.outputs.security }}
+          MERGE_OUTCOME: ${{ steps.enable.outcome }}
+          SEVERITY: ${{ steps.policy.outputs.severity }}
+          REASON: ${{ steps.policy.outputs.reason }}
           UPDATE_TYPE: ${{ steps.policy.outputs.update_type }}
           GHSA: ${{ steps.policy.outputs.ghsa }}
         run: |
@@ -130,8 +119,10 @@ jobs:
             echo ""
             echo "| Field | Value |"
             echo "|-------|-------|"
-            echo "| Policy action | \`$ACTION\` |"
-            echo "| Security update | \`$IS_SECURITY\` |"
-            echo "| Update type | \`$UPDATE_TYPE\` |"
+            echo "| Policy action | \`${ACTION}\` |"
+            echo "| Auto-merge request | \`${MERGE_OUTCOME}\` |"
+            echo "| Reason | ${REASON} |"
+            echo "| Advisory severity | \`${SEVERITY}\` |"
+            echo "| Update type | \`${UPDATE_TYPE}\` |"
             echo "| GHSA ID | \`${GHSA:-n/a}\` |"
           } >> "$GITHUB_STEP_SUMMARY"

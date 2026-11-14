@@ -3,7 +3,7 @@
 --
 -- ABI Proof: Non-null pointer safety
 -- Template proof — customise for your project's pointer types.
--- All proofs MUST be constructive (no believe_me, no assert_total).
+-- All proofs MUST be constructive and total; proof escape hatches are forbidden.
 
 module ABI.Pointers
 

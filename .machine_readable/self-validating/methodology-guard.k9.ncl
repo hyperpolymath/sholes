@@ -16,6 +16,7 @@ let methodology_guard = {
 
   pedigree = {
     schema_version = "1.0.0",
+    component_type = "validator:methodology-guard",
     metadata = {
       name = "methodology-guard",
       version = "1.0.0",

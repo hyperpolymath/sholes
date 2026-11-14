@@ -1,227 +1,140 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # SPDX-License-Identifier: MPL-2.0
 # Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 #
-# Template Benchmarks
-# Measures performance characteristics of template validation and build system
-
+# Template Benchmarks (proven-tests-and-benches JSON v1 compatible)
+#
+# Usage:
+#   benches/template_bench.sh [--json | --csv] [REPO_ROOT]
+#   benches/template_bench.sh [REPO_ROOT] [human | json | csv]
+#
+# Exit contract (proven-tests-and-benches 3-outcome convention):
+#   0 = all workloads succeeded (checksum == true for every workload)
+#   1 = one or more benchmarked workloads failed (a broken workload is never timed as clean)
+#   2 = setup error (missing repo root or required benchmark script)
 set -euo pipefail
 
-REPO_ROOT="${1:-.}"
-OUTPUT_FORMAT="${2:-human}"  # human | json | csv
+OUTPUT_FORMAT="human"
+REPO_ROOT="."
 
-# ANSI colors
-BLUE='\033[0;34m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
-log_info() {
-    echo -e "${BLUE}→${NC} $*"
-}
-
-log_pass() {
-    echo -e "${GREEN}✓${NC} $*"
-}
-
-# Ensure we have required commands
-command -v /usr/bin/time >/dev/null 2>&1 || {
-    echo "Warning: /usr/bin/time not available, using built-in time"
-    TIME_CMD="time"
-}
-
-TIME_CMD="/usr/bin/time -f %e" 2>/dev/null || TIME_CMD="time"
-
-echo ""
-echo "═══════════════════════════════════════════════════════════════════════════════"
-echo "Template Benchmarks"
-echo "═══════════════════════════════════════════════════════════════════════════════"
-echo ""
-
-declare -A results
-
-#==============================================================================
-# BENCHMARK 1: Template Validation
-#==============================================================================
-
-log_info "Running template validation benchmark"
-
-# Warm-up run
-if [ -f "$REPO_ROOT/scripts/validate-template.sh" ]; then
-    bash "$REPO_ROOT/scripts/validate-template.sh" "$REPO_ROOT" 0 > /dev/null 2>&1 || true
-fi
-
-# Timed runs
-BENCH_RUNS=3
-TOTAL_TIME=0
-
-for i in $(seq 1 $BENCH_RUNS); do
-    START=$(date +%s%N)
-    bash "$REPO_ROOT/scripts/validate-template.sh" "$REPO_ROOT" 0 > /dev/null 2>&1 || true
-    END=$(date +%s%N)
-
-    # Convert to milliseconds
-    RUN_TIME=$(( (END - START) / 1000000 ))
-    TOTAL_TIME=$(( TOTAL_TIME + RUN_TIME ))
-
-    [ "$OUTPUT_FORMAT" = "human" ] && echo "  Run $i: ${RUN_TIME}ms"
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --json) OUTPUT_FORMAT="json"; shift ;;
+    --csv) OUTPUT_FORMAT="csv"; shift ;;
+    human|json|csv) OUTPUT_FORMAT="$1"; shift ;;
+    *) REPO_ROOT="$1"; shift ;;
+  esac
 done
 
-AVG_VALIDATION_TIME=$(( TOTAL_TIME / BENCH_RUNS ))
-results[validation]=$AVG_VALIDATION_TIME
-log_pass "Validation: ${AVG_VALIDATION_TIME}ms average (${BENCH_RUNS} runs)"
+[ -d "$REPO_ROOT" ] || { echo "template_bench: repo root '$REPO_ROOT' does not exist" >&2; exit 2; }
+REPO_ROOT="$(cd "$REPO_ROOT" && pwd)"
 
-#==============================================================================
-# BENCHMARK 2: Zig Build
-#==============================================================================
+for req in \
+  "$REPO_ROOT/scripts/check-root-shape.sh" \
+  "$REPO_ROOT/scripts/check-ijson-jcs.sh" \
+  "$REPO_ROOT/scripts/check-required-contexts.sh" \
+  "$REPO_ROOT/scripts/check-escape-hatches.sh"
+do
+  [ -f "$req" ] || { echo "template_bench: required workload script missing: $req" >&2; exit 2; }
+done
 
-log_info "Running Zig build benchmark"
+# Print a message only in human output mode.
+log_human() {
+  if [ "$OUTPUT_FORMAT" = "human" ]; then
+    printf '%s\n' "$*"
+  fi
+}
 
-if ! command -v zig &> /dev/null; then
-    echo "  ⚠ Zig compiler not found - skipping Zig build benchmark"
-    results[zig_build]="skipped"
-else
-    cd "$REPO_ROOT/src/interface/ffi"
+# median_of <n1> <n2> ... -> integer median on stdout
+# Requires at least one integer sample; for even counts, truncate the average
+# of the two middle samples toward zero.
+median_of() {
+  local sorted count mid
+  mapfile -t sorted < <(printf '%s\n' "$@" | sort -n)
+  count="${#sorted[@]}"
+  mid=$(( count / 2 ))
+  if [ $(( count % 2 )) -eq 1 ]; then
+    printf '%s' "${sorted[$mid]}"
+  else
+    printf '%s' $(( (sorted[mid - 1] + sorted[mid]) / 2 ))
+  fi
+}
 
-    # Warm-up
-    zig build --summary off > /dev/null 2>&1 || true
+declare -A MEDIAN_NS
+declare -A ITERS
+declare -A CHECKSUM
+WORKLOADS=(escape_hatches ijson_jcs required_contexts root_shape)
+ANY_FAILED=0
 
-    # Clean build
-    BENCH_RUNS=2
-    TOTAL_TIME=0
+# run_workload NAME ITERATIONS COMMAND... — run one warm-up and ITERATIONS timed
+# samples, recording median nanoseconds, iterations, and checksum by NAME.
+# Any failed invocation sets ANY_FAILED and a false checksum; sampling continues.
+run_workload() {
+  local name="$1" iterations="$2"
+  shift 2
+  local samples=() ok="true" i start end elapsed
 
-    for i in $(seq 1 $BENCH_RUNS); do
-        rm -rf zig-cache
+  # Warm-up run
+  if ! "$@" >/dev/null 2>&1; then
+    ok="false"
+    ANY_FAILED=1
+  fi
 
-        START=$(date +%s%N)
-        zig build --summary off > /dev/null 2>&1 || true
-        END=$(date +%s%N)
+  for i in $(seq 1 "$iterations"); do
+    start="$(date +%s%N)"
+    if ! "$@" >/dev/null 2>&1; then
+      ok="false"
+      ANY_FAILED=1
+    fi
+    end="$(date +%s%N)"
+    elapsed=$(( end - start ))
+    [ "$elapsed" -gt 0 ] || elapsed=1
+    samples+=("$elapsed")
+    log_human "  [$name] sample $i/$iterations: $(( elapsed / 1000000 )) ms"
+  done
 
-        RUN_TIME=$(( (END - START) / 1000000 ))
-        TOTAL_TIME=$(( TOTAL_TIME + RUN_TIME ))
+  MEDIAN_NS["$name"]="$(median_of "${samples[@]}")"
+  ITERS["$name"]="$iterations"
+  CHECKSUM["$name"]="$ok"
+}
 
-        [ "$OUTPUT_FORMAT" = "human" ] && echo "  Run $i: ${RUN_TIME}ms"
-    done
+log_human "Template Benchmarks (proven-bench v1)"
+log_human "====================================="
 
-    AVG_BUILD_TIME=$(( TOTAL_TIME / BENCH_RUNS ))
-    results[zig_build]=$AVG_BUILD_TIME
-    log_pass "Zig build: ${AVG_BUILD_TIME}ms average (clean build, ${BENCH_RUNS} runs)"
+run_workload escape_hatches 5 bash "$REPO_ROOT/scripts/check-escape-hatches.sh" \
+  "$REPO_ROOT/src" "$REPO_ROOT/verification" "$REPO_ROOT/.machine_readable/coaptation"
+# Clear any caller-supplied IJSON_JCS binary override so the benchmark always
+# measures the same deterministic JS RFC 7493/8785 workload calibrated in
+# benches/baseline.json (production gates still honour IJSON_JCS on PATH).
+run_workload ijson_jcs 5 env -u IJSON_JCS IJSON_JCS_FORCE_JS=1 bash "$REPO_ROOT/scripts/check-ijson-jcs.sh" --enforce "$REPO_ROOT"
+run_workload required_contexts 5 bash "$REPO_ROOT/scripts/check-required-contexts.sh" "$REPO_ROOT"
+run_workload root_shape 5 bash "$REPO_ROOT/scripts/check-root-shape.sh" "$REPO_ROOT"
 
-    cd - > /dev/null
-fi
-
-#==============================================================================
-# BENCHMARK 3: Zig Tests
-#==============================================================================
-
-log_info "Running Zig test benchmark"
-
-if ! command -v zig &> /dev/null; then
-    echo "  ⚠ Zig compiler not found - skipping Zig test benchmark"
-    results[zig_test]="skipped"
-else
-    cd "$REPO_ROOT/src/interface/ffi"
-
-    # Warm-up
-    zig build test --summary off > /dev/null 2>&1 || true
-
-    START=$(date +%s%N)
-    TEST_OUTPUT=$(zig build test --summary off 2>&1 || true)
-    END=$(date +%s%N)
-
-    TEST_TIME=$(( (END - START) / 1000000 ))
-    results[zig_test]=$TEST_TIME
-    log_pass "Zig tests: ${TEST_TIME}ms"
-
-    # Count tests
-    TEST_COUNT=$(echo "$TEST_OUTPUT" | grep -c "^test " || echo "unknown")
-    echo "  Test count: $TEST_COUNT"
-
-    cd - > /dev/null
-fi
-
-#==============================================================================
-# BENCHMARK 4: Workflow Validation
-#==============================================================================
-
-log_info "Running workflow validation benchmark"
-
-if [ -f "$REPO_ROOT/tests/workflows/validate_workflows_test.sh" ]; then
-    START=$(date +%s%N)
-    bash "$REPO_ROOT/tests/workflows/validate_workflows_test.sh" "$REPO_ROOT/.github/workflows" > /dev/null 2>&1 || true
-    END=$(date +%s%N)
-
-    WORKFLOW_TIME=$(( (END - START) / 1000000 ))
-    results[workflow_validation]=$WORKFLOW_TIME
-    log_pass "Workflow validation: ${WORKFLOW_TIME}ms"
-fi
-
-#==============================================================================
-# BENCHMARK 5: Template Instantiation
-#==============================================================================
-
-log_info "Running template instantiation benchmark"
-
-if [ -f "$REPO_ROOT/tests/e2e/template_instantiation_test.sh" ]; then
-    START=$(date +%s%N)
-    bash "$REPO_ROOT/tests/e2e/template_instantiation_test.sh" "$REPO_ROOT" > /dev/null 2>&1 || true
-    END=$(date +%s%N)
-
-    INSTANTIATION_TIME=$(( (END - START) / 1000000 ))
-    results[instantiation]=$INSTANTIATION_TIME
-    log_pass "Template instantiation: ${INSTANTIATION_TIME}ms"
-fi
-
-#==============================================================================
-# SUMMARY
-#==============================================================================
-
-echo ""
-echo "═══════════════════════════════════════════════════════════════════════════════"
-echo "BENCHMARK RESULTS"
-echo "═══════════════════════════════════════════════════════════════════════════════"
-echo ""
+COMMIT_SHA="$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || printf 'unknown')"
 
 if [ "$OUTPUT_FORMAT" = "json" ]; then
-    echo "{"
-    echo "  \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\","
-    echo "  \"repo\": \"$REPO_ROOT\","
-    echo "  \"results\": {"
-
-    count=0
-    for key in "${!results[@]}"; do
-        value="${results[$key]}"
-        [ $count -gt 0 ] && echo ","
-        if [ "$value" = "skipped" ]; then
-            echo -n "    \"$key\": \"skipped\""
-        else
-            echo -n "    \"$key\": $value"
-        fi
-        count=$((count + 1))
-    done
-    echo ""
-    echo "  }"
-    echo "}"
+  # Emit strict RFC 7493 / RFC 8785 (JCS) JSON v1 document for proven-bench tools.
+  printf '{"commit":"%s","results":[' "$COMMIT_SHA"
+  first=1
+  for w in "${WORKLOADS[@]}"; do
+    [ "$first" -eq 1 ] || printf ','
+    first=0
+    printf '{"checksum":%s,"iterations":%d,"median_ns":%d,"name":"%s"}' \
+      "${CHECKSUM[$w]}" "${ITERS[$w]}" "${MEDIAN_NS[$w]}" "$w"
+  done
+  printf '],"schema_version":1,"suite":"proven-bench"}\n'
 elif [ "$OUTPUT_FORMAT" = "csv" ]; then
-    echo "metric,value_ms,timestamp"
-    for key in "${!results[@]}"; do
-        value="${results[$key]}"
-        if [ "$value" != "skipped" ]; then
-            echo "$key,$value,$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-        fi
-    done
+  printf 'workload,iterations,median_ns,checksum\n'
+  for w in "${WORKLOADS[@]}"; do
+    printf '%s,%d,%d,%s\n' "$w" "${ITERS[$w]}" "${MEDIAN_NS[$w]}" "${CHECKSUM[$w]}"
+  done
 else
-    # Human-readable format
-    for key in "${!results[@]}"; do
-        value="${results[$key]}"
-        if [ "$value" = "skipped" ]; then
-            printf "  %-30s %s\n" "$key:" "SKIPPED"
-        else
-            printf "  %-30s %5d ms\n" "$key:" "$value"
-        fi
-    done
+  log_human ""
+  for w in "${WORKLOADS[@]}"; do
+    printf '  %-20s %8d ms (median of %d, checksum=%s)\n' \
+      "$w" "$(( MEDIAN_NS[$w] / 1000000 ))" "${ITERS[$w]}" "${CHECKSUM[$w]}"
+  done
 fi
 
-echo ""
-echo "Benchmark complete."
-echo ""
+[ "$ANY_FAILED" -eq 0 ] || exit 1
+exit 0

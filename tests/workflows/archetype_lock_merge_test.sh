@@ -18,7 +18,8 @@
 #   negative    the merged lock minus one record the fragment added fails
 #   negative    a fragment record that differs from the base's is refused,
 #               and the base is left untouched
-#   identity    merging an empty fragment rewrites the spine lock byte for byte
+#   identity    merging an empty fragment preserves a canonical lock byte for byte
+#   ordering    an unsorted lock is rendered in canonical key order
 #   idempotent  merging the fragment twice changes nothing
 #   wiring      build/just/repo-init.just still invokes the merge, and renames
 #               each overlay .in workflow (GitHub never runs a .in file)
@@ -46,7 +47,7 @@ lock_ok() { bash "$repo/scripts/check-lock-sync.sh" "$1" >"$fixture/sync.log" 2>
 
 # Succeed when the file's leading comment block carries an SPDX line
 # (workflow-linter.yml, "Check SPDX Headers", verbatim).
-spdx_ok() { awk '/^# SPDX-License-Identifier:/ { found=1 } /^[^#[:space:]]/ { exit } END { exit !found }' "$1"; }
+spdx_ok() { awk '/^# SPDX-License-Identifier:/ { found=1 } /^[[:space:]]*[^#[:space:]]/ { exit } END { exit !found }' "$1"; }
 
 # Succeed when the file declares top-level permissions
 # (workflow-linter.yml, "Check permissions", verbatim).
@@ -61,17 +62,67 @@ if spdx_ok "$fixture/bare.yml" || perms_ok "$fixture/bare.yml"; then
     fail "header predicates accept a workflow with no SPDX line and no permissions"
 fi
 
-# The identity control: the rewrite must be faithful to gh actions-lock's own
-# layout, or every merge would show up as a diff of the whole spine lock.
-{ grep -m1 '^version:' "$spine_lock"; echo 'workflows: {}'; echo 'dependencies: {}'; } > "$fixture/empty.lock"
-cp "$spine_lock" "$fixture/identity.lock"
+# The merger sorts both maps, so byte identity applies to canonical input.
+# Keep a fixed layout control: the live spine may have unsorted new records.
+cat > "$fixture/canonical.lock" <<'LOCK'
+# Lock layout control.
+version: 'v0.0.3'
+workflows:
+    '.github/workflows/alpha.yml':
+        - 'example/alpha@v1'
+    '.github/workflows/zulu.yml': []
+dependencies:
+    'example/alpha@v1':
+        ref: 'v1'
+        commit: 'sha1-1111111111111111111111111111111111111111'
+    'example/zulu@v2':
+        ref: 'v2'
+        commit: 'sha1-2222222222222222222222222222222222222222'
+LOCK
+{ grep -m1 '^version:' "$fixture/canonical.lock"; echo 'workflows: {}'; echo 'dependencies: {}'; } > "$fixture/empty.lock"
+cp "$fixture/canonical.lock" "$fixture/identity.lock"
 merge "$fixture/identity.lock" "$fixture/empty.lock"
-cmp -s "$fixture/identity.lock" "$spine_lock" || fail "an empty merge rewrote the spine lock"
+cmp -s "$fixture/identity.lock" "$fixture/canonical.lock" || fail "an empty merge rewrote a canonical lock"
+
+# The same records in reverse order must normalize without changing the
+# header, record bodies or empty lists. Compare with independently fixed bytes.
+cat > "$fixture/unsorted.lock" <<'LOCK'
+# Lock layout control.
+version: 'v0.0.3'
+workflows:
+    '.github/workflows/zulu.yml': []
+    '.github/workflows/alpha.yml':
+        - 'example/alpha@v1'
+dependencies:
+    'example/zulu@v2':
+        ref: 'v2'
+        commit: 'sha1-2222222222222222222222222222222222222222'
+    'example/alpha@v1':
+        ref: 'v1'
+        commit: 'sha1-1111111111111111111111111111111111111111'
+LOCK
+merge "$fixture/unsorted.lock" "$fixture/empty.lock"
+cmp -s "$fixture/unsorted.lock" "$fixture/canonical.lock" || fail "an unsorted lock did not normalize faithfully"
 
 # Everything below reproduces the mint's lock step, so repo-init must still
 # be the thing that runs it.
 grep -q 'scripts/rust-tool.sh merge-actions-lock' "$repo/build/just/repo-init.just" \
     || fail "build/just/repo-init.just no longer merges archetype lock fragments"
+
+# Renaming overlay .in files is now the general rule (2026-10-30): the mint
+# records the file list the overlay actually added and resolves *.in inside it,
+# instead of naming three julia-library paths by hand. The old check grepped
+# repo-init for each workflow's own path, which depended on that hardcoded list —
+# it would have gone on passing while a new archetype's workflow kept its suffix.
+# Check the RULE instead. (The per-file consequence is exercised by the overlay
+# list the mint records: it is built from `find archetypes/<name>/overlay`, so
+# every .in below is in it by construction.)
+grep -qF 'mapfile -t OVERLAY_FILES < <(' "$repo/build/just/repo-init.just" \
+    || fail "build/just/repo-init.just no longer records the overlay's own file list"
+grep -qF 'for _of in "${OVERLAY_FILES[@]}"' "$repo/build/just/repo-init.just" \
+    || fail "build/just/repo-init.just no longer iterates the overlay's own file list when resolving .in names"
+grep -qF '*.in) [ -f "$_of" ]' "$repo/build/just/repo-init.just" \
+    || fail "build/just/repo-init.just no longer renames *.in inside the overlay's file list"
 
 shopt -s nullglob
 checked=0
@@ -89,10 +140,6 @@ for arch in "$repo"/archetypes/*/; do
     for f in "${wfs[@]}"; do
         spdx_ok "$f" || fail "$name: ${f#"$repo"/} has no SPDX line in its leading comment block"
         perms_ok "$f" || fail "$name: ${f#"$repo"/} has no top-level permissions"
-        case "$f" in
-            *.in) grep -qF ".github/workflows/$(basename "$f")" "$repo/build/just/repo-init.just" \
-                || fail "$name: build/just/repo-init.just never renames ${f#"$repo"/}, so the minted workflow keeps its .in suffix and never runs" ;;
-        esac
     done
 
     # The mint: spine workflows and lock, then the overlay's workflows under

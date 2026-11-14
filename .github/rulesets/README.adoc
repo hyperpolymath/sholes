@@ -79,28 +79,65 @@ gh api "/repos/{owner}/{repo}/rulesets" --jq '.[] | "\(.id)\t\(.name)\t\(.enforc
 ----
 
 |===
-| Live ruleset | Enforcement | Target | Covers
+| Live ruleset | Enforcement | Target | Rules reported by the API
 
-| `Base` | active | branch | deletion, required signatures, code scanning (CodeQL/Hypatia), Copilot review, non-fast-forward
-| `Branch-Floor` | active | branch | deletion, non-fast-forward
-| `Immutable-Tags` | active | tag | creation, deletion, non-fast-forward, update, required signatures
+| `Require-Linear-History` (`24258228`) | active | branch | `required_linear_history`
+| `Secret-Scan-Floor` (`24309812`) | active | branch | *none* — `rules: []`
+| `Immutable-Tags` (`22959911`) | active | tag | creation, deletion, non-fast-forward, update, required signatures
 |===
+
+[IMPORTANT]
+====
+Measured 2026-11-08. Two corrections against the previous version of this table:
+
+. `Base` (`23218684`) no longer exists. `GET /rulesets/23218684` returns
+*404 Not Found*, and the repository's ruleset list does not include it. Every
+claim in the drift notes below about what `Base` enforces — code scanning,
+Copilot review, `deletion`, `non_fast_forward` — describes a ruleset that is
+gone. `GET /rules/branches/main` now returns exactly one rule
+(`required_linear_history`, from `24258228`).
+. `Secret-Scan-Floor` (`24309812`) is `active` on `target: branch` with
+`conditions.ref_name.include: ["~DEFAULT_BRANCH"]`, but it carries **zero
+rules**. It therefore requires *no* status check. `scan / gitleaks` is
+*produced* by `.github/workflows/secret-scanner.yml`, not required by anything.
+
+So as of 2026-11-08 `main` is protected only by `required_linear_history`.
+This is a record of the live state, not an endorsement: a status-check floor
+that enforces nothing is not a floor. Restoring it is an owner action on the
+live ruleset and a deliberate decision about which contexts to require, not
+something these files can do on their own — `base.json` is upstream-sourced and
+its `required_status_checks` is deliberately empty.
+====
 
 === Known drift between these files and what is live
 
 The files below are *not* a transcript of the live rulesets. This is the
-divergence as of 2026-09-28, recorded rather than silently reconciled because
+divergence as of 2026-10-25, recorded rather than silently reconciled because
 `base.json` is sourced verbatim from upstream and must not be forked here.
 
-*Live `Base` rule that no file describes* ::
+*Live rulesets that no synced file describes* ::
 
-`code_scanning` (with CodeQL and Hypatia tools) and `copilot_code_review` are
-enforced live but appear in neither `base.json` nor any upstream file synced into
-this directory. Upstream's nearest equivalent,
+CORRECTED 2026-11-08: the previous text here stated that `code_scanning` (CodeQL
+and Hypatia) and `copilot_code_review` are "enforced live in `Base`
+(`23218684`)", and that `Secret-Scan-Floor` (`24309812`) "enforces
+`required_status_checks` for `scan / gitleaks`". Both statements are now false.
+`Base` returns 404 and is absent from the ruleset list; `Secret-Scan-Floor` is
+active but has `rules: []`. No live branch ruleset carries a `code_scanning`
+rule either, so CodeQL and Hypatia currently *report* results without gating
+merges. What remains true is the file-vs-live gap: upstream's nearest
+equivalent for code scanning,
 `config/rulesets/Optimus-Extras.json`, declares `code_scanning` with an *empty*
-`code_scanning_tools` list, so it does not describe what is live here either.
+`code_scanning_tools` list, so it would not describe a populated live rule
+either. Conversely, `branch-floor.json` is retained here as the irreducible
+recovery payload even though `Branch-Floor` is not mounted as a live ruleset and
+nothing currently supplies its `deletion` / `non_fast_forward` coverage.
 
 *Removed from live `Base` on 2026-10-02 (owner decision)* ::
+
+NOTE (2026-11-08): the history below is retained, but `Base` was subsequently
+deleted outright — the ruleset returns 404 and is absent from the ruleset list.
+Every rule discussed here is now unenforced, including the `deletion` and
+`non_fast_forward` coverage noted further down.
 
 `Scorecard` was dropped from `code_scanning_tools`, and the `code_coverage` rule
 (minimum 80%, max drop 5) was deleted. Neither could ever be satisfied by a pull
@@ -117,8 +154,9 @@ so they stay. Do not add either rule back without a producer that runs on
 
 `required_linear_history` is in `base.json` but not in live `Base`; it is
 enforced by the separate `Require-Linear-History` ruleset. `required_status_checks` (an empty list, so a no-op) and the
-`pull_request` rule are likewise absent from live `Base`. (`non_fast_forward` is
-live in `Base` as of 2026-10-02, and is also covered by `Branch-Floor`.)
+`pull_request` rule are likewise absent from live `Base`. (`non_fast_forward` was
+live in `Base` as of 2026-10-02; `branch-floor.json` also specifies it as a
+retained recovery payload, though `Branch-Floor` is not mounted as a separate live ruleset. With `Base` deleted as of 2026-11-08, no live ruleset supplies `non_fast_forward` or `deletion` on branches.)
 
 *`Immutable-Tags.json` lags the live ruleset* ::
 

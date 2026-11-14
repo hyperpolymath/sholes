@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: MPL-2.0
+#
+# repo-map-trim.campaign: carry the gen-repo-map.sh comment-trim fix to the
+# estate repositories that already hold a template copy of the script.
+#
+# TARGETED, NOT ESTATE-WIDE. A dry run on 2026-11-10 over the 325 repositories
+# in gv-clade-index found the script in 6 of them; the other 263 would have had
+# it ADDED, which this campaign must not do. Run it only with this repos file:
+#
+#   catachresis-colloquium/enterglide-ncc-137-k
+#   catachresis-colloquium/planer-1
+#   catachresis-colloquium/stealth-glider-ecosystem
+#   catachresis-colloquium/tardis-rule-disruption
+#   catachresis-colloquium/x15-rocket-glider
+#
+# (These 5 moved from metadatastician to catachresis-colloquium. Use the new
+# names: a repo-scoped GitHub proxy (as in Claude Code cloud sessions) does
+# not follow the redirect, so pushes to the old names are refused.)
+#
+# Each holds a copy that matches an earlier template version (no local edits),
+# and regenerating its map with the fixed script changes nothing, so no gate
+# goes red. hyperpolymath/oblibeny is left out on purpose: its map changes by
+# 2 lines and its CI checks the map, so it needs the script and a
+# `just repo-map` in the same commit, which a campaign cannot do.
+[meta]
+name        = chore/rsr-repo-map-trim
+description = keep allowlist comments whole in the repository map (rsr-template-repo PR 316)
+[paths]
+scripts/gen-repo-map.sh

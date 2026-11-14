@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Check for Groove manifest
         id: groove
@@ -81,11 +83,17 @@ jobs:
           fi
 
       - name: "Write summary"
+        env:
+          HAS_MANIFEST: ${{ steps.groove.outputs.has_manifest }}
+          HAS_GROOVE_CODE: ${{ steps.groove.outputs.has_groove_code }}
+          HAS_SERVER: ${{ steps.groove.outputs.has_server }}
         run: |
-          echo "## Groove Protocol Check" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Check | Status |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|-------|--------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Static manifest (www/.well-known/groove/manifest.json) | ${{ steps.groove.outputs.has_manifest }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Groove endpoint in code | ${{ steps.groove.outputs.has_groove_code }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Has HTTP server code | ${{ steps.groove.outputs.has_server }} |" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "## Groove Protocol Check"
+            echo ""
+            echo "| Check | Status |"
+            echo "|-------|--------|"
+            echo "| Static manifest (www/.well-known/groove/manifest.json) | ${HAS_MANIFEST} |"
+            echo "| Groove endpoint in code | ${HAS_GROOVE_CODE} |"
+            echo "| Has HTTP server code | ${HAS_SERVER} |"
+          } >> "$GITHUB_STEP_SUMMARY"

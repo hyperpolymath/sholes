@@ -120,6 +120,6 @@ You will be asked:
 
 == Next Steps
 
-* Read the link:README.adoc[README] for full feature overview
-* Read the link:EXPLAINME.adoc[EXPLAINME] for architecture and design decisions
+* Read the link:../../README.adoc[README] for full feature overview
+* Read the link:../EXPLAINME.adoc[EXPLAINME] for architecture and design decisions
 * Try `just tour` for a guided walkthrough

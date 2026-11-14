@@ -1,0 +1,108 @@
+# This workflow is managed by gh actions-lock.
+# SPDX-License-Identifier: MPL-2.0
+#
+# proven-tests.yml — Full 3-outcome testing, proof honesty, data-format, and
+# Six-Sigma leave-one-out benchmark regression suite grounded in
+# hyperpolymath/proven-tests-and-benches and hyperpolymath/ijson-jcs.
+name: Proven Tests and Benches
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: proven-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  proven-suite:
+    name: Proven 3-outcome test & bench suite
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      NICKEL_VERSION: '1.18.0'
+      NICKEL_SHA256: '9cba4dd65ae9915ec61f73033aafcff307a377665a83fd8f530df086763318cb'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Checkout canon validators into RUNNER_TEMP (metadatastician/standards)
+        run: |
+          set -euo pipefail
+          git init -q "$RUNNER_TEMP/standards"
+          git -C "$RUNNER_TEMP/standards" remote add origin https://github.com/metadatastician/standards.git
+          git -C "$RUNNER_TEMP/standards" config core.sparseCheckout true
+          printf '1-formats/deed/\n1-formats/k9/\n' > "$RUNNER_TEMP/standards/.git/info/sparse-checkout"
+          git -C "$RUNNER_TEMP/standards" fetch -q --depth 1 origin f0b3cd4c464d33e1584f8528c17bce104555e256
+          git -C "$RUNNER_TEMP/standards" checkout -q FETCH_HEAD
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+      - name: Install verified Nickel 1.18.0 (K9 L2 semantics)
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/nickel-bin"
+          curl --proto '=https' --proto-redir '=https' --tlsv1.2 --fail --silent --show-error --location \
+            "https://github.com/tweag/nickel/releases/download/${NICKEL_VERSION}/nickel-x86_64-linux" \
+            --output "$RUNNER_TEMP/nickel-bin/nickel"
+          echo "${NICKEL_SHA256}  $RUNNER_TEMP/nickel-bin/nickel" | sha256sum --check --strict
+          chmod +x "$RUNNER_TEMP/nickel-bin/nickel"
+          echo "$RUNNER_TEMP/nickel-bin" >> "$GITHUB_PATH"
+      - name: Install verified Zig 0.16.0 (matching mise.lock)
+        run: |
+          set -euo pipefail
+          curl --proto '=https' --proto-redir '=https' --fail --silent --show-error --location \
+            https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz \
+            --output "$RUNNER_TEMP/zig.tar.xz"
+          echo "70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00  $RUNNER_TEMP/zig.tar.xz" | sha256sum --check --strict
+          mkdir -p "$RUNNER_TEMP/zig"
+          tar -xJf "$RUNNER_TEMP/zig.tar.xz" -C "$RUNNER_TEMP/zig" --strip-components=1
+          echo "$RUNNER_TEMP/zig" >> "$GITHUB_PATH"
+
+      - name: Install verified Just 1.56.0 (matching mise.lock)
+        run: |
+          set -euo pipefail
+          curl --proto '=https' --proto-redir '=https' --fail --silent --show-error --location \
+            https://github.com/casey/just/releases/download/1.56.0/just-1.56.0-x86_64-unknown-linux-musl.tar.gz \
+            --output "$RUNNER_TEMP/just.tar.gz"
+          echo "fa2a8ec1015d9df5330941ade12437488fc40d33f9c9f8cd4eb70a26de11b639  $RUNNER_TEMP/just.tar.gz" | sha256sum --check --strict
+          mkdir -p "$RUNNER_TEMP/just-bin"
+          tar -xzf "$RUNNER_TEMP/just.tar.gz" -C "$RUNNER_TEMP/just-bin" just
+          chmod +x "$RUNNER_TEMP/just-bin/just"
+          echo "$RUNNER_TEMP/just-bin" >> "$GITHUB_PATH"
+
+      - name: Cache pinned ijson-jcs and panic-attack binaries
+        id: cache-ijson
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/bin/ijson-jcs
+            ~/.cargo/bin/panic-attack
+          key: proven-tools-${{ runner.os }}-ijson-2c880594c8b1-pa-b5530834a839
+
+      - name: Build pinned hyperpolymath/ijson-jcs & panic-attack when uncached
+        if: steps.cache-ijson.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          cargo install --locked \
+            --git https://github.com/hyperpolymath/ijson-jcs.git \
+            --rev 2c880594c8b1f823a7ab2a8a830c894975a1792e \
+            --bin ijson-jcs
+          cargo install --locked \
+            --git https://github.com/hyperpolymath/panic-attack.git \
+            --rev b5530834a839734d1d181bfe6edb0d43d4233cf4
+
+      - name: Run 3-outcome proven test, proof honesty, FFI, E2E & bench suite
+        env:
+          IJSON_JCS: ijson-jcs
+        run: |
+          set -euo pipefail
+          export PATH="$HOME/.cargo/bin:$PATH"
+          STANDARDS_DIR="$RUNNER_TEMP/standards" bash scripts/run-proven-suite.sh --require-zig --bench

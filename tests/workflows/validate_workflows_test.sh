@@ -99,10 +99,10 @@ REQUIRED_WORKFLOWS=(
     "security-policy.yml"
     "wellknown-enforcement.yml"
     "workflow-linter.yml"
-    # Retired in #14, replaced by runtime-policy.yml — see the note in
-    # scripts/validate-template.sh. Keeping the old names here required two
-    # files the template no longer ships.
-    "runtime-policy.yml"
+    # npm-bun-blocker.yml and ts-blocker.yml were retired in #14 for
+    # runtime-policy.yml, which governance has since absorbed — see the note in
+    # scripts/validate-template.sh.
+    "governance.yml"
     "secret-scanner.yml"
 )
 

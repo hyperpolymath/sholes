@@ -70,7 +70,11 @@ jobs:
           done
           # would-CREATE: missing required files
           [ -f "SECURITY.md" ] || [ -f ".github/SECURITY.md" ] || warn "no SECURITY.md (would be created)"
-          [ -f "CONTRIBUTING.md" ] || [ -f ".github/CONTRIBUTING.md" ] || warn "no CONTRIBUTING.md (would be created)"
+          # The estate writes its prose in AsciiDoc: CONTRIBUTING.adoc is the guide,
+          # not a gap (the .md was dropped in 1486d06 and the canary tripped on
+          # a rule that had diverged from the norm). Either form, root or .github/.
+          [ -f "CONTRIBUTING.md" ] || [ -f ".github/CONTRIBUTING.md" ] || [ -f "CONTRIBUTING.adoc" ] || [ -f ".github/CONTRIBUTING.adoc" ] \
+            || warn "no CONTRIBUTING.adoc or CONTRIBUTING.md (would be created)"
 
           # --- unfixable compliance gaps (also drift) ---
           ls *_chora.deed >/dev/null 2>&1 || warn "missing repo deed (*_chora.deed at the root)"

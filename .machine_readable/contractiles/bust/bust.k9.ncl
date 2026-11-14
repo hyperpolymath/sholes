@@ -23,15 +23,27 @@ K9!
 # past their expiry), and the "it works, ship it" pattern where a
 # caller silently starts using a must-not-run API.
 
+#
+# 2026-10-19 (K9 contract v1.0.0, D173, standards#1058): this record is a
+# DECLARATION evaluated at 'Yard. The probes it lists are run by the paired
+# runner (bust.ncl and the scripts/run-*.sh runners), which is the execution
+# surface; this file spawns nothing. A 'Hunt record needs signature_required,
+# a signature block and a verified signature (K9-S008/S009/C001); no
+# contractile carries one, so 'Hunt here was a claim the gate could never honour.
+
 let base    = import "../_base.ncl" in
 
 {
   pedigree = base.pedigree_schema & {
     contractile_verb = "bust",
+    schema_version   = "1.0.0",
+    component_type   = "contractile:bust",
+    semantics        = "hard-stop / expiry / must-not-run declarations",
+    side_effects     = [],
     paired_xfile     = "../bust/bust.k9.ncl#declaration",
     paired_runner    = "../bust/bust.ncl",
 
-    tier      = 'Hunt,
+    tier      = 'Yard,
     authority = 'blocking,
 
     metadata = {
@@ -44,12 +56,12 @@ let base    = import "../_base.ncl" in
     },
 
     security = {
-      leash = 'Hunt,
-      signature_required = true,
+      leash = 'Yard,
+      signature_required = false,
       trust_level = "read-only expiry + state-check with subprocess",
       allow_network = false,
       allow_filesystem_write = false,
-      allow_subprocess = true,
+      allow_subprocess = false,   # the paired runner spawns; this record does not
       probe_scope = 'read_only,
     },
 

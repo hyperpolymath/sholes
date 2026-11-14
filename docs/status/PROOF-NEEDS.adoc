@@ -26,7 +26,9 @@
 
 == Mandatory Proofs (All RSR Repos)
 
-These proofs come from the sholes and MUST be present in every repo:
+These proofs are inherited from the RSR template spine and MUST be present in every repo.
+(Name no repository here: the mint's self-name pass rewrites the template's
+name into the child's, which once made this line credit the child.)
 
 === ABI/FFI Boundary Proofs (Idris2)
 
@@ -48,7 +50,7 @@ These proofs come from the sholes and MUST be present in every repo:
 | # | Proof | Status | File
 
 | TP-1 | Core data type well-formedness | Needed | `verification/proofs/idris2/Types.idr`
-| TP-2 | Public API type safety (exported functions) | Needed | `verification/proofs/lean4/ApiTypes.lean`
+| TP-2 | Public API type safety (exported functions). PROOF-POLICY §1 assigns APIs to Idris2; the Lean file is the shipped example until a project ports it | Needed | `verification/proofs/lean4/ApiTypes.lean`
 |===
 
 == Project-Specific Proofs
@@ -85,17 +87,23 @@ CI will reject any PR introducing these patterns (enforced by `panic-attack assa
 
 == Prover Selection Guide
 
+The mapping is set by `3-practice/PROOF-POLICY.adoc` §1 in
+`metadatastician/standards`, not by this table: where they differ, the policy
+wins. `verification/proofs/README.adoc` maps it onto this tree.
+
 [cols="2,2,3", options="header"]
 |===
-| Use Case | Recommended Prover | Why
+| Code or obligation | Prover | Notes
 
-| ABI/FFI boundaries | *Idris2* | Dependent types model layouts precisely
-| Type system proofs | *Coq* or *Lean4* | Mature proof assistants for metatheory
-| Algebraic properties | *Lean4* | Good mathlib support
-| Inductive/coinductive | *Agda* | Native support for (co)induction
-| Distributed systems | *TLA+* | Model checking for protocols
-| Numerical properties | *Isabelle* | Strong real analysis library
+| Theory (type systems, lattices, metatheory, algebra) | *Agda*, rechecked in *Rocq* and *Lean* | Canonical invocation `agda --safe --without-K --cubical-compatible` (§2.1). The Rocq leg is Dedukti transport first, hand re-proof as the fallback; the Lean leg is re-proved until a released Lambdapi Lean exporter exists (§2). *No Mathlib*: a missing lemma is proved in Lean core.
+| APIs, ABIs, engineering properties | *Idris2* | `%default total`; no `believe_me` or `assert_total`.
+| Rust code | *Creusot* with *Pearlite* contracts, and *Verus* | On the code. Kani for `unsafe` and FFI seams, and Aeneas where Rust implements an Agda theorem, alongside and never instead (§1.2, §4.1).
+| Ada code | *SPARK* | GNATprove.
+| Concurrency protocols | *TLA+* (a §4 exception) | A finite model check is `tested-only`, with its bounds, not `proven`.
 |===
+
+Grades are §8 Proof Witness Grades (`PWG-3` … `PWG-1`), recorded per claim in
+`PROOF-STATUS.adoc` and derived from receipts.
 
 == Proof File Locations
 
@@ -104,11 +112,11 @@ verification/proofs/
 ├── idris2/          # Idris2 proofs (ABI, dependent types)
 │   ├── ABI/         # ABI-specific proofs
 │   └── *.idr        # Project-specific Idris2 proofs
-├── lean4/           # Lean4 proofs (algebra, lattices)
+├── lean4/           # Lean recheck legs of Agda theory (core only, no Mathlib)
 │   └── *.lean
-├── agda/            # Agda proofs (induction, metatheory)
+├── agda/            # Agda theory proofs (the source of truth, §2)
 │   └── *.agda
-├── coq/             # Coq proofs (type systems, compilation)
+├── coq/             # Rocq recheck legs of Agda theory
 │   └── *.v
 └── tlaplus/         # TLA+ specs (distributed protocols)
     └── *.tla

@@ -34,9 +34,14 @@ A person uses it to start a new repository:
 
 . On GitHub, *Use this template* (or clone it).
 . In the new checkout, run `just repo-init`. It asks for the project name, owner,
-  author and licence contact (listed in `.machine_readable/ai/PLACEHOLDERS.adoc`),
+  author and licence contact,
   replaces every placeholder token, then validates the result. `just repo-init
   julia-library` applies the one archetype overlay shipped in `archetypes/`.
++
+The token list is the `placeholders` document (role `placeholders`; id `repo-document:github.com/<owner>/<repo>#placeholders`), registered under
+`(documents)` in `*_chora.deed` (a minted repository no longer carries it).
+If this page is gone, link:../MAINTAINERS.adoc[contact the maintainer], or ask an AI assistant to read
+`*_chora.deed` for its current location.
 . Run `just validate` (structure + metadata) and `just doctor` (toolchain).
 
 An AI running `repo-init` sets `RSR_NON_INTERACTIVE=1` and passes the answers as

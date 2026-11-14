@@ -51,27 +51,29 @@ else
     bad "shipped formatting command"
 fi
 
-cd "$SCRATCH"
+cd "$SCRATCH" || exit 1
 
 # ── 1. overlay copy (as repo-init does) ────────────────────────────────
 cp -a "$OVERLAY/." .
 
 # ── 2. token substitution (as repo-init does) + hunk A (uuid derivation)
-OWNER=hyperpolymath; REPO=mintcheck; PROJECT_NAME=MintCheck
+export OWNER=hyperpolymath REPO=mintcheck PROJECT_NAME=MintCheck
 AUTHOR="Jonathan D.A. Jewell"; AUTHOR_EMAIL="owner@hyperpolymath.dev"
-FORGE=https://github.com; CURRENT_YEAR=$(date +%Y)
+export FORGE=https://github.com
+CURRENT_YEAR=$(date +%Y)
 LB='{{'; RB='}}'
-REPO_UUID=$(python3 -c "import uuid; print(uuid.uuid5(uuid.NAMESPACE_URL, '${FORGE}/${OWNER}/${REPO}'))")
 # Execute the shipped rule rather than a copied UUID algorithm. The previous
 # v5 copy let this acceptance test pass while exercising the retired mint.
-ARCHETYPE=julia-library
-SED_ARGS=()
+export ARCHETYPE=julia-library
 UUID_RULE=$(awk '
     /^    if \[ "\$ARCHETYPE" = "julia-library" \]; then$/ { copying = 1 }
     copying { last = ($0 ~ /^    fi$/); sub(/^    /, ""); print; if (last) exit }
 ' "$REPO_DIR/build/just/repo-init.just")
 [ -n "$UUID_RULE" ] || { bad "package UUID block not found in repo-init"; exit 1; }
-eval "$UUID_RULE"
+UUID_SCRIPT=$(mktemp)
+printf '%s\n' "$UUID_RULE" > "$UUID_SCRIPT"
+# shellcheck disable=SC1090
+. "$UUID_SCRIPT"
 for f in $(grep -rl "{{" . 2>/dev/null || true); do
     tmp=$(mktemp)
     sed -e "s|${LB}PROJECT_NAME${RB}|${PROJECT_NAME}|g" \
@@ -139,7 +141,12 @@ if [ "$MINTED_UUID" = "$PACKAGE_UUID" ] \
 else
     bad "package uuid derivation"
 fi
-RE_MINT=$(eval "$UUID_RULE" >/dev/null; printf '%s\n' "$PACKAGE_UUID")
+RE_MINT=$(
+    # shellcheck disable=SC1090
+    . "$UUID_SCRIPT" >/dev/null
+    printf '%s\n' "$PACKAGE_UUID"
+)
+rm -f "$UUID_SCRIPT"
 [ "$RE_MINT" = "$MINTED_UUID" ] && ok "re-mint derives the same uuid (stable identity)" || bad "uuid not stable across re-mints"
 
 # ── 7. JET analysis — the SHIPPED invocation, actually executed ────────

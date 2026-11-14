@@ -64,8 +64,11 @@ Or with OPSM, the odds-and-sods package manager (see <<opsm>>):
 `opsm install https://github.com/hyperpolymath/sholes.git --registry git`
 
 TIP: To start a *new* project from this template, use GitHub's *Use this template*
-button (or clone as above), then run `just repo-init` before step 3; it fills every
-placeholder token. The steps below work the same afterwards.
+button (or clone as above), install the toolchain (step 3), then run
+`mise exec -- just repo-init` (plain `just repo-init` once mise is activated);
+it fills every placeholder token, and needs the toolchain's yq to keep the container
+configs KYAML (it stops before writing anything without one). The steps below work
+the same afterwards.
 
 == 3. Install the toolchain
 
@@ -74,6 +77,10 @@ placeholder token. The steps below work the same afterwards.
 mise trust          # allow this repository's mise.toml
 mise install        # installs everything mise.toml lists, at mise.lock's versions
 ----
+
+The `just` commands from here on expect the toolchain on `PATH`: activate mise in
+your shell (`eval "$(mise activate bash)"`, or your shell's equivalent), or run each
+one as `mise exec -- just …`.
 
 That installs:
 

@@ -1,3 +1,24 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 = policies Registry
+
+Machine-readable policies. Each file states a rule the repository is checked
+against; each has a script that refuses a violation and a test that proves the
+script fires.
+
+[cols="1,1,2"]
+|===
+|File |Checked by |What it states
+
+|`hypatia-rule-order.json`
+|`scripts/check-hypatia-rule-order.sh`
+|The rank order of Hypatia's suppression layers, which workflow owns which
+concern, the clash resolutions (`C1`–`C8`), and the pins the order was written
+against. Prose: `docs/HYPATIA-RULE-ORDER.adoc`.
+
+|===
+
+Adding a policy file means adding three things: the policy, the checker that
+refuses a violation of it, and a lane in `scripts/run-proven-suite.sh` (with a
+Silence + Firing test under `tests/workflows/`) so the checker itself cannot
+stop working unnoticed.

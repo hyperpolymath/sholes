@@ -27,11 +27,11 @@ RUN apk update && apk add --no-cache \
 
 # Nickel (the .machine_readable contracts): the same verified release CI uses
 # (.github/workflows/estate-rules.yml). Bump the version and both digests together.
-ARG NICKEL_VERSION=1.17.0
+ARG NICKEL_VERSION=1.18.0
 RUN set -eu; \
     case "$(uname -m)" in \
-      x86_64)  asset=nickel-x86_64-linux; sum=afcdfa6e0fff31760cf229e85997456c02c00b8b3b84ff38f897ac7b3f39ae34 ;; \
-      aarch64) asset=nickel-arm64-linux;  sum=9d7e027fde829b5788c92231c27fcfc926ee841d0716d655cee202c9f582e0c0 ;; \
+      x86_64)  asset=nickel-x86_64-linux; sum=9cba4dd65ae9915ec61f73033aafcff307a377665a83fd8f530df086763318cb ;; \
+      aarch64) asset=nickel-arm64-linux;  sum=626571e76b66523f454abb373fda4935e2b2685a008ebb8a783b0d20321ffdbd ;; \
       *) echo "no Nickel release binary for $(uname -m)" >&2; exit 1 ;; \
     esac; \
     curl --proto '=https' --proto-redir '=https' -fsSL \

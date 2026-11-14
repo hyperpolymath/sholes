@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Scan for invisible characters
         id: lint
@@ -70,10 +72,12 @@ jobs:
           fi
 
       - name: "Write summary"
+        env:
+          READY: ${{ steps.lint.outputs.ready }}
+          FINDINGS: ${{ steps.lint.outputs.findings }}
         run: |
-          if [ "${{ steps.lint.outputs.ready }}" = "true" ]; then
-            FINDINGS="${{ steps.lint.outputs.findings }}"
-            if [ "$FINDINGS" -gt 0 ] 2>/dev/null; then
+          if [ "$READY" = "true" ]; then
+            if [ "${FINDINGS:-0}" -gt 0 ] 2>/dev/null; then
               echo "## Empty-Linter Results" >> "$GITHUB_STEP_SUMMARY"
               echo "" >> "$GITHUB_STEP_SUMMARY"
               echo "Found **${FINDINGS}** invisible character issue(s). See annotations above." >> "$GITHUB_STEP_SUMMARY"

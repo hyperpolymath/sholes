@@ -6,6 +6,10 @@ name: Workflow Security Linter
 
 on:
   push:
+    # A PR push already runs this through pull_request; push runs only on
+    # main, so each PR push is linted once and main is still checked after merge.
+    branches:
+      - main
     paths:
       - '.github/workflows/**'
   pull_request:
@@ -38,7 +42,7 @@ jobs:
             [ -f "$file" ] || continue
             # actions-lock may prepend its own comment. Require the licence
             # in the leading comment block, before the workflow body.
-            if ! awk '/^# SPDX-License-Identifier:/ { found=1 } /^[^#[:space:]]/ { exit } END { exit !found }' "$file"; then
+            if ! awk '/^# SPDX-License-Identifier:/ { found=1 } /^[[:space:]]*[^#[:space:]]/ { exit } END { exit !found }' "$file"; then
               echo "ERROR: $file missing SPDX header"
               failed=1
             fi
@@ -67,12 +71,17 @@ jobs:
           echo "All workflows have permissions declared"
 
       # Bun is the estate's first-choice runtime (LANGUAGE-POLICY.adoc §1:
-      # Bun > Deno > pnpm > npm). Tag form
-      # matches every other ref in this repo and is resolved by actions.lock.
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2.2.0
-        with:
-          bun-version: latest
+      # Bun > Deno > pnpm > npm). It is the estate pin 1.4.2, downloaded and
+      # sha256-checked as Estate Rules installs its tools, so this gate runs
+      # no third-party action and no unpinned runtime.
+      - name: Install verified Bun 1.4.2
+        run: |
+          curl --proto '=https' --proto-redir '=https' --fail --silent --show-error --location \
+            https://github.com/oven-sh/bun/releases/download/bun-v1.4.2/bun-linux-x64.zip \
+            --output "$RUNNER_TEMP/bun.zip"
+          echo "36368faef7527875d5ffa52e53cd48021741f2a83eb6208a8dd64068d422a913  $RUNNER_TEMP/bun.zip" | sha256sum --check --strict
+          unzip -q "$RUNNER_TEMP/bun.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/bun-linux-x64" >> "$GITHUB_PATH"
 
       - name: Check SHA-Pinned Actions
         run: |

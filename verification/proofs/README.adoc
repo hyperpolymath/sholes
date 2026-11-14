@@ -2,14 +2,90 @@
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 = Formal Verification Proofs
 
-This directory contains formal proofs organised by proof assistant.
+Which prover carries which obligation is set estate-wide by the proof policy,
+`3-practice/PROOF-POLICY.adoc` in `hyperpolymath/standards`. Read it there;
+this page only maps it onto this directory.
 
-== Directory Structure
+== Which prover for which obligation
+
+[cols="1,1,2",options="header"]
+|===
+|Code or obligation |Verifier |Where it lives
+
+|Rust code
+|*Creusot* with *Pearlite* contracts, and *Verus* (policy §1.2)
+|On the Rust code itself (contracts in the crate), not in this directory.
+Pearlite is Creusot's specification language, not a third verifier.
+
+|Ada code
+|*SPARK*
+|On the Ada code itself, checked by `gnatprove`.
+
+|APIs, ABIs and engineering properties
+|*Idris2*
+|`idris2/` (the ABI proofs are mandatory).
+
+|Theory
+|*Agda*, rechecked in *Rocq* and *Lean*
+|`agda/` is the source of truth; `coq/` and `lean4/` hold the recheck legs
+(Dedukti transport first, hand re-proof as the fallback; no Mathlib).
+|===
+
+Statements about one repository's types, functions or wire formats are
+engineering (Idris2). Statements that would hold for any implementation are
+theory (Agda). Behaviour of first-party Rust or Ada code (pre- and
+postconditions, loop invariants, absence of run-time errors) is proved with
+Creusot/Pearlite and Verus (Rust) or SPARK (Ada) on that code, not restated
+in Idris2. Plan scopes for both Rust verifiers, and record in
+`docs/status/PROOF-STATUS.adoc` any that is unsupported, inapplicable or not
+yet run, with its reason.
+
+Another tool only where it is plainly the right one, recorded beside the
+artefact and in `docs/status/PROOF-STATUS.adoc` (policy §4). `tlaplus/` is
+such an exception: a finite model check is reported as `TESTED`, with its
+bounds. For Rust, *Kani* (unsafe and FFI seams, reported `TESTED` with
+bounds) and *Aeneas* (Rust that implements an Agda-proved theorem) are
+standing exceptions that run alongside the default toolset, never instead
+of it.
+
+== Proof grades
+
+The only estate proof grade is the *Proof Witness Grade* (PWG) of policy §8.
+It applies to theory theorems:
+
+* `PWG-3` means the Agda proof checks under the canonical invocation.
+* `PWG-2i` adds one recheck leg (Rocq or Lean) that counts.
+* `PWG-2ii` means both legs count, which discharges the policy's recheck
+  obligation.
+* `PWG-1` adds a current receipt, per commit, from a pinned headless
+  checker for every witness.
+
+A leg counts only when it is kernel-checked and its statement
+correspondence is `RECONCILED`. Grades are derived from receipts and the
+correspondence records, never asserted. Record them in
+`docs/status/PROOF-STATUS.adoc` beside the §5 status tokens, in a separate
+field.
+
+Always write the `PWG-` prefix. A bare "Grade 2" collides with the CRG,
+TRG, ARG and FRG letter grades. Publish counts as a census with their
+denominator, never as a percentage.
+
+== Third-party code
+
+Dependencies (crates, libraries, vendored or forked code) are not converted,
+re-proved or annotated to meet this policy. Where a proof here relies on a
+dependency's behaviour, state that reliance as a trusted boundary
+specification and record it as `ASSUMED`, with the dependency and version,
+in `docs/status/PROOF-STATUS.adoc`. When choosing between dependencies that
+fit equally well, prefer one that carries its own verification. This is a
+preference, not a gate.
+
+== Directory structure
 
 [source]
 ----
 proofs/
-├── idris2/          # Idris2 proofs (ABI, dependent types)
+├── idris2/          # Engineering: ABI and interface contracts
 │   ├── ABI/         # ABI-specific proofs (mandatory)
 │   │   ├── Pointers.idr    # Non-null pointer safety
 │   │   ├── Layout.idr      # Memory layout correctness
@@ -17,17 +93,27 @@ proofs/
 │   │   ├── Foreign.idr     # FFI return type proofs
 │   │   └── Compliance.idr  # C ABI compliance
 │   └── Types.idr    # Core data type well-formedness
-├── lean4/           # Lean4 proofs (algebra, lattices)
-│   └── ApiTypes.lean
-├── agda/            # Agda proofs (induction, metatheory)
+├── agda/            # Theory: the source of truth goes here
 │   └── Properties.agda
-├── coq/             # Coq proofs (type systems, compilation)
+├── coq/             # Theory: Rocq recheck legs of agda/ go here
 │   └── TypeSafety.v
-└── tlaplus/         # TLA+ specs (distributed protocols)
+├── lean4/           # Theory: Lean recheck legs of agda/ go here
+│   └── ApiTypes.lean
+└── tlaplus/         # Recorded exception: protocol model checks (TESTED)
     └── StateMachine.tla
 ----
 
-== Verification Commands
+Each prover directory carries a `MANIFEST` read by `scripts/check-proofs.sh`.
+
+The files the template ships in these directories (`Properties.agda`,
+`TypeSafety.v`, `ApiTypes.lean`, `Types.idr`, the `ABI/` modules,
+`StateMachine.tla`) are *layout examples, not evidence*. Several have never
+compiled and sit as `quarantine` in their `MANIFEST`; `TypeSafety.v` and
+`ApiTypes.lean` are not rechecks of `Properties.agda`. A repository created
+from the template replaces them with its own proofs or deletes them, and
+never counts them in `docs/status/PROOF-STATUS.adoc`.
+
+== Verification commands
 
 [source,bash]
 ----
@@ -38,7 +124,7 @@ just proof-check-agda      # Agda only
 just proof-check-coq       # Coq only
 ----
 
-== Banned Patterns
+== Banned patterns
 
 The following MUST NOT appear in any proof file:
 
@@ -51,10 +137,13 @@ The following MUST NOT appear in any proof file:
 
 CI enforces this via `panic-attack assail --proofs-only`.
 
-== Adding New Proofs
+== Adding new proofs
 
-1. Choose the appropriate prover (see PROOF-NEEDS.md)
-2. Create the `.idr`/`.lean`/`.agda`/`.v`/`.tla` file in the right directory
-3. Ensure `%default total` (Idris2) or equivalent
-4. Run the verification command
-5. Update PROOF-STATUS.md
+1. Classify the obligation with the table above and record it in
+   `docs/status/PROOF-NEEDS.adoc`.
+2. Put Rust and Ada proofs on the code; put the rest in the matching
+   directory here.
+3. Ensure `%default total` (Idris2) or the equivalent.
+4. Run the verification command.
+5. Update `docs/status/PROOF-STATUS.adoc`, including the recheck legs of any
+   theory proof and any `ASSUMED` boundary specifications.

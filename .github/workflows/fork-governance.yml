@@ -1,0 +1,502 @@
+# This workflow is managed by gh actions-lock.
+# SPDX-License-Identifier: MPL-2.0
+# SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+#
+# fork-governance.yml — PR-time entry point for DEED syntax, K9-DEED L0–L2
+# conformance, the gitbot-fleet report-backs, and THE Hypatia verdict grid.
+# Pinned to metadatastician/standards@f0b3cd4c464d33e1584f8528c17bce104555e256 throughout (DEED and K9 lanes and the verdict-grid renderer).
+#
+# ── HOW THIS FILE RELATES TO THE SCANNERS (read before editing) ──────────────
+#
+# The estate used to run scanners in three places with no statement of which
+# one owned what, so the same Hypatia binary was built twice per pull request,
+# two different jobs gated on "critical", and the verdict grid this file claimed
+# to feed was produced nowhere. The layering is now explicitly:
+#
+#   1. PRODUCERS — each scanner runs in exactly one workflow:
+#        .github/workflows/hypatia-scan.yml        -> artifact `hypatia-scan-findings`
+#                                                     (Hypatia JSON, relativised;
+#                                                      SARIF `category: hypatia`)
+#        .github/workflows/static-analysis-gate.yml -> artifact `static-analysis-findings`
+#                                                     (panic-attack and pons status
+#                                                      envelopes, patch bridge, unified)
+#      A producer states its own gate. Hypatia gates on critical; pons gates on
+#      ERROR; panic-attack is advisory. No other workflow repeats those
+#      decisions: this file never fails on a finding, so a pull request cannot be
+#      blocked twice for one finding, and no gate is suppressed here either —
+#      the producer's own check still goes red.
+#
+#   2. REPORTER — this workflow. It does not scan anything. It collects the
+#      producers' artifacts for one commit, renders the findings-family verdict
+#      grid (metadatastician/standards docs/VERDICT-GRID-SPEC.adoc) over Hypatia,
+#      panic-attack, pons and every enrolled gitbot-fleet member, uploads it as
+#      `verdict-grid`, and writes a job summary with read-only permissions.
+#
+#   3. SEQUENCING — this workflow runs on `pull_request` and `workflow_dispatch`.
+#      A pull-request run may render an orange row for a scanner that has not
+#      reported yet (orange, never green). verdict-grid-publish.yml runs on
+#      `workflow_run` when a producer finishes, re-renders with a trusted
+#      default-branch lane script, and maintains one comment per pull request.
+#
+# Two deliberate non-decisions:
+#
+#   * A failing `fleet` job does NOT fail the verdict. Its rows go orange (no
+#     report-back evidence) and the `Fleet report-backs` check goes red, which is
+#     where a fleet failure is visible. Failing the verdict as well would report
+#     one failure twice and would block a pull request on infrastructure rather
+#     than on evidence about the pull request. The previous wiring reported the
+#     fleet result in a table and then ignored it; this comment is the statement
+#     that replaces that silence.
+#   * The grid is not a gate. Its state is published (job summary, artifact,
+#     comment) and the gating decisions stay with the producers. The spec's
+#     §Non-goals makes the same point: a grid is worst-of reporting, not a score.
+name: Fork governance
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  # Group by workflow and github.ref, keeping each pull request's runs separate.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # The newer run re-collects the producers' artifacts for this ref.
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # The merge revision scanned by the fleet and producers, or the dispatch commit.
+  TARGET_SHA: ${{ github.sha }}
+  # Actions run discovery filters by the PR head rather than the merge revision.
+  PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+  # A manual dispatch has no pull request; its grid stays in the summary/artifact.
+  TARGET_PR: ${{ github.event.pull_request.number || '' }}
+
+jobs:
+  deed:
+    name: DEED syntax
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Checkout canonical DEED validator
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: metadatastician/standards
+          ref: f0b3cd4c464d33e1584f8528c17bce104555e256
+          path: .standards-deed
+          sparse-checkout: |
+            1-formats/deed
+            scripts
+          sparse-checkout-cone-mode: true
+          persist-credentials: false
+
+      - name: Setup Bun runtime
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.3.12'
+
+      - name: Validate DEED manifests and block retired .a2ml files
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          STANDARDS_ABS="$PWD/.standards-deed"
+          rm -rf "$RUNNER_TEMP/standards-deed"
+          mv "$STANDARDS_ABS" "$RUNNER_TEMP/standards-deed"
+          # The lane is the gate: a ledger with no canonical gate to read it fails.
+          if [ -f .machine_readable/a2ml-legacy-allow.txt ] && [ ! -f "$RUNNER_TEMP/standards-deed/scripts/check-a2ml-archived.sh" ]; then
+            echo "::error::A2ML ledger present but scripts/check-a2ml-archived.sh is missing from the standards checkout"
+            exit 1
+          fi
+          # Shrink-only: the base branch's ledger bounds this one. A base that
+          # cannot be fetched fails the step: skipping the comparison would let
+          # a new ledger entry through exactly when it cannot be checked.
+          A2ML_BASE=""
+          if [ -n "$BASE_REF" ]; then
+            # Authenticate the fetch. The checkout above sets persist-credentials: false,
+            # so an anonymous fetch works only for public repositories; this gate must
+            # also run on private ones. The header form keeps the token out of .git/config
+            # (the same pattern as lock-sync-gate.yml).
+            AUTH="AUTHORIZATION: basic $(printf 'x-access-token:%s' "${TOKEN}" | base64 -w0)"
+            if ! git -c http.extraheader="${AUTH}" fetch -q --depth=1 origin "$BASE_REF"; then
+              echo "::error::could not fetch the base branch $BASE_REF to bound the A2ML ledger"
+              exit 1
+            fi
+            A2ML_BASE=FETCH_HEAD
+          fi
+          A2ML_BASE="$A2ML_BASE" STANDARDS_DIR="$RUNNER_TEMP/standards-deed" bash .github/hooks/validate-deed.sh
+
+  k9:
+    name: K9-DEED conformance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      NICKEL_VERSION: '1.18.0'
+      NICKEL_SHA256: '9cba4dd65ae9915ec61f73033aafcff307a377665a83fd8f530df086763318cb'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Checkout canonical K9 validator and contract
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: metadatastician/standards
+          ref: f0b3cd4c464d33e1584f8528c17bce104555e256
+          path: .standards-k9
+          sparse-checkout: 1-formats/k9
+          sparse-checkout-cone-mode: true
+          persist-credentials: false
+
+      - name: Install sha256-verified Nickel CLI
+        run: |
+          set -euo pipefail
+          URL="https://github.com/tweag/nickel/releases/download/${NICKEL_VERSION}/nickel-x86_64-linux"
+          curl -sSfL --proto '=https' --proto-redir '=https' --tlsv1.2 --retry 3 -o "$RUNNER_TEMP/nickel" "$URL"
+          echo "${NICKEL_SHA256}  ${RUNNER_TEMP}/nickel" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/nickel"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
+      - name: Validate K9 contracts (L0–L2)
+        run: |
+          set -euo pipefail
+          rm -rf "$RUNNER_TEMP/standards-k9"
+          mv "$PWD/.standards-k9" "$RUNNER_TEMP/standards-k9"
+          if [ ! -f "$RUNNER_TEMP/standards-k9/1-formats/k9/tools/k9-validate.sh" ]; then
+            echo "::error::K9 validator is missing from the standards checkout"
+            exit 1
+          fi
+          if ! command -v nickel >/dev/null 2>&1; then
+            echo "::error::nickel is required for K9 layer L2 validation"
+            exit 1
+          fi
+          STANDARDS_DIR="$RUNNER_TEMP/standards-k9" bash .github/hooks/validate-k9.sh
+
+  # Fleet report-backs: the evidence behind each gitbot-fleet row of the verdict
+  # grid (.gitbot-fleet/enrolment.json says which members apply). Inline rather
+  # than `uses:`, because a repository instantiated from this template may live
+  # under an owner whose Actions policy refuses a reusable workflow from
+  # hyperomath at plan time (zero jobs, no error line). Checking out another
+  # repository is plain git. The build and run logic lives in the two
+  # gitbot-fleet scripts; standards 3-practice/fork-governance/ADOPTION.adoc §8
+  # is the guide.
+  #
+  # The artifact name is what the verdict grid reads, and what
+  # hypatia-scan-reusable.yml downloads by default (`report-backs-artifact`), so
+  # a repository that later adopts the standards reusable needs no change here.
+  fleet:
+    name: Fleet report-backs
+    runs-on: ubuntu-24.04
+    # Worst case, so a stalled phase never kills the job before the upload: the
+    # 2400 s build budget + seven adapters at 300 s + checkout, cache and upload.
+    timeout-minutes: 85
+    permissions:
+      contents: read
+    env:
+      # hyperpolymath/gitbot-fleet commit whose driver and adapters run.
+      FLEET_REF: e44af8144789594fcce891ccc7b77fc9a464a520
+      # panic-attack commit for panicbot. Deliberately the SAME commit
+      # static-analysis-gate.yml builds: panicbot is not enrolled today (the
+      # grid's own panic-attack row already grades that scanner, so a second
+      # row would report one tool twice), and if it ever is, both rows must
+      # describe the same binary or the grid would compare two tools and call
+      # it one. The standards Hypatia reusable pins b689a74 for its own row;
+      # scripts/check-workflow-edges.sh reports that divergence rather than
+      # letting it hide.
+      PANIC_ATTACK_SHA: b5530834a839734d1d181bfe6edb0d43d4233cf4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+
+      - name: Checkout gitbot-fleet at the pinned commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: hyperpolymath/gitbot-fleet
+          ref: ${{ env.FLEET_REF }}
+          path: .fleet-src
+          persist-credentials: false
+
+      # The fleet checkout must not sit inside the tree being reported on: walk-
+      # based adapters would scan the fleet's own source and attribute its findings
+      # to this repository. actions/checkout only writes under the workspace, so
+      # the checkout is moved out to RUNNER_TEMP first; the lockfile hash for the
+      # cache key is taken before the move.
+      - name: Move the fleet checkout out of the scanned tree
+        id: fleet
+        run: |
+          set -euo pipefail
+          lockhash=$(cat .fleet-src/bots/*/Cargo.lock .fleet-src/shared-context/Cargo.lock 2>/dev/null | sha256sum | cut -c1-16)
+          mv .fleet-src "$RUNNER_TEMP/fleet-src"
+          echo "dir=$RUNNER_TEMP/fleet-src" >> "$GITHUB_OUTPUT"
+          echo "lockhash=$lockhash" >> "$GITHUB_OUTPUT"
+
+      - name: Plan which adapters to build
+        id: plan
+        run: |
+          set -euo pipefail
+          plan=$(bash "$RUNNER_TEMP/fleet-src/scripts/fleet-report-back.sh" --plan --enrolment .gitbot-fleet/enrolment.json)
+          echo "plan:"; printf '%s\n' "$plan" | sed 's/^/  /'
+          crates=$(printf '%s\n' "$plan" | awk -F'\t' '$2 != "" {print $2}' | sort -u | tr '\n' ' ')
+          echo "crates=${crates% }" >> "$GITHUB_OUTPUT"
+          if printf '%s\n' "$plan" | awk -F'\t' '$1 == "panicbot" {f=1} END {exit !f}'; then echo panicbot=true; else echo panicbot=false; fi >> "$GITHUB_OUTPUT"
+          { echo "workspaces<<WS"; for c in $crates; do echo "$RUNNER_TEMP/fleet-src/bots/$c -> target"; done; echo "$RUNNER_TEMP/fleet-src/shared-context -> target"; echo WS; } >> "$GITHUB_OUTPUT"
+          if [ -n "${crates% }" ]; then echo build=true; else echo build=false; fi >> "$GITHUB_OUTPUT"
+
+      # Rust comes with the GitHub-hosted runner image; the cache is actions/cache
+      # keyed on the fleet commit's lockfiles. Only GitHub-owned, SHA-pinned
+      # actions appear in this job, as in gitbot-fleet's reusable.
+      - name: Cache adapter builds
+        if: steps.plan.outputs.build == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            ${{ runner.temp }}/fleet-src/bots/*/target
+          key: fleet-report-back-v3-${{ runner.os }}-${{ runner.arch }}-${{ steps.fleet.outputs.lockhash }}-${{ steps.plan.outputs.crates }}
+          restore-keys: |
+            fleet-report-back-v3-${{ runner.os }}-${{ runner.arch }}-${{ steps.fleet.outputs.lockhash }}-
+            fleet-report-back-v3-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Report the Rust toolchain in use
+        if: steps.plan.outputs.build == 'true' || steps.plan.outputs.panicbot == 'true'
+        run: |
+          set -euo pipefail
+          command -v cargo >/dev/null || { echo "::error::cargo is not on this runner; the adapters cannot be built"; exit 1; }
+          cargo --version; rustc --version
+
+      - name: Restore panic-attack build cache
+        if: steps.plan.outputs.panicbot == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.panic-attack
+          key: panic-attack-v1-${{ runner.os }}-${{ runner.arch }}-${{ env.PANIC_ATTACK_SHA }}
+
+      - name: Build the enrolled adapters
+        if: steps.plan.outputs.build == 'true' || steps.plan.outputs.panicbot == 'true'
+        env:
+          CRATES: ${{ steps.plan.outputs.crates }}
+          PANICBOT: ${{ steps.plan.outputs.panicbot }}
+        run: |
+          set -euo pipefail
+          args=(--fleet "$RUNNER_TEMP/fleet-src" --bin-dir "$RUNNER_TEMP/fleet-bin" --crates "$CRATES")
+          [ "$PANICBOT" = true ] && args+=(--panic-attack "$PANIC_ATTACK_SHA")
+          bash "$RUNNER_TEMP/fleet-src/scripts/fleet-report-back-build.sh" "${args[@]}"
+
+      - name: Run the enrolled adapters and write the envelopes
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/fleet-bin" "$RUNNER_TEMP/report-backs"
+          bash "$RUNNER_TEMP/fleet-src/scripts/fleet-report-back.sh" --repo . --out "$RUNNER_TEMP/report-backs" \
+            --bin-dir "$RUNNER_TEMP/fleet-bin" --enrolment .gitbot-fleet/enrolment.json \
+            --fleet-ref "$FLEET_REF" --summary "$GITHUB_STEP_SUMMARY"
+          ls "$RUNNER_TEMP/report-backs"/*.json >/dev/null 2>&1 \
+            || echo "No member is enrolled in .gitbot-fleet/enrolment.json." > "$RUNNER_TEMP/report-backs/NONE-ENROLLED.txt"
+
+      - name: Upload the report-backs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: fleet-report-backs
+          path: ${{ runner.temp }}/report-backs
+          if-no-files-found: error
+          retention-days: 90
+
+  # Render and upload the PR-time grid with read-only permissions: actions for
+  # artifacts, contents for checkout, pull-requests for the previous comment.
+  # verdict-grid-publish.yml owns comment publication.
+  verdict:
+    name: Fork governance verdict
+    needs: [deed, k9, fleet]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+    env:
+      DEED_RESULT: ${{ needs.deed.result }}
+      K9_RESULT: ${{ needs.k9.result }}
+      FLEET_RESULT: ${{ needs.fleet.result }}
+    steps:
+      # This job is read-only (actions/contents/pull-requests: read). It runs
+      # the merge-revision lane script, which is untrusted, so it must never receive a
+      # write-scoped token. Publishing lives in verdict-grid-publish.yml, which
+      # checks out the default branch.
+      - name: Checkout the scanned revision's lane script (read-only token)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.TARGET_SHA }}
+          persist-credentials: false
+          sparse-checkout: |
+            scripts/verdict-grid-lane.sh
+            .gitbot-fleet
+          sparse-checkout-cone-mode: false
+
+      # The renderer is not copied into this repository: it is fetched from
+      # standards at the pinned commit and verified against a sha256 recorded in
+      # scripts/verdict-grid-lane.sh. A copy would be a second implementation of
+      # the estate's grid that could drift from the tested one.
+      - name: Checkout the verdict grid renderer at the pinned standards commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: metadatastician/standards
+          ref: f0b3cd4c464d33e1584f8528c17bce104555e256
+          path: .standards-grid
+          persist-credentials: false
+          sparse-checkout: |
+            scripts/verdict-grid.sh
+            scripts/lib/verdict-grid.jq
+          sparse-checkout-cone-mode: false
+
+      # Discover producer runs by PR_HEAD_SHA; their default checkouts scan the
+      # merge revision reported as TARGET_SHA. A scanner with no run, or a run with
+      # no artifact, is recorded with its reason and renders orange — this step
+      # never turns "not yet" into "clean".
+      - name: Collect the producers' evidence
+        id: collect
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          bash scripts/verdict-grid-lane.sh collect \
+            --repo "$GITHUB_REPOSITORY" \
+            --sha "$PR_HEAD_SHA" \
+            --out "$RUNNER_TEMP/evidence" \
+            --source hypatia-scan.yml:hypatia-scan-findings \
+            --source static-analysis-gate.yml:static-analysis-findings
+
+      # The fleet's report-backs come from THIS run (the fleet job above), so a
+      # same-run download is enough. Missing evidence is not fatal here: an
+      # enrolled member without an envelope renders orange, which is the honest
+      # reading and the reason the grid can be trusted when it is green.
+      - name: Download the fleet report-backs
+        continue-on-error: true
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: fleet-report-backs
+          path: ${{ runner.temp }}/evidence/fleet-report-backs
+
+      # The delta column compares against the grid this lane posted last time.
+      # Best effort: a missing previous comment only means "no comparable
+      # baseline", which the renderer says explicitly.
+      - name: Read the previous verdict grid
+        id: previous
+        if: ${{ always() && env.TARGET_PR != '' }}
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -uo pipefail
+          # An unreadable previous comment is not a failure of this run: the grid
+          # then says "— no comparable baseline", which is true. Written as an
+          # explicit branch rather than `cmd || :`, because a swallowed non-zero
+          # exit is exactly what RE005 exists to flag.
+          if ! bash scripts/verdict-grid-lane.sh previous \
+                --repo "$GITHUB_REPOSITORY" --pr "$TARGET_PR" \
+                --out "$RUNNER_TEMP/previous.md"; then
+            echo "no previous verdict grid could be read; the delta column will say so"
+            : > "$RUNNER_TEMP/previous.md"
+          fi
+
+      - name: Check the evidence shapes before rendering
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          bash scripts/verdict-grid-lane.sh validate \
+            --hypatia "$RUNNER_TEMP/evidence/hypatia-scan-findings/hypatia-findings.relativized.json" \
+            --panic "$RUNNER_TEMP/evidence/static-analysis-findings/panic-attack-findings.json" \
+            --pons "$RUNNER_TEMP/evidence/static-analysis-findings/pons-findings.json" \
+            --enrolment .gitbot-fleet/enrolment.json
+
+      - name: Render the verdict grid
+        id: grid
+        if: ${{ always() }}
+        env:
+          PREVIOUS: ${{ runner.temp }}/previous.md
+        run: |
+          set -euo pipefail
+          ev="$RUNNER_TEMP/evidence"
+          args=(
+            render --out "$RUNNER_TEMP/verdict-grid"
+            --renderer-dir .standards-grid
+            --repo "$GITHUB_REPOSITORY"
+            --sha "$TARGET_SHA" --run "$GITHUB_RUN_ID" --pr "${TARGET_PR:-local}"
+            --url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            --enrolment .gitbot-fleet/enrolment.json
+            --hypatia "$ev/hypatia-scan-findings/hypatia-findings.relativized.json"
+            --hypatia-sarif "$ev/hypatia-scan-findings/hypatia.sarif"
+            --panic "$ev/static-analysis-findings/panic-attack-findings.json"
+            --pons "$ev/static-analysis-findings/pons-findings.json"
+            --hypatia-ref be98f74ce93df200752f3798efa1305bfa3e0e10
+            --panic-ref b5530834a839734d1d181bfe6edb0d43d4233cf4
+            --pons-ref 51b8920f541782ceb9465ea3f0d33c96104fc1fb
+          )
+          [ -d "$ev/fleet-report-backs" ] && args+=(--report-backs "$ev/fleet-report-backs")
+          [ -s "$PREVIOUS" ] && args+=(--previous "$PREVIOUS")
+          bash scripts/verdict-grid-lane.sh "${args[@]}"
+
+      - name: Upload the verdict grid
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verdict-grid
+          path: ${{ runner.temp }}/verdict-grid
+          if-no-files-found: error
+          retention-days: 90
+
+      # Publishing is deliberately handled by a separate default-branch
+      # workflow_run consumer. This PR-time workflow is read-only, so its
+      # untrusted head scripts never receive a write-scoped token.
+
+      - name: Summarise the lanes and gate on conformance only
+        if: ${{ always() }}
+        env:
+          GRID_STATE: ${{ steps.grid.outputs.state }}
+          BADGE: ${{ steps.grid.outputs.badge }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## Fork governance"
+            echo ""
+            echo "PR head (producer run lookup): \`$PR_HEAD_SHA\`"
+            echo "Scanned revision (merge revision for PRs): \`$TARGET_SHA\`"
+            echo ""
+            echo "| Lane | Result | Gates a merge? |"
+            echo "|------|--------|----------------|"
+            echo "| DEED syntax | \`${DEED_RESULT}\` | yes |"
+            echo "| K9-DEED conformance (L0–L2) | \`${K9_RESULT}\` | yes |"
+            echo "| Fleet report-backs (evidence, not a lane) | \`${FLEET_RESULT}\` | no — a failed fleet is orange rows, not a blocked PR |"
+            echo "| Verdict grid | \`${GRID_STATE:-missing}\` | no — see the producers for each scanner's gate |"
+            echo ""
+            echo "The grid itself is in the \`verdict-grid\` artifact and, on a pull request, in the"
+            echo "comment maintained by verdict-grid-publish.yml. A grid state of red or purple is reporting: Hypatia"
+            echo "gates on critical and pons on ERROR in their own workflows; panic-attack is advisory."
+          } >> "$GITHUB_STEP_SUMMARY"
+          failed=""
+          [ "$DEED_RESULT" = "success" ] || failed="${failed} deed=${DEED_RESULT}"
+          [ "$K9_RESULT" = "success" ] || failed="${failed} k9=${K9_RESULT}"
+          if [ -n "$failed" ]; then
+            echo "::error::Fork governance failed (${failed# })"
+            exit 1
+          fi
+          if [ -z "${GRID_STATE:-}" ]; then
+            echo "::warning::No verdict grid state was rendered; see the Render step above."
+          fi

@@ -23,6 +23,8 @@
 //     are a conflict for `gh actions-lock` to settle, not for this tool;
 //   * the output keeps the base's header and sorts each section by key in byte
 //     order, as `gh actions-lock` does, so a second merge changes nothing.
+
+#![forbid(unsafe_code)]
 //
 // The base file is rewritten in place.
 //

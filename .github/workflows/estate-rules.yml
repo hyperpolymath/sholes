@@ -24,15 +24,22 @@ permissions:
 jobs:
   estate-rules:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    # Measured 2026-11-10 over the last 30 runs: passing jobs took 10m50s to
+    # 14m54s, and 10 jobs were killed at the old 15-minute limit while still
+    # running. 30 minutes is about twice the slowest pass.
+    timeout-minutes: 30
     steps:
       - name: Checkout
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       # Prove the instrument works before trusting its reading. This gate was
       # one-directional for months, which is indistinguishable from a working
       # gate until you try to make it fail.
       - name: Root-shape gate self-test (must fail on drift)
         run: bash tests/shape/check_root_shape_test.sh
+      - name: Root-shape gate, rust-cli mint shape (Cargo optional, mise.lock kept)
+        run: bash tests/shape/rust_cli_root_shape_test.sh
       - name: Root shape allowlist
         run: bash scripts/check-root-shape.sh .
       # The map is generated. Five hand-written predecessors all rotted because
@@ -71,15 +78,28 @@ jobs:
         run: bash scripts/check-no-a2ml.sh .
       - name: No-a2ml gate self-test (planted positives must fail)
         run: bash tests/workflows/check_no_a2ml_test.sh
+      # Every repository-internal link resolves, and every document the deed
+      # registers by id is where the deed says (or is marked removed-at-mint).
+      # The same script is the probe of the must invariant internal-links-resolve.
+      - name: Internal links resolve (deed document registry)
+        run: bash scripts/check-internal-links.sh .
+      - name: Internal-links gate self-test (planted dead links must fail)
+        run: bash tests/workflows/internal_links_test.sh
       - name: Deed clause writer controls
         run: bash tests/workflows/deed_clause_test.sh
-      - name: Install verified Nickel 1.17.0
+      - name: Canon lockstep decision controls (spine strict, instance lag passes)
+        run: bash tests/workflows/canon_pin_check_test.sh
+      - name: Canon lockstep adoption tool controls
+        run: bash tests/workflows/adopt_canon_lockstep_test.sh
+      - name: Coaptation families match the deed's descriptile clauses
+        run: bash tests/workflows/coaptation_families_test.sh
+      - name: Install verified Nickel 1.18.0
         run: |
           mkdir -p "$RUNNER_TEMP/nickel-bin"
           curl --proto '=https' --proto-redir '=https' --fail --silent --show-error --location \
-            https://github.com/nickel-lang/nickel/releases/download/1.17.0/nickel-x86_64-linux \
+            https://github.com/nickel-lang/nickel/releases/download/1.18.0/nickel-x86_64-linux \
             --output "$RUNNER_TEMP/nickel-bin/nickel"
-          echo "afcdfa6e0fff31760cf229e85997456c02c00b8b3b84ff38f897ac7b3f39ae34  $RUNNER_TEMP/nickel-bin/nickel" | sha256sum --check --strict
+          echo "9cba4dd65ae9915ec61f73033aafcff307a377665a83fd8f530df086763318cb  $RUNNER_TEMP/nickel-bin/nickel" | sha256sum --check --strict
           chmod +x "$RUNNER_TEMP/nickel-bin/nickel"
           echo "$RUNNER_TEMP/nickel-bin" >> "$GITHUB_PATH"
       - name: Evaluate session contracts
@@ -92,6 +112,10 @@ jobs:
         run: bash tests/workflows/mint_cleanup_test.sh
       - name: Self-name pass keeps issue references, provenance and detectors
         run: bash tests/workflows/self_name_pass_test.sh
+      # Stage-2 trial of standards A7 8.1: an edict selected by identity. Trial
+      # only; it gates nothing but its own fixtures.
+      - name: Edict trial (A7 stage 2)
+        run: bash tests/workflows/edict_trial_test.sh
       # The automated mint path (RSR_NON_INTERACTIVE) never completed, and no
       # workflow exercised repo-init at all: tests/e2e runs nowhere in CI.
       - name: Install verified just 1.43.0
@@ -103,12 +127,74 @@ jobs:
           echo "a1bc93654f31669fd964ea3011a5e5e9676b9b6f8adcd762606e5140632ea72d  $RUNNER_TEMP/just.tgz" | sha256sum --check --strict
           tar -xzf "$RUNNER_TEMP/just.tgz" -C "$RUNNER_TEMP/just-bin" just
           echo "$RUNNER_TEMP/just-bin" >> "$GITHUB_PATH"
+      # Installed before the mint steps: repo-init and container-init reformat the
+      # container KYAML they fill (scripts/format-container-kyaml.sh), which needs
+      # a yq that can write KYAML. The KYAML ratchet below uses the same install.
+      - name: Install verified yq 4.53.3 and kyaml-format.sh (standards 8e48b1c)
+        run: |
+          mkdir -p "$RUNNER_TEMP/yq-bin"
+          curl --proto '=https' --proto-redir '=https' --fail --silent --show-error --location \
+            https://github.com/mikefarah/yq/releases/download/v4.53.3/yq_linux_amd64 \
+            --output "$RUNNER_TEMP/yq-bin/yq"
+          echo "fa52a4e758c63d38299163fbdd1edfb4c4963247918bf9c1c5d31d84789eded4  $RUNNER_TEMP/yq-bin/yq" | sha256sum --check --strict
+          chmod +x "$RUNNER_TEMP/yq-bin/yq"
+          echo "$RUNNER_TEMP/yq-bin" >> "$GITHUB_PATH"
+          curl --proto '=https' --proto-redir '=https' --fail --silent --show-error --location \
+            https://raw.githubusercontent.com/metadatastician/standards/f0b3cd4c464d33e1584f8528c17bce104555e256/scripts/kyaml-format.sh \
+            --output "$RUNNER_TEMP/kyaml-format.sh"
+          echo "5fddd58fc8cbd2b68766ef5b4b5ba39f299da3f27252ae6cdcff0a641bbaef18  $RUNNER_TEMP/kyaml-format.sh" | sha256sum --check --strict
       - name: Non-interactive mint resolves every prompt from the environment
         run: bash tests/workflows/non_interactive_mint_test.sh
+      - name: Mint refuses before writing when nickel or a KYAML yq is missing
+        run: bash tests/workflows/mint_tools_preflight_test.sh
+      # repo-init recorded the CHILD's own HEAD as the template commit whenever
+      # a repo was created with "Use this template" (metadatastician/lintel).
+      - name: Template pin resolves by tree equality (controls)
+        run: bash tests/workflows/resolve_template_pin_test.sh
+      # A replay trusts RSR_PACKAGE_UUID; only recorded answers may supply it.
+      - name: Replay passes a package uuid only from recorded answers
+        run: bash tests/workflows/replay_mint_env_test.sh
+      # chain-mint reads checkouts through git: gitlinks kept, no ignored file read.
+      - name: Chain snapshots keep gitlinks and read no ignored file
+        run: bash tests/workflows/chain_tree_of_test.sh
+      # The repository map is line-based: a path holding a newline is refused by name.
+      - name: Repository map refuses a path holding a newline
+        run: bash tests/workflows/repo_map_newline_test.sh
+      # Allowlist comments reach the map whole: an apostrophe or quote once cut them.
+      - name: Repository map keeps allowlist comments whole
+        run: bash tests/workflows/repo_map_quotes_test.sh
+      # The repo uuid is derived the same on every machine (sha1sum, shasum or
+      # openssl), equal to uuidgen --sha1; with no SHA-1 tool it is refused.
+      - name: Repo uuid derivation is machine-independent
+        run: bash tests/workflows/uuid5_url_test.sh
+      # The chora id is minted once as the profile C UUIDv8 of the birth path,
+      # equal to standards scripts/uuid-v8.js, and read without re-deriving.
+      - name: Repo chora id is minted as UUIDv8 and read as written
+        run: bash tests/workflows/uuid_v8_test.sh
+      # A divergent legacy .well-known/ file is quarantined under the MINT date,
+      # so a replay on a later day names it the same.
+      - name: Legacy .well-known quarantine is named by the mint date
+        run: bash tests/workflows/migrate_wellknown_date_test.sh
+      # The first CI job to run a FULL mint: a Use-this-template child, checked
+      # for provenance, untouched fixtures and ignored files, the map and the
+      # closing advice. A fresh mint of main aborted on 2026-10-20 and nothing
+      # here noticed. uuidgen is util-linux; installed only if the image lacks it.
+      - name: Use-this-template mint end to end
+        run: |
+          command -v uuidgen >/dev/null || { sudo apt-get update -q && sudo apt-get install -y -q uuid-runtime; }
+          bash tests/e2e/use_template_mint_test.sh
+      # A repo made from a MINTED repo: its parent's mint is replayed, the
+      # template is minted with the new answers, and the parent's own work is
+      # carried by a three-way merge (Codex review of #251; owner ruling).
+      - name: Chain mint (a minted repo minted again) end to end
+        run: bash tests/e2e/chain_mint_test.sh
       # An archetype overlay once shipped its own actions.lock, which replaced
       # the spine's at mint and left every Julia mint with Lock Sync red.
       - name: Archetype lock fragments merge into a valid lock
         run: bash tests/workflows/archetype_lock_merge_test.sh
+      # A campaign over a file with no {{TOKEN}}s once exited at that file.
+      - name: Campaign dry run finishes over a tokenless path
+        run: bash tests/workflows/rsr_campaign_tokenless_test.sh
       # The CHECK half of the template contract. repo-init has always written an
       # answer-file (now the child deed's (provenance) clause); nothing ever read it.
       # This is the missing reader, and it covers the #200/#201/#203 class:
@@ -121,3 +207,132 @@ jobs:
       # conforming" upstream.
       - name: Template conformance gate self-test (must fail on drift)
         run: bash tests/workflows/template_conformance_test.sh
+      # runtime-policy.yml folded into governance (#244). Both validators must
+      # require governance.yml, and a retired gate's name must not stand in.
+      - name: Validators require governance in place of the runtime gate
+        run: bash tests/workflows/runtime_policy_fold_test.sh
+      # Bun is the estate's first-choice runtime; the governance test below
+      # parses the workflow and its lock with Bun.YAML. Pinned and verified,
+      # as the other tools here are.
+      - name: Install verified Bun 1.4.2
+        run: |
+          curl --proto '=https' --proto-redir '=https' --fail --silent --show-error --location \
+            https://github.com/oven-sh/bun/releases/download/bun-v1.4.2/bun-linux-x64.zip \
+            --output "$RUNNER_TEMP/bun.zip"
+          echo "36368faef7527875d5ffa52e53cd48021741f2a83eb6208a8dd64068d422a913  $RUNNER_TEMP/bun.zip" | sha256sum --check --strict
+          unzip -q "$RUNNER_TEMP/bun.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/bun-linux-x64" >> "$GITHUB_PATH"
+      # The runtime gate stays retired, governance runs for pull requests to
+      # any branch, and it calls the standards reusable at the commit its lock
+      # records.
+      - name: Governance replaces the runtime gate for every pull request
+        run: bash tests/workflows/governance_policy_test.sh
+      # The README badge is generated output on an orphan branch. This proves
+      # the state -> colour table (grey, never a stale green), the byte-equal
+      # no-op, the orphan commit, the API-error classification and the workflow
+      # wiring - against a mock API, so no experiment is pushed to any branch.
+      # Behaviour tests run under the same Bun the step above installed, with a
+      # Node fallback; the wiring checks also run against a mutated workflow so
+      # they are proven able to fail.
+      - name: Governance badge contract (state mapping, no-op, orphan, errors)
+        run: bash tests/workflows/governance_badge_test.sh
+      # KYAML ratchet (standards YAML-POLICY §3.4, §5 step 5, standards#1024):
+      # every file listed here has been converted and must stay KYAML. A file
+      # joins the list in the PR that converts it and never leaves it. The
+      # formatter is standards' own kyaml-format.sh at a pinned commit, the one
+      # rewriter the step-2 comment-preservation proof covers, so this repo
+      # carries no copy that can drift. yq is pinned too: kyaml-format.sh exits
+      # 2 (red) on a yq that cannot write KYAML, never green. Workflows wait for
+      # step 6 (standards#1025); files a third-party bot or tool rewrites or
+      # finds by schema (Dependabot, FUNDING, issue forms, settings, CodeRabbit,
+      # Copilot, GitLab CI, pre-commit) are not listed, as in standards.
+      # Container narrowing at mint (build/just/container.just) can delete any
+      # of these files. The template (archetypes/ present) must keep all of
+      # them; a minted repository checks the ones it kept and names the rest.
+      - name: Converted YAML stays KYAML
+        run: |
+          set -euo pipefail
+          converted=(
+            build/container/compose.yaml
+            build/container/compose.example.yaml
+            build/container/stapeln/.gatekeeper.yaml
+          )
+          present=()
+          for file in "${converted[@]}"; do
+            if [ -f "$file" ]; then
+              present+=("$file")
+            elif [ -d archetypes ]; then
+              echo "::error::$file is missing from the template"
+              exit 1
+            else
+              echo "::notice::$file was removed at mint by container narrowing; not checked"
+            fi
+          done
+          if [ "${#present[@]}" -eq 0 ]; then
+            echo "No converted YAML is left in this repository; nothing to check."
+            exit 0
+          fi
+          bash "$RUNNER_TEMP/kyaml-format.sh" --check "${present[@]}"
+      - name: Estate composite actions stay KYAML
+        run: |
+          set -euo pipefail
+          if [ -f .github/actions/squabble/action.yml ]; then
+            bash "$RUNNER_TEMP/kyaml-format.sh" --check .github/actions/squabble/action.yml
+            if [ -f scripts/kyaml-format.sh ]; then
+              bash scripts/kyaml-format.sh --check .github/actions/squabble/action.yml
+            fi
+          fi
+      - name: Converted container configs keep their data (template only)
+        run: bash tests/workflows/container_kyaml_test.sh
+      - name: KYAML ratchet self-test (installs verify, gate propagates, narrowing)
+        run: bash tests/workflows/kyaml_ratchet_test.sh
+      - name: I-JSON (RFC 7493) + JCS (RFC 8785) canonical gate & self-test
+        run: |
+          set -euo pipefail
+          bash tests/workflows/check_ijson_jcs_test.sh
+          bash scripts/check-ijson-jcs.sh --enforce .
+      # ── The scanner/reporting pipeline's own rules ────────────────────────
+      # docs/HYPATIA-RULE-ORDER.adoc states the exemption layers, the clashes
+      # between them and what resolves each. These four steps are the parts of
+      # that document a machine can check; the rest is stated there as review.
+      - name: Hypatia exemption meta-rules (.hypatia-ignore)
+        run: |
+          set -euo pipefail
+          bash tests/workflows/hypatia_ignore_test.sh
+          bash scripts/check-hypatia-ignore.sh .
+      # The layer order, the ownership table and the clash resolutions are a
+      # contract (.machine_readable/policies/hypatia-rule-order.json), not a
+      # description: this step refuses a duplicate or gapped rank, an owner that
+      # does not exist, an unclassified exemption, and any pin that disagrees
+      # with the workflow that uses it. The suite proves each refusal fires.
+      - name: Hypatia rule order & clash resolution
+        run: |
+          set -euo pipefail
+          bash tests/workflows/hypatia_rule_order_test.sh
+          bash scripts/check-hypatia-rule-order.sh .
+      - name: Workflow edges (producer -> verdict grid) resolve
+        run: |
+          set -euo pipefail
+          bash tests/workflows/workflow_edges_test.sh
+          bash scripts/check-workflow-edges.sh .
+      # The grid itself is rendered by the pinned standards renderer, which the
+      # tests stub: this proves the lane's evidence collection, digest refusal,
+      # orange-not-green fallback and one-comment-per-PR behaviour, and that the
+      # workflow wiring is what the checks expect (mutated copies included).
+      - name: Verdict grid lane (collect, verify, render, comment)
+        run: bash tests/workflows/verdict_grid_test.sh
+      - name: Required status contexts & squabble anti-bypass gate
+        run: |
+          set -euo pipefail
+          bash tests/workflows/squabble_gate_test.sh
+          bash scripts/check-required-contexts.sh .
+      # The three scanner contexts, their least privilege and their pinning are
+      # this repository's own: a job-level reusable wrapper would make them the
+      # CALLEE's job names, and `secrets: inherit` would forward every secret to
+      # a scanner that declares none. Every property is mutated in the test.
+      - name: Secret scanner contract (three stable contexts)
+        run: bash tests/workflows/secret_scanner_contract_test.sh
+      # Behaviour and negative controls for the inline fixes to governance,
+      # hypatia-scan, main-estate-audit, rust-ci and secret-scanner.
+      - name: Inline workflow gap fixes (behaviour + negative controls)
+        run: bash tests/workflows/workflow_gap_fixes_test.sh

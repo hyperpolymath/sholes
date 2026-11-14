@@ -57,7 +57,7 @@ secret_file_scan() { # no key/journal/runtime material under www/dns/
     local f found=0
     while IFS= read -r f; do
         case "${f##*/}" in
-            *.key|*.private|*.jnl|*.journal|*.rndc|*.jbk|tsig*|K*+*+*.key|K*+*+*.private)
+            K*+*+*.key|K*+*+*.private|*.key|*.private|*.jnl|*.journal|*.rndc|*.jbk|tsig*)
                 echo "  secret/runtime file under dns/: $f" >&2; found=1 ;;
         esac
     done < <(find "$DNS" -type f)

@@ -13,7 +13,15 @@
 # was a second whole-repo README contradicting the first. They rotted because
 # nothing checked them. A map that is regenerated and diffed in CI cannot.
 #
-# Usage: bash scripts/gen-repo-map.sh [repo_root]
+# Usage: bash scripts/gen-repo-map.sh [--worktree] [repo_root]
+#
+# --worktree maps the files `git add -A` would commit (tracked or untracked,
+# not ignored, still on disk) instead of the index. `just repo-init` needs it:
+# the mint runs before the child's first commit, so the index still lists
+# what the mint removed (archetypes/, the template's deed name) and lacks what
+# it created. Generated from the index there, the map was stale from birth, and
+# Estate Rules failed at its freshness step on every run of lintel until
+# lintel#8 regenerated it. On a committed tree the two modes agree.
 set -euo pipefail
 
 # Byte order, everywhere. `sort` is LOCALE-DEPENDENT: under en_US.UTF-8 it
@@ -25,26 +33,52 @@ set -euo pipefail
 # locale, which is what tests/shape/repo_map_determinism_test.sh now does.
 export LC_ALL=C
 
+MODE=index
+if [ "${1:-}" = "--worktree" ]; then MODE=worktree; shift; fi
 REPO_ROOT="${1:-.}"
 cd "$REPO_ROOT"
 ALLOW=".machine_readable/root-allow.txt"
 OUT="docs/architecture/REPOSITORY-MAP.adoc"
 
+# repo_files [PATH] — the files this map describes, under PATH when given.
+repo_files() {
+    if [ "$MODE" = worktree ]; then
+        git ls-files -z --cached --others --exclude-standard -- "$@" \
+            | while IFS= read -r -d '' f; do [ -e "$f" ] || [ -L "$f" ] && printf '%s\n' "$f"; done \
+            | sort -u
+    else
+        # NUL-separated: plain output C-quotes a path holding a quote or a
+        # non-ASCII byte, which then read as a root entry named `"notes`.
+        git ls-files -z -- "$@" | tr "\0" "\n"
+    fi
+}
+
+# The map is built from lines, so a path holding a newline would read as two
+# bogus entries (Codex review of #277). Refused by name, as the drift tooling does.
+if [ "$MODE" = worktree ]; then NL_SET=(--cached --others --exclude-standard); else NL_SET=(--cached); fi
+NL_PATHS="$(git ls-files -z "${NL_SET[@]}" | while IFS= read -r -d '' f; do
+    case "$f" in *$'\n'*) printf '  %q\n' "$f" ;; esac; done)"
+[ -z "$NL_PATHS" ] || { printf 'ERROR: cannot map a path containing a newline:\n%s\n' "$NL_PATHS" >&2; exit 2; }
+
 [ -f "$ALLOW" ] || { echo "ERROR: $ALLOW not found" >&2; exit 2; }
 mkdir -p "$(dirname "$OUT")"
 
 # Root entries, tracked shape only (mirrors check-root-shape.sh).
-mapfile -t ENTRIES < <(git ls-files | awk -F/ '{print $1}' | sort -u)
+mapfile -t ENTRIES < <(repo_files | awk -F/ '{print $1}' | sort -u)
 
 # name -> annotation, harvested from the allowlist's own comments.
+# trim: strip leading and trailing whitespace and nothing else. Not xargs: it
+# parses quotes, so an apostrophe ("an application's") stopped it mid-comment
+# and the map kept only the words before it, and it dropped every quote mark.
+trim() { local s="$1"; s="${s#"${s%%[![:space:]]*}"}"; printf '%s' "${s%"${s##*[![:space:]]}"}"; }
 declare -A NOTE=() OPTIONAL=()
 while IFS= read -r line; do
     [[ "$line" =~ ^[[:space:]]*# ]] && continue
     [[ -z "${line// }" ]] && continue
-    raw="${line%%#*}"; raw="$(echo "$raw" | xargs || true)"
+    raw="$(trim "${line%%#*}")"
     [ -z "$raw" ] && continue
     comment="${line#*#}"; [ "$comment" = "$line" ] && comment=""
-    comment="$(echo "$comment" | xargs || true)"
+    comment="$(trim "$comment")"
     key="${raw%/}"
     if [[ "$key" == '?'* ]]; then key="${key#\?}"; OPTIONAL["$key"]=1; fi
     NOTE["$key"]="$comment"
@@ -60,7 +94,7 @@ done < "$ALLOW"
 # these counts were folded into the repo deed — standards#837 pilot.)
 declared_only() {
     local d="$1" n
-    n=$(git ls-files "$d" | awk -F/ '{print $NF}' \
+    n=$(repo_files "$d" | awk -F/ '{print $NF}' \
         | grep -vxE 'README\.adoc|\.gitkeep' | wc -l)
     [ "$n" -eq 0 ]
 }
@@ -106,7 +140,7 @@ declared_only() {
   echo "your own repo - but do not read their emptiness as neglect here."
   echo
   first=1
-  for d in $(git ls-files | grep '/' | sed 's|/[^/]*$||' | sort -u); do
+  for d in $(repo_files | grep '/' | sed 's|/[^/]*$||' | sort -u); do
       if declared_only "$d"; then
           [ $first -eq 1 ] && { echo "[cols=\"1\"]"; echo '|==='; first=0; }
           echo "| \`$d/\`"

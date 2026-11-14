@@ -43,8 +43,14 @@ with no git ancestry; `just repo-init` recovers the template tip via
 
 [source,bash]
 ----
-just repo-init            # or: just repo-init <archetype>
+mise trust                 # allow this repository's mise.toml (no prompt without a TTY)
+mise install              # the toolchain, including the yq repo-init needs
+mise exec -- just repo-init   # or: mise exec -- just repo-init <archetype>
 ----
+
+When the mint keeps `build/container/`, `just repo-init` reformats its KYAML
+configs after filling them, which needs a yq that writes KYAML (mise.toml
+provides it). Without one the mint stops before writing anything.
 
 `just repo-init` renders every `{{TOKEN}}` in the tree, derives the repository
 identity, writes the provenance files, and removes the template-only
@@ -62,7 +68,7 @@ are required; an unset optional answer takes its default.
 ----
 RSR_NON_INTERACTIVE=1 PROJECT_NAME="My Project" REPO=my-project \
   OWNER=my-org AUTHOR="My Name" AUTHOR_EMAIL=me@example.org \
-  just repo-init
+  mise exec -- just repo-init
 ----
 
 Until 2026-10-14 this mode stubbed the `read` builtin for the whole recipe, so
@@ -109,11 +115,14 @@ returns 1 and kills the recipe under `set -e`.
 
 [source,bash]
 ----
-just --list                       # every recipe resolves (imports are silent on failure)
-just check-root-shape             # root matches the allowlist
+mise exec -- just --list             # every recipe resolves (imports are silent on failure)
+mise exec -- just check-root-shape   # root matches the allowlist
 bash scripts/check-no-placeholders.sh .
-just verify
+mise exec -- just verify
 ----
+
+An agent's shell is rarely mise-activated, and each command may run in a fresh
+shell, so every `just` call here goes through `mise exec --`.
 
 A successful instantiation leaves **no** `{{TOKEN}}` anywhere in the tree, and
 removes the template-only directories from the minted repository. If

@@ -36,11 +36,17 @@ repos:
         pass_filenames: false
 
   # --- K9 contract validation ---
-  - repo: https://github.com/hyperpolymath/k9-pre-commit
-    rev: 9b82e1f7a6b6c0f99df72c145d7dee8851803c30  # k9-pre-commit @ main 2026-06-23
+  # The canonical validator, through the same wrapper CI runs (needs a
+  # standards checkout beside this repo, or STANDARDS_DIR; skips with a
+  # notice otherwise).
+  - repo: local
     hooks:
       - id: validate-k9
         name: Validate K9 contracts
+        entry: bash .github/hooks/validate-k9.sh
+        language: system
+        pass_filenames: false
+        files: '\.k9(\.(ncl|lock))?$'
 
   # --- Shell linting ---
   - repo: https://github.com/shellcheck-py/shellcheck-py

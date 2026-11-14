@@ -43,7 +43,23 @@ self-assess:
     echo "── ESSENTIAL (removing breaks Rhodium Standard) ──────────"
     echo ""
 
-    for f in LICENSE .editorconfig .gitignore; do
+    # The licence may be LICENSE in any usual spelling (this template ships
+    # LICENSE.adoc) or a REUSE LICENSES/ directory holding a non-empty
+    # <SPDX-ID>.<ext> licence text (dotfiles and READMEs do not count).
+    lic=""
+    for cand in LICENSE LICENSE.txt LICENSE.md LICENSE.adoc; do
+        [ -f "$cand" ] && { lic="$cand"; break; }
+    done
+    if [ -z "$lic" ] && [ -n "$(find LICENSES -maxdepth 1 -type f -size +0c -name '*.*' ! -name '.*' ! -iname 'README*' 2>/dev/null | head -n 1)" ]; then
+        lic="LICENSES/"
+    fi
+    if [ -n "$lic" ]; then
+        echo "  ✓ $lic — KEEP (RSR required)"
+    else
+        echo "  ✗ LICENSE — MISSING (RSR violation!)"
+    fi
+
+    for f in .editorconfig .gitignore; do
         if [ -f "$f" ]; then
             echo "  ✓ $f — KEEP (RSR required)"
         else
@@ -246,8 +262,28 @@ verify:
         ERRORS=$((ERRORS + 1))
     }
 
+    # The licence: a root licence file in any of the usual spellings (this
+    # template ships LICENSE.adoc), or a REUSE LICENSES/ directory holding at
+    # least one licence text: a non-empty <SPDX-ID>.<ext> file, per the REUSE
+    # spec (dotfiles and READMEs do not count).
+    check_licence() {
+        local cand
+        for cand in LICENSE LICENSE.txt LICENSE.md LICENSE.adoc; do
+            if [ -f "$cand" ]; then
+                echo "  OK:   $cand"
+                return 0
+            fi
+        done
+        if [ -n "$(find LICENSES -maxdepth 1 -type f -size +0c -name '*.*' ! -name '.*' ! -iname 'README*' 2>/dev/null | head -n 1)" ]; then
+            echo "  OK:   LICENSES/ (REUSE)"
+            return 0
+        fi
+        echo "  FAIL: LICENSE (or LICENSE.adoc, or REUSE LICENSES/) missing"
+        ERRORS=$((ERRORS + 1))
+    }
+
     check_community_file "SECURITY"
-    check_file "LICENSE"
+    check_licence
     check_community_file "CONTRIBUTING"
     check_either "README.adoc" "README.md"
     # Identity, state and ecosystem live in the repo deed (rsr-template-repo#209).

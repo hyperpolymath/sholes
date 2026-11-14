@@ -1,16 +1,33 @@
 # SPDX-License-Identifier: MPL-2.0
-# CodeRabbit configuration. Schema: https://coderabbit.ai/integrations/schema.v2.json
-#
-# Docstring Coverage pre-merge check is pinned to `mode: warning` as an explicit
-# estate decision rather than left to the vendor default. Some estate repos'
-# rulesets require the `CodeRabbit` status context; an `error` mode would make
-# them unmergeable at today's docstring-coverage baseline. Raise it per repo only
-# once that repo's coverage clears the threshold.
+# CodeRabbit reviews changes; humans and authorised agents own changes.
+# Canonical estate language policy:
+# https://github.com/metadatastician/standards/blob/main/3-practice/LANGUAGE-POLICY.adoc
+# This template must never permit unsolicited AI-generated fixes/commits.
 reviews:
+  path_instructions:
+    - path: "**/*"
+      instructions: >-
+        Enforce the canonical estate language policy: Python is prohibited
+        for all NEW work, without exceptions. Do not suggest Python
+        implementations or tests, and flag newly added/modified Python
+        files or dependency manifests as policy violations. Use the owning
+        project's approved language and runtime. Pre-existing third-party
+        code is not permission to author new Python. Do not demand language
+        migrations of unrelated upstream dependencies as cosmetic PR work.
   pre_merge_checks:
     docstrings:
       mode: warning
       threshold: 80
   finishing_touches:
     docstrings:
-      enabled: true
+      enabled: false
+    unit_tests:
+      enabled: false
+    simplify:
+      enabled: false
+    autofix:
+      enabled: false
+    fix_ci:
+      enabled: false
+    resolve_merge_conflict:
+      enabled: false

@@ -22,11 +22,23 @@ K9!
 # erosion causing gradual parameter drift). Where must flags "broken
 # now", adjust flags "drifting toward broken".
 
+#
+# 2026-10-19 (K9 contract v1.0.0, D173, standards#1058): this record is a
+# DECLARATION evaluated at 'Yard. The probes it lists are run by the paired
+# runner (adjust.ncl and the scripts/run-*.sh runners), which is the execution
+# surface; this file spawns nothing. A 'Hunt record needs signature_required,
+# a signature block and a verified signature (K9-S008/S009/C001); no
+# contractile carries one, so 'Hunt here was a claim the gate could never honour.
+
 let base    = import "../_base.ncl" in
 
 {
   pedigree = base.pedigree_schema & {
     contractile_verb = "adjust",
+    schema_version   = "1.0.0",
+    component_type   = "contractile:adjust",
+    semantics        = "drift tolerances + corrective actions",
+    side_effects     = [],
     paired_xfile     = "../adjust/adjust.k9.ncl#declaration",
     paired_runner    = "../adjust/adjust.ncl",
 
@@ -47,7 +59,7 @@ let base    = import "../_base.ncl" in
       trust_level = "tolerance measurement + declared auto-fix",
       allow_network = false,
       allow_filesystem_write_conditional = true,  # auto_fix_when_available may edit
-      allow_subprocess = true,
+      allow_subprocess = false,   # the paired runner spawns; this record does not
       probe_scope = 'measurement_plus_declared_fix,
     },
 

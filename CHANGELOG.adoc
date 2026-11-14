@@ -10,6 +10,417 @@ https://semver.org/spec/v2.0.0.html[Semantic Versioning].
 
 ==== Added
 
+* **Chain minting: a minted repo can be minted again.** "Use this template"
+  on a minted repo now mints correctly (owner ruling 2026-11-04, after the
+  Codex review of #251 showed the grandchild inherited its parent's identity).
+  `scripts/chain-mint.sh` replays the parent's mint, mints the same template
+  commit with the new answers, and carries the parent's own work across with
+  `git merge-tree`: everything rendered is rendered afresh, the parent's
+  edits, additions and removals are kept (renamed by the self-name rule and
+  the narrow self-owner rule, each defined once in repo-init) and declared in
+  the new `(variant (paths))` by comparing the result with the fresh mint, as
+  the drift gate does, so an edit carried across an answer-dependent rename
+  (a Julia entry point) is declared where it lives. Paths stay NUL-delimited,
+  so a backslash or a leading dash survives, and a file the parent tracks
+  although an ignore rule matches it is carried. Identity files are held in
+  git's index, never through the work tree, and a symlink at any path the
+  chain writes is refused, so a parent-controlled link cannot redirect a
+  write. Every tree is read from, and the result written back into, the
+  checkout by git (a scratch index and a two-tree `read-tree -m -u`), never by
+  tar, so no symlink is followed. The checkout is read and written by its own
+  git, under its own configuration (a linked worktree's common excludes,
+  `core.autocrlf`, a global excludesFile, clean and smudge filters); the
+  replays under none. Every path the result adds is checked on the disk first
+  and refused by name if anything the parent snapshot does not track is there,
+  ignored or not: git's own check lets an ignored entry be overwritten
+  wherever it sees the ignore rule. A sparse checkout, an unresolved merge, or
+  a tracked path beneath a symlink is refused. A parent's deletion is honoured
+  across an answer-dependent rename; a type change there is refused by name.
+  The baselines, and the drift gate, replay with the wrapper at the pin, not
+  the carried copy, and
+  the template clone takes no init templates. The result is fixed before the
+  gates run (what they write is not carried), every file the write changes is
+  first checked out into scratch with this checkout's filters, and a write
+  that still fails part-way keeps the objects needed to put it back. The
+  generator's temporary paths join the symlink guard. A path holding byte 0x01 is refused
+  like one holding a newline. The deed's (mint-answers) decides that a tree is
+  a minted repo, so one that added build/templates/identity.deed.in back is
+  still chain-minted. The carried generators run before the
+  final measure (their intermediate data is removed before it, and the
+  declaration settles path by path and category by category), and the result must pass
+  the child's own gates (placeholders, SPDX, toolchain, container pins, www,
+  `just verify`) before it is written. A conflict with the new rendering stops
+  before anything is written. Provenance records the root
+  template commit plus `:derived-from` the parent. A parent minted before
+  `(mint-answers)` is still refused. `scripts/replay-mint.sh` is now the one
+  replay path, shared with the drift gate; only a recorded `(mint-answers)`
+  supplies its package uuid, so the new side of a chain mint derives its own.
+* **An exact drift gate for minted repos: the mint is replayed.** repo-init
+  records its answers in a `(mint-answers)` deed clause (owner ruling
+  2026-11-04: only values it already writes into the child's files; the
+  recipe checks each value against those files, not the template-only trees
+  it deletes, and names any it leaves out)
+  and takes its date from `RSR_MINT_DATE`; a replay also takes the recorded
+  Julia package uuid, which an ordinary mint always derives.
+  `scripts/check-mint-drift.sh` re-mints the template at `(provenance :template-commit)` with those answers
+  and diffs the child against the result, so a fresh mint is green by
+  construction and each later edit is named. `check-variant-drift.sh`
+  delegates to it for a minted repo, and stage 8 recommends it again. The
+  derived files (`CLAUDE.md`, the repository map) are declared diverged at
+  mint: their own gates keep them fresh. Each side's file set is its tracked
+  or unignored files (the child's under its own git configuration, as
+  `git add -A` commits it; the replay's under none), so a force-added build
+  artefact is still named. The
+  most specific declaration covering a path decides its category, so a file
+  declared added under a directory the mint removes is an addition; a path
+  holding a newline is refused by name. A path declared diverged must be one
+  the mint produces; `operational-state` stays out of the comparison. The
+  replay's git runs without user or system configuration or hooks. What a
+  work tree already held beyond the pinned tree before the mint (an edit, an
+  untracked file, a deletion) is named by the mint, which then replays itself
+  from the pinned tree before writing anything and declares in
+  `(variant (paths))` exactly what the result differs by: the comparison the
+  drift gate makes, whatever the mint did to a change on the way (moved,
+  rendered, overwritten, or reached through an edited input). The replay
+  passes the recorded `RSR_TEMPLATE_SLUG`. A pre-mint change under a root `.well-known/` (which the mint moves),
+  or a work tree that differs from an asserted template tree this repository
+  does not hold, is refused before anything is written. The gate clears
+  inherited git location variables, and writes the pinned tree as a checkout
+  does (`checkout-index`, never `git archive`, whose `export-ignore` and
+  `export-subst` would change it), without global git attributes. A pre-mint
+  file at a path the mint itself writes (the archetype overlay, the docs seed,
+  the deed), or an edited template file the overlay replaces, is refused,
+  since the mint would overwrite it; and the mint also dry-runs itself on the
+  work tree, refusing by name any pre-mint change it would discard (an edit to
+  the roadmap or `mise.toml`, which it writes whole). repo-init clears any
+  inherited git location (`GIT_DIR`, `GIT_INDEX_FILE`, …) before it runs, so
+  neither its replays nor the tests it runs in scratch repositories can commit
+  into the child; one naming another repository is refused. The replays
+  receive `STANDARDS_UUID_V8_JS`, and a template tree carrying a submodule
+  (a gitlink, which a replay cannot reproduce) is refused by name, at the mint
+  as well, clean or not. A pre-mint change gone from both results (an input
+  the mint never copies, a file in a directory it deletes) is checked by
+  minting without it, and refused by name when it has no effect; a path
+  holding byte 0x01 (the deed reader's record separator) is refused like one
+  holding a newline.
+
+==== Changed
+
+* **Agda proofs use PROOF-POLICY §2.1's invocation.** `scripts/check-proofs.sh
+  agda` runs `agda --safe --without-K --cubical-compatible`, the canonical
+  theory invocation (metadatastician/standards `3-practice/PROOF-POLICY.adoc`
+  §2.1), instead of `agda --safe`. Every repository minted from the template
+  inherits the gate, so this is the source of the fix that
+  hyperpolymath/resource-algebra#19 and hyperpolymath/occupancy-types#18 make
+  to their copies. `Properties.agda` checks under the new flags (Agda 2.6.3,
+  standard library 1.7.3); the manifest records it.
+
+
+==== Fixed
+
+* **Mint, drift gate and chain mint: the review findings left open on #275
+  and #277.**
+** An answer holding byte 0x01, the deed reader's record separator, is
+   refused before the first write.
+** The drift gate and the pre-mint check compare a symlink's target byte for
+   byte (a trailing newline was stripped) and the execute bit git records
+   (the owner's), not `-x`, which as root is true for a file only its group
+   or others may execute.
+** The repo uuid is derived the same on every machine
+   (`scripts/uuid5-url.sh`: sha1sum, shasum or openssl, equal to
+   `uuidgen --sha1`); without uuidgen it used to be `UNASSIGNED`, which a
+   replay then reported as drift. `deed-field.sh --uuid` falls back to it.
+** A divergent legacy `.well-known/` file is quarantined under the mint
+   date (`migrate-wellknown-to-www.sh --date`), so a later replay names it
+   the same.
+** Replays keep a file the template tracks although its `.gitignore`
+   matches it, and refuse a template commit whose checkout does not read
+   back as its own tree, instead of replaying it inexactly.
+** A chain mint holds the parent's original deed name as identity (a parent
+   that renamed its deed chain-mints), refuses a carried generator that
+   edits the deed, and fetches a partial clone's pinned files while the
+   user's git configuration (credentials, `insteadOf`) still applies.
+** A minted repo without `scripts/chain-mint.sh` is refused, never minted as
+   a template.
+
+* **repo-init follow-ups to #251 (the Codex review it merged before).**
+** Re-minting a minted repo silently inherited its parent's author, contacts
+   and identity (its tokens are filled and `build/templates` is gone). A
+   minted repo that records `(mint-answers)` is now chain-minted (see Added);
+   one that does not is refused before writing, naming its template.
+** The template identity no longer falls back to the git remote, which in a
+   template-created child is the child itself. A Justfile without readable
+   `OWNER :=`/`REPO :=` (now also `export`) needs `RSR_TEMPLATE_SLUG`.
+** The self-name pass matches the template name only where no letter or
+   digit touches it, so a short parent name such as `app` no longer rewrites
+   "application" into "newlication".
+** `resolve-template-pin.sh` pins a root commit by creation time (the
+   default branch's tip when the child was made) and refuses, listing them,
+   when several commits share a tree; 29 trees repeat on main.
+** `rust-tool.sh` caches each mint tool by the hash of its source, so two
+   checkouts can no longer run each other's binary.
+** Answers go through `sed_rhs`, so `&`, `|` and `\` in a description or name
+   render literally; an answer with a newline is refused.
+
+* **`.kyaml` files were invisible to four file scans.** Estate configuration
+  is `.kyaml` (D307), but these selectors matched only `*.yaml`/`*.yml`: the
+  invisible-character scan (`scripts/check-invisible-characters.sh`), the
+  `http://` URL check in `security-policy.yml`, and the VeriSimDB probe in
+  `dogfood-gate.yml` and `dogfood-summary.yml`. A zero-width character or a
+  plain-HTTP URL in a `.kyaml` file passed unseen. Each now includes
+  `*.kyaml`. Ported from `hyperpolymath/panic-attack#246`.
+* **The template's gates could not fail, and the toolchain was not minted.**
+  Reported from JuliaPackageSpitter.jl and traced here; see
+  `docs/reports/compliance/RSR-TEMPLATE-DAMAGE-2026-10-30.adoc` for the full
+  investigation and the estate inventory.
+** `spdx-headers` globbed `*.rs`/`*.res`/`*.gleam` and capped the scan at 20
+   files, so it examined nothing and passed in every Julia, Idris2, Zig, Elixir,
+   OCaml and shell repository. `scripts/check-spdx-headers.sh` derives the
+   extension set from the languages the repository declares, scans every match,
+   and fails when a declared language has no files or when it matched nothing;
+** `container-images-pinned` asked whether `cgr.dev` appeared in the
+   Containerfile, which `FROM cgr.dev/chainguard/wolfi-base:latest` satisfies.
+   `scripts/check-container-pins.sh` requires a 64-hex digest on every `FROM`;
+   `scripts/pin-container-digests.sh` writes the pins and refuses a placeholder;
+** `mise.toml` was copied from the spine, not rendered, so every mint declared
+   the template's own toolchain — nine runtimes including Python, which is
+   banned estate-wide, and not the language of the repository. It is now
+   rendered from the detected languages by `scripts/render-mise.sh`, and
+   `scripts/check-mise-language.sh` fails a repository whose declared toolchain
+   is not the one its languages need;
+** `just quality` printed "All quality checks passed!" over verbs that reported
+   `N/A` and exited 0. It now fails when a verb runs nothing, and the
+   `julia-library` archetype wires `fmt`, `fmt-check` and `lint` to
+   `scripts/julia-quality.jl`;
+** `build/container/Containerfile` is deleted rather than pinned: two
+   `FROM …:latest` lines and a body of TODO comments built nothing and failed
+   `container-images-pinned` in every minted repository, including those that
+   publish no image. A repository that publishes one adds the file and pins it
+   (`scripts/pin-container-digests.sh`); `just container-build` says so;
+** `archetypes/*/prune.txt` and `scripts/prune-archetype-modules.sh`: an
+   archetype can remove spine modules its preset does not declare, so a Julia
+   library no longer inherits a `Containerfile`;
+** the mint's `.in` rename covered a hardcoded three-file list; it now covers
+   the files the applied overlay actually added, so the spine's own `.in`
+   templates survive;
+** `check-no-placeholders.sh` died with exit 1 and no output in a repository
+   with no `origin` remote (a fresh mint, before the first push): `git config`
+   exited 1 and `set -e` took the script with it;
+** `validate-template.sh` referenced an unset `SCRIPT_DIR` (aborting at Phase 6
+   under `set -u`) and demanded `CONTRIBUTING.md` in an estate that writes
+   `.adoc`. There is now a root `LICENSE` (MPL-2.0), so the Mustfile's
+   `license-present` and every minted `link:LICENSE[LICENSE]` resolve;
+** a pre-write token gate in `repo-init` refuses a mint the recipe cannot answer
+   for, and four gates now run against the minted tree before handoff;
+** `tests/workflows/mint_gates_test.sh` (30 controls) asserts that every gate
+   fails on a fixture built to fail it; `tests/e2e/language_profiles_mint_test.sh`
+   (27 controls) mints a Julia package and a Rust CLI and runs the gates on both.
+   `.github/workflows/quality.yml` gained a `mint-gates` job that runs them.
+
+* Defects a child inherited, found porting this CI into resource-algebra
+  (resource-algebra#15, fixed there in resource-algebra#16):
+** Secret Scanner: a repository `.gitleaks.toml` replaced the estate
+   gitleaks baseline in all three passes, so a pull request could pass with
+   a weaker local config. The baseline now always runs; a local config adds
+   a second pass;
+** `scripts/check-required-contexts.sh` checked a mapped context's workflow
+   trigger but not that a job with that check-run name exists, so a renamed
+   job could strand pull requests behind an unproducible required check; a
+   job with neither `runs-on` nor `uses` produces nothing. A
+   job that calls a local reusable workflow (one declaring
+   `on: workflow_call`, directly in `.github/workflows/`, called as `./` or
+   `$/`, nested at most ten deep, no
+   cycles) counts as producing
+   `<caller> / <called job>`; one that calls a remote reusable produces
+   nothing the gate can certify. A literal matrix is expanded as GitHub
+   names its runs (property names case-insensitive, and only names GitHub
+   can dereference); a matrix with
+   include/exclude or computed values is
+   refused by name, never assumed to match; a matrix caller of a reusable
+   produces one `<caller run> / <called job>` per run;
+** `repo-init` and `container-init` filled the container tokens without
+   reformatting the KYAML, so a fresh child that keeps its containers failed
+   Estate Rules' "Converted YAML stays KYAML". Both now run
+   `scripts/format-container-kyaml.sh` after their substitution pass, and check
+   for a yq that writes KYAML before they write anything (a mint that prunes
+   `build/container/` needs none), refusing a service name, port or registry
+   that would break the KYAML they fill or the substitution (a service name
+   that is a DNS label, since it is also a TOML table key and the backend's
+   hostname; a registry of a host or a bracketed IPv6 address in RFC 4291 text, an optional port
+   from 1 to 65535 and lower-case path components, the owner lower-cased in
+   its default;
+   `container_kyaml_test.sh` holds the accepted and refused values). yq joins
+   the base toolchain (`MISE_BASE`, so every rendered `mise.toml`, and the
+   template's own); `mise.lock` gains its record with `just toolchain-refresh`.
+   The quick-start docs install the toolchain before `just repo-init` and run
+   every `just` through `mise exec --` unless mise is activated. Estate Rules
+   installs its pinned yq before the mint steps, and `use_template_mint_test.sh`
+   checks the minted configs and that a mint without a KYAML-capable yq stops
+   untouched;
+** `mint-verbatim.txt` did not list `tests/ffi_strings_test.sh` or
+   `tests/workflows/container_kyaml_test.sh`, token fixtures the placeholder
+   gate then rejected in a child;
+** `tests/ffi_strings_test.sh` named the template's export prefix, so in a
+   child it called functions that do not exist. It now maps the child's exported
+   symbols onto the fixture's, and nothing else that shares their prefix.
+
+* `repo-init` minting a repository created with GitHub's "Use this
+  template" (measured on metadatastician/lintel, 2026-10-14):
+** provenance recorded the CHILD's own HEAD as the template commit. The
+   commit is now resolved by tree equality against the template's history
+   (`scripts/resolve-template-pin.sh`), before anything is written, and an
+   unresolvable tree aborts the mint (`RSR_TEMPLATE_URL`,
+   `RSR_TEMPLATE_COMMIT`, `RSR_ALLOW_UNPINNED=1` for the exceptions);
+** the template's name, owner and deed file are derived from the checkout
+   (the root Justfile, else `RSR_TEMPLATE_SLUG`; never the git remote, which in
+   a "Use this template" child names the child), not hardcoded (ported from
+   lintel#9, which did not merge; its removal of the `[YOUR-REPO-NAME]` deed
+   seds was not ported, since only they fill it);
+** every rewrite pass and completeness check reads one file list: the
+   repository's own files (`git ls-files`, plus untracked not-ignored), minus
+   `.machine_readable/mint-verbatim.txt`. The strip pass no longer edits
+   git-ignored sibling checkouts under `_build/`, nor the fixture tests its
+   own leftover check exempts; `strip-instruction-blocks.rs` takes files, not
+   a directory. `check-no-placeholders.sh` reads the same manifest;
+** a fresh mint of main aborted on `julia_library_test.sh`'s package-UUID
+   fixture token; it is now carried verbatim;
+** the repository map is generated from the work tree (`gen-repo-map.sh
+   --worktree`), after the last tree-changing step, so it no longer lists
+   `archetypes/` and the template's deed name; a path holding a newline,
+   which the line-based map would split into bogus entries, is refused by
+   name in both modes;
+** stage 8 no longer tells a minted repo to arm `check-variant-drift.sh`,
+   which a fresh mint cannot pass (101 rendered files differ); it points at
+   `check-template-conformance.sh`. The (variant) clause now declares the
+   mint's removals, and the drift gate says why it fails on a minted repo;
+** deed-validate.yml's "Copy it from …" line names the template as the
+   upstream source, so the self-name pass leaves it alone.
+* `tests/e2e/use_template_mint_test.sh` (wired into estate-rules): the first
+  CI job to run a full mint, with a negative control beside each check.
+* The published governance badge could lie. `dogfood-gate.yml` mapped every
+  non-`success` K9 outcome to RED, so `skipped`, `cancelled` and `timed_out`
+  all rendered a red "failure" that never happened; worse, the `badges` job
+  skipped publication entirely when its lane was skipped, so an earlier green
+  badge stayed on display. Badge publication is now owned by
+  `scripts/governance-badge.js`, which renders `success`/brightgreen,
+  `failure`/red, and skipped/cancelled/unavailable/unrecognised as explicit
+  lightgrey states, and which publishes on a skipped lane instead of leaving
+  the old badge alone.
+* Badge publication treated every GitHub API error as "the branch is missing":
+  `gh api … >/dev/null 2>&1` fell through to branch creation on a 401, a 429 or
+  a network failure, and a failed file read produced a PUT with no `sha` that
+  could never converge. Only a 404 on both the file and the ref may now create
+  a branch; auth, rate-limit, 5xx and network failures fail the run without
+  writing anything.
+* Every push to `main` wrote a badge commit even when the badge was unchanged.
+  The publisher now fetches the published file, compares it byte for byte with
+  the newly rendered badge, and exits with an "unchanged" notice and no commit
+  when they are identical - and it never re-serialises the JSON to make the
+  comparison succeed. Publications are serialised per repository (job-level
+  `concurrency`), and the sha-checked contents call turns a race into a
+  re-read instead of a silent overwrite.
+
+* **The Hypatia verdict grid was described in three places and produced in
+  none.** `.github/workflows/README.adoc` said a `verdict` job posted the grid,
+  `.gitbot-fleet/report-backs/README.md` said the Hypatia lane downloaded the
+  report-backs, and `fork-governance.yml` produced a `fleet-report-backs`
+  artifact "for the grid" — while no workflow rendered a grid, and
+  `hypatia-scan.yml` uploaded no findings file at all. `fork-governance.yml`'s
+  verdict job now collects the producers' artifacts for one commit, renders the
+  findings-family grid with the standards renderer (pinned commit, verified
+  sha256, never a copy in this tree), uploads `verdict-grid` and maintains one
+  `<!-- verdict-grid:hypatia … -->` comment per pull request. It is triggered by
+  `pull_request` *and* by `workflow_run` on the two producer workflows, so it
+  re-renders when a scanner finishes instead of showing "not yet" forever.
+* **Hypatia ran twice per pull request.** `hypatia-scan.yml` and a
+  `hypatia-scan` job of `static-analysis-gate.yml` each built the same scanner
+  at the same pin, with separate caches and two independent "fail on critical"
+  gates over two differently-shaped JSON files. Hypatia now runs once, in
+  `hypatia-scan.yml`, which also uploads `hypatia-findings.relativized.json`
+  (repo-relative paths, so the grid's delta column can match
+  `git diff --name-only`) as `hypatia-scan-findings`. `static-analysis-gate.yml`
+  keeps what is specific to it and uploads `static-analysis-findings`.
+* **A failed fleet job was reported and then ignored.** The verdict job printed
+  the fleet result in a table and never failed on it, so a fleet failure was
+  invisible where a reader looked; its `jq '… | .findings | length'` loop could
+  also abort the whole summary on one malformed envelope and skip the final
+  check. The verdict now fails on DEED/K9 only (each producer owns its own
+  gate), states that the fleet's failure is orange rows plus its own red check,
+  and never parses fields it does not own.
+* **`.hypatia-ignore` carried a dangling cross-reference**: `panicbot` was left
+  unenrolled because "the Hypatia lane's direct panic-attack row" would cover
+  it, and no such row existed. The grid now renders that row from
+  `static-analysis-gate.yml` evidence, and the enrolment reason states the rule
+  it is an instance of (one scanner, one row).
+
+* **Seven defects the review of this work found, each now covered by a control.**
+  None of these were reached by the tests as written, which is the point:
+** `check-container-pins.sh` took the "nothing to pin" success path even after
+   failing on a `Dockerfile`, so the one repository shape the Dockerfile rule
+   exists to catch reported PASS; and it registered a stage name only after the
+   line that `continue`s, so the ordinary `FROM image@sha256:… AS build` +
+   `FROM build` pair was judged an unpinned remote image. Stage names are now
+   registered when parsed, before any branch can skip the rest of the line;
+** `pin-container-digests.sh` rewrote every `FROM` line, turning `FROM scratch`
+   and `FROM build` into `scratch@sha256:…` and `build@sha256:…` — corrupting the
+   multi-stage files it should leave alone, while the companion gate accepted the
+   result. It now splits FROM into flags/reference/tail and rewrites only the
+   reference of a remote image;
+** `check-spdx-headers.sh` judged emptiness per EXTENSION, so a valid Elixir tree
+   with `.ex` and no `.exs` (or OCaml `.ml` without `.mli`) failed for a language
+   it is written in. Emptiness is now judged per language, across all of its
+   extensions;
+** `render-mise.sh --langs` only changed the label: the tool list still came from
+   the tree's own detection, so a fixture asking for Julia was handed the docs
+   toolchain. `mise-tools` now accepts the language list, and `--check` compares
+   the declared toolchain rather than the rendered prose — which made it
+   impossible to pass on any repository that wrote its own header, the template
+   included;
+** `check-mise-language.sh` parsed only bare `[tools]` keys, and backend-qualified
+   tools MUST be quoted (`"npm:prettier"`), so the banned-tool check could never
+   see them; its `--detect` mirror also looked only at the root, calling a tree
+   with `src/interface/abi.ipkg` and `src/interface/ffi/build.zig` a docs
+   repository. Both now follow the engine, depths included, and the mirror lists
+   mise tools rather than each language's binaries;
+** `check-mint-tokens.sh` treated "no build/just/repo-init.just" as proof of a
+   minted tree — but that recipe is carried verbatim into every child, so no child
+   was ever recognised and an unfilled `sholes` passed (and
+   `survey-template-damage.sh` reported such repositories token-clean). The marker
+   is `archetypes/`, which the mint deletes;
+** `archetypes/*/prune.txt` dropped only `build/container/`, so a minted Julia
+   package and a minted Rust CLI both carried the Idris2/Zig seam: three languages
+   detected, `idris2` and `zig` installed, `idris2 --build` in `just build`. Both
+   presets declare neither the abi nor the ffi capability, so both now prune
+   `src/interface/`; `validate-rsr` requires the seam only of a tree that carries
+   it. The archetype tests assert the toolchain is single-language.
+
+==== Added
+
+* `scripts/governance-badge.js` — the single implementation of the badge
+  scheme: the state -> (message, colour) table, canonical rendering, the
+  publication decision (create orphan branch / add file / update / no-op),
+  API-error classification, and guards that refuse `main`, `master`, a
+  repository default branch, or a path outside `badges/`. Runtime-agnostic
+  (Bun or Node, `node:` builtins only), so it is unit testable.
+* `tests/workflows/governance_badge_test.sh` and
+  `tests/workflows/governance_badge_test.js` — hermetic tests wired into
+  Estate Rules: the state table, byte-equal no-op, changed-bytes publication,
+  orphan-branch creation with `parents: []`, grey states for missing/malformed
+  lane evidence, malformed existing content, 404-vs-outage classification,
+  conflict reconciliation and the source-branch guards, plus wiring checks run
+  against a mutated workflow so they are proven able to fail. They supersede
+  `tests/workflows/dogfood_badge_test.sh`, which asserted the old mapping and
+  was never wired into CI. A present but *unreadable* artifact (EACCES, or a
+  TOCTOU deletion between the stat and the read) is now evidence that cannot be
+  checked rather than an uncaught exception: it renders grey, names the errno,
+  and exits 3. The assertion is skipped, with the reason printed, when the
+  suite runs as root, where `chmod 000` cannot deny a read.
+* `README.adoc` and `.github/workflows/README.adoc` now state the operational
+  contract of the generated `governance-badges` branch: it is an orphan with no
+  common ancestor with `main`, it is never merged and has no pull request,
+  recent pushes are normal refreshes, identical content makes no commit, and a
+  grey badge means the lane produced no trustworthy result.
+
 * `www/` site-operations bundle (issue #53): canonical `.well-known/`
   metadata, publishable content, policy sources, error bodies,
   security-header templates, Caddy/nginx/Apache integration examples, an
@@ -41,8 +452,108 @@ https://semver.org/spec/v2.0.0.html[Semantic Versioning].
   `check-lock-sync.sh`, and checks that the old clobber, a missing record
   and a conflicting record all fail.
 
+* `scripts/verdict-grid-lane.sh` — collect / validate / render / previous /
+  comment for the verdict grid lane. It refuses to execute a renderer whose
+  sha256 does not match the recorded digest, renders an explicit **orange
+  "indeterminate"** grid (never green) when the renderer or the evidence is
+  unavailable, refuses a bare panic/pons findings array (a bare array cannot
+  distinguish "ran clean" from "never ran"), and updates the comment it posted
+  last time instead of adding one per run.
+* `scripts/check-workflow-edges.sh` — the intra-repository half of the CICD
+  Squabbler gate, run in both `squabble.yml` and `estate-rules.yml`. It fails
+  when a `workflow_run.workflows` entry names no workflow's `name:`, when two
+  workflows share a `name:`, when the verdict job reads an artifact its named
+  producer never uploads, when a producer stops running on `pull_request`, when
+  the verdict job's `--hypatia-ref`/`--panic-ref`/`--pons-ref` disagree with the
+  producer's pin, or when one tool is pinned at two different commits.
+* `scripts/check-hypatia-ignore.sh` — the meta-rules for `.hypatia-ignore`:
+  every fragment must end on a path boundary (a substring fragment silences
+  more than it names), no entry may be subsumed by a broader one for the same
+  module, the path it names must exist, and it must belong to a commented
+  reason block.
+* `docs/HYPATIA-RULE-ORDER.adoc` — the ordered statement of Hypatia's exemption
+  layers (total ban, universal excludes, built-in defaults, `.hypatia-ignore`,
+  inline directives, baseline, grid normalisation), the eight clashes found
+  between them, the rule that resolves each, the e/r (evidence/reason)
+  contract per reporter, the GitBot design rules, what is deliberately *not*
+  enforced, and the refusals that make the order a checked contract.
+* `tests/workflows/verdict_grid_test.sh` (70 checks), `workflow_edges_test.sh`
+  (21) and `hypatia_ignore_test.sh` (22) — behaviour, wiring and firing controls
+  for the three scripts above, with stub `gh`/renderer and mutated workflow
+  copies, so every check is proven able to fail.
+* `.machine_readable/policies/hypatia-rule-order.json` — the rule order as a
+  contract rather than prose: the seven layers with their rank, scope, owner and
+  what each may override; the eight concerns with exactly one owning workflow or
+  file each; the eight clashes with the rule that resolves each; the modules
+  `.hypatia-ignore` currently exempts and the layer each exemption lives in; and
+  the scanner, grid, renderer and jq-library pins the order was written against.
+* `scripts/check-hypatia-rule-order.sh` — refuses a duplicate or gapped rank, a
+  layer that states no scope or no override, an owner outside the four declared
+  parties, a concern owned by a path that does not exist, a clash with no
+  resolution, a module exempted but unclassified (or classified but no longer
+  exempted), an exemption filed under a layer this repository may not change,
+  and any pin or digest that disagrees with `hypatia-scan.yml` or the lane
+  script. Exit 0 clean, 1 violation, 2 setup error.
+* `tests/workflows/hypatia_rule_order_test.sh` (44 checks) — one mutation per
+  refusal above, run against a copy of the real policy. Two of its own first-draft
+  defects are documented in `docs/HYPATIA-RULE-ORDER.adoc`: `@tsv` collapses an
+  empty field (a missing `overrides` was reported as a missing `scope`), and
+  `grep` under `set -e` exits before a missing pin can be diagnosed.
+* `.machine_readable/policies/README.adoc` — the registry now says what each
+  policy states, what checks it, and that adding a policy means adding the
+  checker and its lane.
+* `scripts/run-proven-suite.sh` gains the lane *Hypatia rule order & clash
+  resolution*, so the policy cannot drift from the four files it describes
+  without a red run; `tests/run_proven_suite_test.sh` asserts the lane is
+  dispatched (16).
+
 ==== Changed
 
+* KYAML, step 5 of standards YAML-POLICY §5 (standards#1024): the three
+  estate-owned YAML files that no third-party bot rewrites are now KYAML
+  content: `build/container/compose.yaml`, `compose.example.yaml` and
+  `stapeln/.gatekeeper.yaml`. Each keeps its name, because Compose, the
+  Containerfile label and svalinn find it by name (§3.4). They were rewritten
+  by standards' `kyaml-format.sh` alone, which refuses any change to the
+  parsed data. Every comment line survives, and `.gatekeeper.yaml` is now
+  byte-identical to standards' `_shared/container/.gatekeeper.yaml`.
+  Estate Rules gains the ratchet "Converted YAML stays KYAML", which runs
+  that script at standards `75bd599` with yq 4.53.3, both sha256-verified.
+  Container narrowing at mint can delete any of the three files, so the
+  template must keep all of them, while a minted repository checks the ones
+  it kept and names the ones narrowing removed.
+  `tests/workflows/kyaml_ratchet_test.sh` covers the template and each
+  narrowing, and `tests/workflows/container_kyaml_test.sh` checks that the
+  conversion kept every value in the template's configs. Estate Rules runs
+  both.
+  Workflows wait for step 6 (standards#1025). Files that Dependabot,
+  FUNDING, issue forms, Probot settings, CodeRabbit, Copilot, GitLab CI or
+  pre-commit read or rewrite are not converted, as in standards.
+* The workflow linter installs Bun 1.4.2, the estate pin, from its release
+  archive and checks its sha256, as Estate Rules installs its tools. It ran
+  `oven-sh/setup-bun@v2.2.0` with `bun-version: latest`, so the runtime was
+  unpinned, and SonarCloud rated a third-party action pinned by tag "C"
+  ("Use full commit SHA hash"), even though `actions.lock` pins its commit.
+  The linter's lock edge to setup-bun goes. The `setup-bun@v2.2.0` record
+  stays, because the commented Bun steps in `e2e.yml.template` resolve
+  through it.
+* `.github/workflows/runtime-policy.yml` is removed, folded into governance
+  as the standards cicd-regularisation spec §14 rules. Governance's
+  "Language / package anti-pattern policy" fails any tracked
+  `package-lock.json`, a stricter test than this file's mixed-toolchain error,
+  and its "JS runtimes" jobs check `bun.lock`, `deno.lock` and
+  `pnpm-lock.yaml` against `package.json`. Its `actions.lock` record goes with
+  it, and `validate-template.sh` and `validate_workflows_test.sh` require
+  `governance.yml` in its place. Repositories minted from the template stop
+  receiving their own copy of the check. Governance now runs on pull requests
+  to any branch, as the removed workflow did, so a stacked pull request keeps
+  the check. `tests/workflows/runtime_policy_fold_test.sh`, which Estate Rules
+  runs, checks that both validators reject a tree without `governance.yml` and
+  accept none of the retired gates' names in its place.
+  `tests/workflows/governance_policy_test.sh`, also in Estate Rules under a
+  sha256-verified Bun 1.4.2, checks that the workflow and its lock record stay
+  gone, that governance's pull request trigger has no filter, and that its
+  standards call matches the lock.
 * JavaScript runtimes follow the 2026-10-14 ruling (standards
   LANGUAGE-POLICY §1.3–§1.4): Bun > Deno > pnpm > npm, from one
   `package.json` whose `bun.lock`, `deno.lock` and `pnpm-lock.yaml` are all
@@ -86,6 +597,14 @@ https://semver.org/spec/v2.0.0.html[Semantic Versioning].
 
 ==== Fixed
 
+* Governance, Hypatia Security Scan, Mirror to Git Forges, Rust CI and
+  Secret Scanner start again. GitHub's runner now rejects a lock record whose
+  `ref:` is the record's own SHA ("invalid lockfile pin"), and nine of this
+  lock's action records had one. The standards reusables move from `6a92510`
+  to `75bd599`, whose own lock carries tag refs
+  (hyperpolymath/standards#1271, hyperpolymath/standards#1285), and
+  `relock-standards-pin.sh` at `75bd599` gave the nine records the same tags.
+  No commit changes: each tag was checked to point at its recorded commit.
 * The mint's self-name pass keeps issue references. It rewrote
   `sholes#N`, a reference to this template's own issue, into
   `<child>#N`, which names an issue of the child that does not exist or is

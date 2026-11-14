@@ -7,13 +7,15 @@
 # ── Why this is NOT duplicated work ─────────────────────────────────────────
 # The estate runs a TWO-TIER secret defence:
 #
-#   CI     gitleaks, via the standards `secret-scanner-reusable.yml`
-#          (gitleaks + rust-secrets + shell-secrets). Catches what reaches the
+#   CI     gitleaks, rust-secrets and shell-secrets, inline in
+#          `.github/workflows/secret-scanner.yml` (the same three scanner
+#          contracts the standards reusable publishes, kept inline so the three
+#          check names are this repository's own). Catches what reaches the
 #          remote, on every pull_request and push to main.
 #   LOCAL  TruffleHog — this script — before the push leaves the machine.
 #
-# Different detection engines at different checkpoints. The reusable's header
-# retires TruffleHog "as redundant with gitleaks"; that judgement is scoped to
+# Different detection engines at different checkpoints. The estate retired
+# TruffleHog "as redundant with gitleaks"; that judgement is scoped to
 # CI, where running both cost twice over one population. It is not a reason to
 # leave the local tier unguarded. DO NOT delete this script as duplication —
 # see .github/workflows/README.adoc, "Secret scanning is single-sourced".
@@ -162,7 +164,7 @@ scan() {
 }
 
 if [ -n "${K9_PUSH_RANGES:-}" ]; then
-  while read -r local_ref local_sha remote_ref remote_sha; do
+  while read -r local_ref local_sha _remote_ref remote_sha; do
     [ -z "${local_sha:-}" ] && continue
     [ "$local_sha" = "$ZERO" ] && continue                 # branch deletion
     if [ "${remote_sha:-$ZERO}" = "$ZERO" ]; then

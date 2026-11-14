@@ -38,7 +38,7 @@ if ! "$find_bin" "$scan_root" \
     -not -path '*/external_corpora/*' -not -path '*/.lake/*' \
     -type f \( -name '*.rs' -o -name '*.ex' -o -name '*.exs' -o -name '*.res' \
       -o -name '*.js' -o -name '*.ts' -o -name '*.json' -o -name '*.toml' \
-      -o -name '*.yml' -o -name '*.yaml' -o -name '*.md' -o -name '*.adoc' \
+      -o -name '*.yml' -o -name '*.yaml' -o -name '*.kyaml' -o -name '*.md' -o -name '*.adoc' \
       -o -name '*.idr' -o -name '*.zig' -o -name '*.v' -o -name '*.jl' \
       -o -name '*.gleam' -o -name '*.hs' -o -name '*.ml' -o -name '*.sh' \
       -o -name '*.deed' -o -name '*.k9' -o -name '*.ncl' -o -name '*.txt' -o -name '*.just' \

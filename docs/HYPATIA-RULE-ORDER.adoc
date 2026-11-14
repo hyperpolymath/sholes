@@ -1,0 +1,364 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+= Hypatia rule order, exemption layers and clash resolution
+:toc: left
+:toclevels: 3
+:sectnums:
+
+This is the repository's statement of *which* rule layer wins when two of them
+speak about the same file, *which* clashes exist today, and *what resolves each
+one*. It is local policy about tools that live elsewhere: Hypatia at
+`hyperpolymath/hypatia@be98f74ce93df200752f3798efa1305bfa3e0e10`
+(`lib/hypatia/scanner_suppression.ex`, `lib/rules/`), and the verdict grid at
+`metadatastician/standards@f0b3cd4c464d33e1584f8528c17bce104555e256`
+(`docs/VERDICT-GRID-SPEC.adoc`).
+
+Nothing here changes what a scanner finds. It states the order the layers are
+applied in, so that "the finding is exempt" and "the finding was never looked
+for" cannot be confused for each other.
+
+== Why this document exists
+
+Three facts, each verified against the pinned sources, made the ordering
+ambiguous:
+
+. **Hypatia's exemption layers are a flat OR.** `ScannerSuppression.suppressed?/4`
+   returns true when *any* of the universal excludes, the built-in
+   `@default_exemptions`, or the repository's `.hypatia-ignore` matches. There is
+   no "narrow wins" rule and no negative entry, so a broader layer silently
+   decides for a narrower one.
+. **The verdict grid grades a *set* of reporters, not a pipeline.** Its
+   precedence (purple > red > orange > yellow > blue > green) settles what a
+   *row* becomes, but not which scanner is allowed to contribute a row.
+. **Every workflow claimed a relationship it did not have.** `fork-governance.yml`
+   said the report-backs fed "the Hypatia lane", `.gitbot-fleet/report-backs/README.md`
+   named a lane that did not exist, and `.github/workflows/README.adoc` said
+   Hypatia ran "in two places (on purpose)". All three were wrong, and nothing
+   could fail when they went wrong.
+
+== The layers, in the order they are applied
+
+[cols="1,3,3",options="header"]
+|===
+|Order |Layer |Owner and enforcement
+
+|1
+|**Rule-level total ban** — `cicd_rules/banned_language_file` (Python, Go, Makefile, Gemfile) is refused by a dedicated clause that no exemption can reach.
+|Hypatia (`scanner_suppression.ex`). Not this repository's to change. A repository cannot exempt it, and must not try.
+
+|2
+|**Universal excludes** — `.git/`, `node_modules/`, `_build/`, `deps/`, `target/`, `dist/`, `.hypatia-baseline.json`.
+|Hypatia. Applied to every rule.
+
+|3
+|**Built-in default exemptions** — `@training_corpus_paths` (`lib/rules/`, `test/`, `tests/`, `scripts/fix-scripts/`, `.audittraining/`, `integration/fixtures/`) keyed per module, plus `benches/` for `code_safety` only.
+|Hypatia. A repository cannot narrow these (see clash C7).
+
+|4
+|**Repository exemptions** — `.hypatia-ignore`, `<module>/<type>:<path>`.
+|This repository. Checked by `scripts/check-hypatia-ignore.sh`.
+
+|5
+|**Inline directives** — `# hypatia: allow <module>/<type> -- <reason>`, scoped to the line or file that carries it.
+|This repository. Narrower than every layer above; cannot widen anything.
+
+|6
+|**Baseline** — `.hypatia-baseline.json`, applied at gate time only.
+|The gate, never the grid. A baselined finding is still counted by the verdict grid (spec §Non-goals), so standing debt cannot masquerade as a clean scan.
+
+|7
+|**Grid normalisation** — severity words, `suppressed: true`, and the row's colour.
+|The verdict grid. Presentation and grading only; it never suppresses a finding, and nothing it does can change what a scanner reported.
+|===
+
+The first three layers belong to Hypatia; only layers 4 and 5 are this
+repository's to get wrong, which is why the checks in this repository target
+those two and *state* the rest rather than restating them as if they were ours.
+
+=== What "first match wins" does not mean
+
+Layers 2–5 are **not** a cascade and not a precedence chain: Hypatia ORs them.
+"Order" here is the order in which a reader (and the checker) must interpret a
+suppression, and the order in which a *new* reviewer should look for the reason
+a finding is missing. Where two layers genuinely conflict, the conflict is one
+of the clashes below, and each has an explicit rule.
+
+== Clashes, with the rule that resolves each
+
+=== C1 — one scanner, two workflows
+
+*What was happening.* Hypatia ran in `hypatia-scan.yml` **and** in a
+`hypatia-scan` job of `static-analysis-gate.yml`: two builds, two caches, two
+"fail on critical" gates, two different output shapes, and no artifact either
+of them could hand to the grid.
+
+*Rule.* A scanner runs in exactly one workflow, and that workflow owns its gate.
+A second workflow may *read* its artifact; it may not re-run the tool.
+
+*Enforced by.* The absence of a Hypatia job in `static-analysis-gate.yml`, and
+`scripts/check-workflow-edges.sh`, which fails the CICD Squabbler gate when a
+producer's `name:`, artifact or pin stops matching what the reporter expects.
+
+=== C2 — one tool, two pins
+
+*What was happening.* `static-analysis-gate.yml` built panic-attack at
+`b5530834…`; the standards Hypatia reusable pins `b689a74d…` (it carries an
+upstream severity fix, standards#1306). Both were defensible; together they
+meant the grid could grade two different binaries and call the result comparable.
+
+*Rule.* One pin per tool per repository. The verdict job names the same commit
+the producing workflow builds (`--hypatia-ref`, `--panic-ref`, `--pons-ref`), and
+a pin that appears at two different commits in two workflows is a failure, not a
+choice. The standards reusable's different panic-attack pin is *recorded here*,
+not silently copied: a repository that adopts the reusable adopts its pins, and
+must then change `scripts/check-workflow-edges.sh`'s expectation deliberately.
+
+*Enforced by.* `scripts/check-workflow-edges.sh` (identical-ref check plus the
+duplicate-pin scan).
+
+=== C3 — panicbot versus the direct panic-attack row
+
+*What was happening.* `.gitbot-fleet/enrolment.json` kept `panicbot` unenrolled
+with the reason "leave it to the Hypatia lane's direct panic-attack row" — and
+no such row existed, in any workflow.
+
+*Rule.* A scanner gets one row. panic-attack is graded by the grid's own
+`panic-attack assail` row from `static-analysis-gate.yml` evidence, so
+enrolling `panicbot` would report one scanner twice and produce two rows that can
+disagree. `panicbot` stays unenrolled, and its enrolment reason now says *that*.
+The grid now does render the direct row, so the cross-reference is no longer a
+promise about the future.
+
+*Enforced by.* The enrolment manifest's own wording (checked for shape by
+`scripts/verdict-grid-lane.sh validate --enrolment`) and the grid spec's
+one-row-per-reporter rule.
+
+=== C4 — substring fragments suppress more than they name
+
+*What was happening.* `.hypatia-ignore` fragments are **substring** matches. An
+entry for `x.yml` also silences `x.yml.bak`; `build/docs-seed/` also silences
+`build/docs-seed-old/`. The file's stated intent ("whole-file/directory
+exemptions") was narrower than its effect.
+
+*Rule.* Every fragment must end on a path boundary: either `/` (a directory) or a
+last segment containing a dot (a file name). A raw substring is refused.
+
+*Enforced by.* `scripts/check-hypatia-ignore.sh`.
+
+=== C5 — a broad entry makes narrower ones dead
+
+*What was happening.* `workflow_audit/wrong_sha_pin:.github/workflows/` exempts
+the rule for every workflow, so any narrower `wrong_sha_pin` entry — added in
+good faith by a later author — would be dead code that reads as a considered
+decision.
+
+*Rule.* An entry whose (module, type, path) is already covered by a broader entry
+for the same module (same type or `*`, and a path fragment the narrower one
+contains) is refused. If the broad exemption is right, the narrow entry goes; if
+the narrow exemption is right, the broad one goes.
+
+*Enforced by.* `scripts/check-hypatia-ignore.sh`.
+
+=== C6 — an exemption outlives the file it names
+
+*What was happening.* Nothing tied an entry to the path it named. After a rename
+the entry kept suppressing a path that no longer existed — or, if the rename
+produced the same prefix, a different file.
+
+*Rule.* The path a fragment names must exist in the tree. A stale entry is
+refused, and its removal is a visible diff rather than silent rot.
+
+*Enforced by.* `scripts/check-hypatia-ignore.sh`.
+
+=== C7 — a repository cannot narrow a built-in default
+
+*What is happening.* Layers 3 and 4 are OR'd: the built-in
+`@training_corpus_paths` exempts `tests/` from `security_errors`, and no
+`.hypatia-ignore` entry can *un*-exempt it. This repository cannot express "scan
+`tests/` for secrets" locally.
+
+*Rule.* Do not duplicate, and do not pretend. The repository must not add an
+entry that restates a default (it would read as local policy when it is not), and
+must not claim a narrowing it cannot make. Where a narrower exemption is
+genuinely needed, use an inline directive (layer 5), which is line-scoped.
+Where an *un-suppression* is needed, that is a change in Hypatia — an upstream
+issue, not a local workaround.
+
+*Enforced by.* Review; recorded here because the checker cannot see the
+other repository's defaults.
+
+=== C8 — the reporter must not re-gate
+
+*What was happening.* `fork-governance.yml` read the fleet job's result, printed
+it in a table, and then failed on DEED/K9 only — so a fleet failure was
+invisible in the one place a reader looked. Its `jq '… | .findings | length'`
+loop could also abort the whole summary on a malformed envelope, skipping the
+final check.
+
+*Rule.* The reporter never gates on findings: each producer owns its own gate,
+and one finding must not be able to block a pull request twice. A failed
+producer is visible as its own red check and as orange rows in the grid — those
+two facts are the reporting, and the reporter does not repeat them as a third.
+The lane writes its summary without parsing envelope fields it does not own.
+
+*Enforced by.* `fork-governance.yml`'s verdict job (which fails only on
+DEED/K9), and the grid's own grading (`orange` for missing evidence).
+
+== Evidence and reason (e/r) across the pipeline
+
+A row is only gradeable when the evidence says *two* things: how bad the worst
+finding is (the grade) and how that was established (the reason). The rule
+adopted here, per scanner:
+
+[cols="1,2,2",options="header"]
+|===
+|Reporter |Grade comes from |Reason/evidence carried
+
+|Hypatia
+|`severity` on the relativised findings array
+|`reason` (or `message`/`type`) per finding, `rule_module` and `type` for identity
+
+|panic-attack
+|`report.weak_points[].severity`, `suppressed: true` excluded
+|`description` per weak point; the envelope's `status`/`reason` say whether the scan ran at all
+
+|pons asinorum
+|`report.findings[].severity` (`ERROR`/`WARN`/`INFO`)
+|`evidence` class and `tier` per finding, carried into the message so a heuristic is never read as a proof
+
+|gitbot-fleet member
+|`findings[].severity` in the report-back envelope
+|`rule_id` and `message` per finding; `status`/`reason` at the envelope
+|===
+
+Three consequences, all enforced at the boundary rather than trusted:
+
+* **A status envelope is mandatory.** A bare findings array cannot distinguish
+  "ran and found nothing" from "never ran", so `panic-attack-findings.json` and
+  `pons-findings.json` are envelopes (`status`, `tool`, `ref`, `reason`,
+  `exit_code`, `report`). `scripts/verdict-grid-lane.sh validate` refuses a bare
+  array by name.
+* **An unknown severity word is reported, not silently graded.** The grid makes
+  the row orange; the lane's `validate` step names the offending words first, so
+  the reason reaches the log even when the grid cannot render.
+* **A finding without a reason is still a finding.** The severity decides the
+  colour; the missing reason is a warning attached to the evidence file, never a
+  reason to drop the finding.
+
+== GitBot design and operation
+
+The templates' rules for the fleet, each matching the grid spec:
+
+. **One row per reporter.** A member that is a wrapper around a scanner already
+   reporting (C3) stays unenrolled.
+. **Enrolment is a claim about *this* repository**, with a reason for every
+   member that does not apply. `enrolled: false` without a reason is not
+   expressible in the manifest, and `scripts/verdict-grid-lane.sh validate`
+   warns when one appears.
+. **No report-back is orange, never green.** An enrolled member whose envelope
+   is absent renders "enrolled, but no report-back was received". A committed
+   placeholder envelope would be stale evidence about an older commit, so
+   `.gitbot-fleet/report-backs/` stays empty in git and is filled only at render
+   time from the `fleet-report-backs` artifact.
+. **A failed fleet job is not a failed verdict** (C8): its rows go orange and its
+   own check goes red.
+. **Severity words normalise; unknown words make the row orange.** The member's
+   own vocabulary (`error`, `warning`, `info`, `suggestion`) is accepted.
+
+== What this document does *not* enforce
+
+Honesty about the limits, because each of these has been assumed "checked"
+somewhere before:
+
+* the built-in default exemptions (layer 3) — they live in Hypatia, and C7 is
+  stated, not enforced;
+* that a stated reason is *true*, only that one is present;
+* that a fleet adapter writes the envelope shape the spec defines — the fleet is
+  a separate repository at a pinned commit;
+* that the renderer's recorded sha256 stays current. A stale digest turns every
+  render orange with the mismatch named, which is loud on purpose: it is the
+  one failure mode where a wrong *renderer* would otherwise look like a clean
+  repository.
+
+== The order is a contract, not only a description
+
+The table above is prose, and prose does not fail a build. The order, the
+ownership of each concern, the clash resolutions and the pins are therefore
+restated in `.machine_readable/policies/hypatia-rule-order.json` and checked by
+`scripts/check-hypatia-rule-order.sh` (lane: *Hypatia rule order & clash
+resolution*, in `scripts/run-proven-suite.sh`).
+
+The checker refuses:
+
+[cols="1,3"]
+|===
+|Refused |Because
+
+|two layers with one `rank`
+|a duplicate rank leaves which of the two wins to the reader
+
+|a `rank` sequence with a hole, or written out of order
+|the document *is* the sequence; a gap invites a layer to be inserted where it
+cannot be seen
+
+|a layer with no `overrides`
+|a layer that states nothing is an OR, not a cascade, and that has to be a
+decision rather than an omission
+
+|a layer id used twice, a `concern` declared twice, a `clash` declared twice
+|a duplicated row reads as two rules and is one
+
+|a `concern` with no owner, or owned by a path that does not exist
+|this is exactly how Hypatia came to be run by two workflows (C1)
+
+|an `owner` outside `hypatia \| this-repository \| the-gate \| the-grid`
+|the four parties are the whole vocabulary; a fifth name means the model has
+changed and this document has not
+
+|a `clash` with no `resolution`
+|C3 and C5 were both "somebody will notice"; nobody did
+
+|a module exempted in `.hypatia-ignore` that `observed_modules` does not
+classify, or a classification for a module the ignore file no longer mentions
+|the policy and the file it describes drift in both directions, and both are
+silent
+
+|a module classified under a layer whose `repository_can_change` is `false`
+|an exemption cannot live in a layer this repository may not edit (C7)
+
+|a `scanner.commit`, `grid.commit`, `renderer_sha256` or `library_sha256` that
+disagrees with `hypatia-scan.yml` or `scripts/verdict-grid-lane.sh`
+|a policy pin that agrees only with itself proves nothing
+
+|a workflow with no pin at all
+|absent evidence is a failure, not a pass
+|===
+
+The suite that proves the checker fires is
+`tests/workflows/hypatia_rule_order_test.sh`: 44 checks, one mutation per
+refusal above, run against a copy of the real policy. Two harness defects it
+found in its own first draft are worth recording, because both are the kind of
+thing that makes a green test meaningless:
+
+* **`@tsv` cannot carry an empty field.** Tab is IFS whitespace, so an empty
+`overrides` collapsed and the value that followed it shifted into its place —
+the checker reported "no scope" for a missing `overrides` and would have passed
+a layer that stated neither. The checker now reads one base64-encoded JSON
+object per line and decodes each field by name.
+* **`grep` in a `set -e` script exits before it can complain.** A workflow with
+no `HYPATIA_SHA` made the extraction fail rather than the *check*, so a missing
+pin exited 1 with no diagnostic — indistinguishable from the violations it was
+supposed to report. The extractions are now `sed -nE ...p`, which succeeds on no
+match and lets the failure be stated.
+
+=== Adding or changing a rule
+
+. Decide which layer it belongs to, by asking *who* may waive it: the scanner
+(layers 1–3), this repository (4–6), or the grid (7). If two answers are
+defensible, the rule is a clash and needs a `C<n>` entry before it needs code.
+. Add the layer entry to the policy with its `rank`, `overrides` and `owner`;
+re-rank the ones below it so the sequence stays complete.
+. If it replaces a mechanism, name the old one `duplicate_of` and make it
+advisory — two advisory voices are noise, two blocking voices are C1.
+. Run `bash scripts/check-hypatia-rule-order.sh .` and then the suite. A policy
+change that no test exercises is a comment.

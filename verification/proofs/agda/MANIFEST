@@ -1,4 +1,7 @@
 # Agda proof manifest — read by scripts/check-proofs.sh agda
 # Format: <source-root>|<module-relative-to-source-root>|gated|quarantine|<note>
-# Ground-truthed 2026-07-17 with agda (agda --safe).
-verification/proofs/agda|Properties.agda|gated| compiles under `agda --safe`
+# Ground-truthed 2026-07-17 with agda (agda --safe); 2026-11-09 under the
+# PROOF-POLICY §2.1 invocation, agda --safe --without-K --cubical-compatible
+# (Agda 2.6.3). 2026-11-12: Properties.agda made self-contained (no library
+# imports; the pinned agda-stdlib does not build), rechecked with Agda 2.6.3.
+verification/proofs/agda|Properties.agda|gated| compiles under `agda --safe --without-K --cubical-compatible`

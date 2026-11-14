@@ -24,7 +24,9 @@ done
 +
 Minted repositories already have their `{{TOKEN}}` placeholders substituted;
 if deploying from an unminted template, substitute them first
-(`.machine_readable/ai/PLACEHOLDERS.adoc`).
+(`just repo-init` does it; the token list is the `placeholders` document (role `placeholders`; id `repo-document:github.com/<owner>/<repo>#placeholders`), registered under `(documents)` in `*_chora.deed`; a minted repository no longer carries it).
++
+If this page is gone, link:../../docs/MAINTAINERS.adoc[contact the maintainer], or ask an AI assistant to read `*_chora.deed` for its current location.
 
 . *Validate the boundary* (must exit 0):
 +

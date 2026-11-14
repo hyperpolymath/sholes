@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+#
+# mint-verbatim.txt — files `just repo-init` carries into a child UNCHANGED.
+#
+# These are the mint's own machinery: the generator, and the tests whose
+# fixtures must keep the template's literal name, its brace tokens or its
+# instruction-block marker, because those fixtures are the INPUT the test feeds
+# the generator. No rewrite pass touches them (placeholder substitution, the
+# instruction-block strip, the self-name pass), and neither completeness check
+# reads them, since an unrendered fixture is not a half-minted file.
+#
+# Measured minting metadatastician/lintel (2026-10-14): the self-name pass
+# rewrote self_name_pass_test.sh's inputs to `lintel`, and the test then
+# FAILED in the child; the strip pass removed mint_cleanup_test.sh's fixture
+# block although the leftover check exempted that very file. On 2026-10-20 a
+# fresh mint of main aborted outright, because julia_library_test.sh's
+# PACKAGE_UUID brace-token fixture read as an unfilled token.
+#
+# Read by build/just/repo-init.just (mint_files) and by
+# scripts/check-no-placeholders.sh. One repository-relative path per line; `#`
+# starts a comment. A listed path that does not exist stops the mint: a stale
+# entry is a hole, not a no-op.
+
+build/just/repo-init.just                  # the generator itself
+scripts/strip-instruction-blocks.rs        # names the marker it strips
+scripts/resolve-template-pin.sh            # documents the template it resolves
+tests/e2e/template_instantiation_test.sh   # token answer list; marker exemptions
+tests/e2e/use_template_mint_test.sh        # mints a template copy: template literals
+tests/e2e/chain_mint_test.sh               # chain fixtures: parent names and paths
+tests/workflows/mint_cleanup_test.sh       # instruction-block fixture
+tests/workflows/self_name_pass_test.sh     # template-name fixtures
+tests/workflows/template_conformance_test.sh  # template-slug fixtures
+tests/workflows/julia_library_test.sh      # PACKAGE_UUID brace-token fixture
+tests/workflows/mint_gates_test.sh       # names an unanswered token, on purpose
+tests/e2e/language_profiles_mint_test.sh   # minted-tree fixtures; keeps archetype paths
+tests/workflows/resolve_template_pin_test.sh  # template-slug fixtures
+tests/ffi_strings_test.sh                  # FFI token fixture, filled in a scratch copy
+tests/workflows/container_kyaml_test.sh    # container token fixtures (template only)
