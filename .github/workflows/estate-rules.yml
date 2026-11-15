@@ -106,6 +106,9 @@ jobs:
         run: bash scripts/validate-session-contracts.sh
       - name: Check Nickel typecheck controls
         run: bash tests/workflows/k9_typecheck_test.sh
+      # An anchor that allows an estate-denied language must show in the pack.
+      - name: Arrival pack renders both sides of an anchor override
+        run: bash tests/workflows/arrival_pack_anchor_override_test.sh
       - name: Verify session envelope controls
         run: bash tests/workflows/session_contracts_test.sh
       - name: Verify mint cleanup controls

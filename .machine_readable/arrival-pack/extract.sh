@@ -82,6 +82,7 @@ fi
 case "$uuid" in
   '#u5"'*|'#uuid"'????????-????-5*)
     echo "extract.sh: v5-identity: $(basename "$DEED") :repo-uuid $uuid is a version 5 id; the chora id is #uuid\"<v8 id of the birth path>\" (standards A1 V8)" >&2 ;;
+  *) ;;  # any other identity is printed as written, with nothing to report
 esac
 
 # read_clauses -> the clauses this pack reads, one token per line. Hashing only
