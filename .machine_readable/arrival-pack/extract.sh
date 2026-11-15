@@ -46,21 +46,43 @@ items() {
   printf '%s' "$out"
 }
 
+# lines PATH KEY -> the deed list :KEY ( … ), one item per line, "" when absent
+lines() {
+  local out rc=0
+  out="$(bash "$READ" --list "$DEED" "$1" "$2")" || rc=$?
+  [[ "$rc" -le 1 ]] || return "$rc"
+  printf '%s' "$out"
+}
+
 # hash12 -> short content hash of stdin (drift provenance)
 hash12() { sha256sum | cut -c1-12; }
 
-# The identity is the deed's own TYPED literal (#u5"<name>", later #u8"<domain:name>"),
-# never a computed hex uuid. The uuid is derived from that name and never
-# stored (deed.abnf); printing its hex form put a version-5 literal in
-# CLAUDE.md, which ADR-008's strict gate (owner ruling D320, standards
-# governance job uuid-v7-conformance) rejects in every minted repo. The
-# typed literal says what the identifier is, as ADR-008 asks of legacy ids,
-# and follows the deed when it moves to version 8.
+# The identity is the deed's own TYPED literal, printed as written:
+# #uuid"<v8 id>" (minted once, A7 J11), or the computed #u8"<domain:name>".
+# The pack never prints a derived hex form of a name literal: that once put a
+# version 5 id in CLAUDE.md, which ADR-008's strict gate (owner ruling D320)
+# rejects in every minted repo. The typed literal says what the identifier is,
+# as ADR-008 asks.
 uuid_name="$(field '' repo-uuid)"
 uuid=""
-[ -z "$uuid_name" ] || uuid="$(sed -n -E 's/^[[:space:]]*:repo-uuid[[:space:]]+(#u[0-9]+"[^"]*").*/\1/p' "$DEED" | head -1)"
+if [[ -n "$uuid_name" ]]; then
+  # --typed keeps the tag and quotes, and reads the literal wherever the layout puts it
+  rc=0
+  uuid="$(bash "$READ" --typed "$DEED" '' repo-uuid)" || rc=$?
+  [[ "$rc" -le 1 ]] || exit "$rc"
+  [[ "$uuid" =~ ^#u(uid|[0-9]+)\"[^\"]*\"$ ]] || uuid=""
+fi
 [ -z "$uuid_name" ] || [ -n "$uuid" ] \
-  || { echo "extract.sh: $(basename "$DEED") :repo-uuid is not a typed #u<n>\"...\" literal" >&2; exit 2; }
+  || { echo "extract.sh: $(basename "$DEED") :repo-uuid is not a typed #uuid\"...\" or #u<n>\"...\" literal" >&2; exit 2; }
+# A version 5 identity is reported, not refused, here: this is the arrival-pack
+# reader, not the gate. Standards A1 v0.4.5 C10 and T30 (ruling Q2) make
+# v5-identity and u5-identity errors in every mode, and `just validate-rsr`
+# and estate-rules (scripts/check-identity.sh) refuse them. The chora id is the
+# v8 id of the birth path.
+case "$uuid" in
+  '#u5"'*|'#uuid"'????????-????-5*)
+    echo "extract.sh: v5-identity: $(basename "$DEED") :repo-uuid $uuid is a version 5 id; the chora id is #uuid\"<v8 id of the birth path>\" (standards A1 V8)" >&2 ;;
+esac
 
 # read_clauses -> the clauses this pack reads, one token per line. Hashing only
 # these keeps an unrelated deed edit (say a canon-pin bump) from reading as drift.
@@ -81,9 +103,18 @@ isnot="$(items ecosystem not ' · ')"
 canonical_name="$(field '' canonical-name)"
 [ -n "$canonical_name" ] \
   || { echo "extract.sh: $(basename "$DEED") has no :canonical-name" >&2; exit 2; }
-prefixed_name="$(field identity prefixed-name)"
+# Clade placements are identity facts about where the repo sits, never its id
+# and never an edict; chora-registry is authoritative for them (standards A1
+# §11, ruling W10). The clause is optional.
 clade_primary="$(field clade primary)"
 clade_secondary="$(items clade secondary ', ')"
+if [[ -z "$clade_primary" ]]; then
+  clade_aid="none declared (optional placement)"
+elif [[ -n "$clade_secondary" ]]; then
+  clade_aid="$clade_primary (secondary $clade_secondary; placement)"
+else
+  clade_aid="$clade_primary (placement)"
+fi
 born="$(field lineage born)"
 forge_gh="$(field forges github)"
 purpose="$(field ecosystem purpose)"
@@ -94,16 +125,17 @@ phase="$(field status phase)"
 maturity="$(field maturity level)"
 golden_smoke="$(items anchor/golden-path smoke-test-command ' && ')"
 golden_crit="$(items anchor/golden-path success-criteria '; ')"
+# The anchor may override the estate language policy for this repo only.
+anchor_forbidden="$(lines anchor/implementation-policy forbidden)"
+anchor_allowed="$(lines anchor/implementation-policy allowed)"
 anchor_clause="$(bash "$READ" --clause "$DEED" anchor)"
 h_deed="$(read_clauses | hash12)"
 h_anchor="$(printf '%s\n' "$anchor_clause" | hash12)"
 
-jq -n \
+jq -cnS \
   --arg canonical_name "$canonical_name" \
-  --arg prefixed_name  "$prefixed_name" \
+  --arg clade_aid      "$clade_aid" \
   --arg uuid           "$uuid" \
-  --arg clade_primary  "$clade_primary" \
-  --arg clade_secondary "$clade_secondary" \
   --arg born           "$born" \
   --arg forge_gh       "$forge_gh" \
   --arg purpose        "$purpose" \
@@ -118,4 +150,8 @@ jq -n \
   --arg golden_crit    "$golden_crit" \
   --arg h_deed         "$h_deed" \
   --arg h_anchor       "$h_anchor" \
-  '$ARGS.named'
+  --arg anchor_forbidden "$anchor_forbidden" \
+  --arg anchor_allowed   "$anchor_allowed" \
+  '$ARGS.named
+   | .anchor_forbidden |= (split("\n") | map(select(. != "")))
+   | .anchor_allowed   |= (split("\n") | map(select(. != "")))'
