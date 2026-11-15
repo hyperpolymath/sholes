@@ -204,7 +204,21 @@ for (const text of [dependencies, arrival]) {
   assert.match(prose(text), /fit equally well.*prefer one that carries its own verification/i);
   assert.match(prose(text), /preference, not a gate/i);
 }
-console.log("PASS: third-party dependencies remain ASSUMED boundaries and verification is a preference");
+// PROOF-POLICY section 1.1: a dependency whose whole import cone passes safe
+// mode with zero postulates is checked, not assumed. The guide and the arrival
+// guidance must both carry the exception, or they give opposite instructions
+// for the same dependency (Codex review of sholes#13).
+for (const [name, text] of [["proof guide", dependencies], ["arrival guidance", arrival]]) {
+  assert.match(prose(text), /import cone.*safe mode with zero postulates.*checked, not assumed/i,
+    `${name} must carry the checked-cone exception`);
+  assert.match(prose(text), /record the cone.*instead of an ASSUMED row/i,
+    `${name} must say a checked cone is recorded instead of an ASSUMED row`);
+  assert.match(prose(text), /root module.*flags.*postulate count.*library name, version and pin/i,
+    `${name} must list what a recorded cone holds`);
+  assert.match(prose(text), /postulate.*outside safe mode.*not checked/i,
+    `${name} must say a cone with a postulate or outside safe mode is not checked`);
+}
+console.log("PASS: third-party dependencies are ASSUMED boundaries unless the whole import cone is checked; verification is a preference");
 
 // Negative regression: a shipped example, even one with a gated manifest
 // entry, must never become evidence of completed proofs or a theory recheck.

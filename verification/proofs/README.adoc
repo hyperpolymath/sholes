@@ -76,9 +76,18 @@ Dependencies (crates, libraries, vendored or forked code) are not converted,
 re-proved or annotated to meet this policy. Where a proof here relies on a
 dependency's behaviour, state that reliance as a trusted boundary
 specification and record it as `ASSUMED`, with the dependency and version,
-in `docs/status/PROOF-STATUS.adoc`. When choosing between dependencies that
-fit equally well, prefer one that carries its own verification. This is a
-preference, not a gate.
+in `docs/status/PROOF-STATUS.adoc`.
+
+A dependency the prover itself checks is not an assumption (policy §1.1).
+When the whole import cone of a proof (every module it transitively imports,
+first-party or library) compiles under the prover's safe mode with zero
+postulates, the dependency is checked, not assumed. Record the cone instead
+of an `ASSUMED` row: the root module, the flags in force, the postulate count
+(zero), and the library name, version and pin. A cone that contains a
+postulate, or that was compiled outside safe mode, is not checked.
+
+When choosing between dependencies that fit equally well, prefer one that
+carries its own verification. This is a preference, not a gate.
 
 == Directory structure
 
