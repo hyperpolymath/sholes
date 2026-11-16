@@ -3,6 +3,18 @@
 :toc:
 :icons: font
 
+[IMPORTANT]
+====
+Current evidence (2026-11-16): the line-ending algebra, header bridge and
+pure streaming model now have checked Agda proofs and Lean/Rocq re-proofs.
+See link:verification/proofs/SHOLES.adoc[the proof scope and checker evidence].
+The runtime, classifier, Git driver, performance numbers and Creusot
+verification described below are target design, not delivered or verified
+implementation in this tree. The proof witnesses are hand re-proofs, not
+automatically exported proof objects. Raw byte round trips require the
+qualifications documented with the proofs.
+====
+
 The README makes claims. This file backs them up.
 
 == Mechanized Quotient Canonicalization
@@ -31,11 +43,11 @@ The Agda formalization constructs a canonical projection function `canon : List 
 
 *Caveat:* Proofs in Agda operate over total inductive lists (`List (Fin 256)`). The operational mapping to unbounded streaming I/O and chunked ring buffers is proved separately via Creusot verification contracts on the Rust implementation.
 
-- Agda core definitions: `proofs/agda/Sholes/Core.agda`
-- Equivalence lemmas: `proofs/agda/Sholes/Equivalence.agda`
-- Lens laws: `proofs/agda/Sholes/Lens.agda`
-- Exported Lean 4 definitions: `proofs/lean/Sholes/Core.lean`
-- Exported Coq/Rocq proofs: `proofs/coq/Sholes_Core.v`
+- Agda core definitions: `verification/proofs/agda/Sholes/Core.agda`
+- Equivalence lemmas: `verification/proofs/agda/Sholes/Equivalence.agda`
+- Lens laws: `verification/proofs/agda/Sholes/Lens.agda`
+- Exported Lean 4 definitions: `verification/proofs/lean4/Sholes/Core.lean`
+- Exported Coq/Rocq proofs: `verification/proofs/coq/Sholes_Core.v`
 
 == Zero-Allocation Creusot-Verified Rust Engine
 
@@ -159,11 +171,11 @@ A test corpus of 10,000 text files is subjected to arbitrary newline permutation
 |===
 | Path | Proves
 
-| `proofs/agda/Sholes/Core.agda` | Formal quotient definitions over alphabet byte lists
-| `proofs/agda/Sholes/Equivalence.agda` | Mechanized proofs of Idempotence and Invariance
-| `proofs/agda/Sholes/Lens.agda` | Well-behaved lens theorems (GetPut and PutGet)
-| `proofs/lean/Sholes/Core.lean` | Exported Lean 4 definitions for cross-prover replication
-| `proofs/coq/Sholes_Core.v` | Exported Coq/Rocq proof objects
+| `verification/proofs/agda/Sholes/Core.agda` | Formal quotient definitions over alphabet byte lists
+| `verification/proofs/agda/Sholes/Equivalence.agda` | Mechanized proofs of Idempotence and Invariance
+| `verification/proofs/agda/Sholes/Lens.agda` | Well-behaved lens theorems (GetPut and PutGet)
+| `verification/proofs/lean4/Sholes/Core.lean` | Exported Lean 4 definitions for cross-prover replication
+| `verification/proofs/coq/Sholes_Core.v` | Exported Coq/Rocq proof objects
 | `crates/sholes-core/src/normalize.rs` | Zero-allocation streaming normalization engine
 | `crates/sholes-core/src/contracts.rs` | Creusot formal verification contracts
 | `crates/sholes-core/src/classifier.rs` | Three-tier binary non-interference classifier

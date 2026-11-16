@@ -1,0 +1,128 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= Line-ending proofs
+
+These are source proofs, not a verified Rust implementation. The initial
+checked work is dated 2026-11-16. Run `bash scripts/check-line-endings.sh`
+from the repository root. Every required checker must exist; missing tools
+fail the command. The command prints the location of fresh logs and source
+hashes and checks three negative controls after the positive proofs.
+
+== Semantics
+
+CRLF denotes one newline. A lone CR or LF also denotes one newline.
+Other octets, repeated newlines, and a trailing newline are preserved.
+The token stream distinguishes the empty file from a single newline;
+it does not use a `lines` operation that discards the final terminator.
+The text normal form renders each newline as LF.
+
+`Byte A` separates CR, LF and ordinary payloads by construction.
+`Sholes.Wire` instantiates the payload with a recursive finite type of size
+254, with a checked bijection to all 256 numeric octets. CR is 13 and LF
+is 10; the other values retain their numeric identities. `every-sound`
+proves coverage of every finite inhabitant, so the closed computations
+used for that bijection are finite proofs, not sampled runtime tests.
+The list round trips lift the algebra to numeric octet streams.
+
+== Checked statements and correspondence
+
+[cols="2,3,3",options="header"]
+|===
+|Agda source |Meaning |Other witnesses
+|`Sholes/Core.agda`
+|Both renderers parse back to the original tokens; LF output has no CR;
+explicit binary mode is identity; repeated and trailing breaks survive.
+|Lean `Sholes/Core.lean`, Rocq `Sholes_Core.v`
+|`Sholes/Equivalence.agda`
+|Token equality is an equivalence; canon preserves and reflects it;
+idempotence; congruence through any hash function; factorization.
+|Same two witnesses
+|`Sholes/Lens.agda`
+|Exact round trips for canonical stores and environment-normal views;
+raw views round-trip modulo token equality; canonical bytes alone cannot
+recover every original spelling.
+|Same two witnesses
+|`Sholes/HeaderBridge.agda`
+|Normalization preserves forbidden-break detection; LF detection after
+normalization equals CR-or-LF detection before it; pair-only detection fails.
+|Same two witnesses
+|`Sholes/Streaming.agda`
+|State and output compose across any split, including empty chunks;
+streamed output equals the list specification; resetting at CR/LF is wrong.
+|Same two witnesses
+|`Sholes/Wire.agda`
+|Finite octet bijection, list round trips, octet-level idempotence and
+header-break preservation.
+|Lean `Sholes/Core.lean` namespace `Sholes.Wire`; Rocq `Sholes_Wire.v`
+|`cubical/SholesCubical.agda`
+|Full Cubical consumer converts equality witnesses to paths for
+idempotence, header preservation, octet round trip and chunk refinement.
+|Separate Agda profile; no independent-kernel claim
+|===
+
+The Lean/Rocq files are *hand re-proofs*, not exported Agda proof objects.
+The constructor map is `cr/cr`, `lf/lf`, `plain/plain`,
+`newline/newline`, `literal/literal`; empty/cons lists and structural
+equality map to the corresponding native constructs. All payload types
+are arbitrary. Streaming states map `ready/ready` and
+`suppressLF/suppressLF`; each step emits the same zero or one token.
+Rocq's pair detector recurses through the tail rather than syntactically
+skipping a plain byte after CR; its branch equations have the same meaning.
+Agda hyphenated theorem names map to underscores in the other two files.
+The finite type is recursive optional values over the empty type in all
+three witnesses. Lean's `addLeft` makes its index arithmetic reduce in
+the same direction as Agda/Rocq. Finite reflection computes all 256 values
+under kernel reduction, without `native_decide` or an unchecked evaluator.
+
+This correspondence is reviewed at source level here; it is not a checked
+translation or an automatically certified statement-identity map. Kernel
+acceptance in three systems does not by itself close that gap. No PWG
+grade is asserted; receipt-based estate grading is a separate step.
+
+== Scope and non-theorems
+
+* Hash coherence is function congruence. It does not assert that hashes
+  are injective or collision-free.
+* Binary preservation is conditional on explicit `binary` mode. There is
+  no proof that a content heuristic correctly classifies arbitrary files.
+* The raw inverse impossibility theorem concerns reconstruction from
+  canonical bytes alone. A lens retaining the original source or explicit
+  spelling metadata can have stronger laws and needs its own definition.
+* Streaming proofs concern a pure finite-state transducer. They do not
+  prove ring-buffer bounds, aliasing, allocation, syscalls or compiler correctness.
+* The numeric-octet bijection is not a proof about Idris2 primitive strings,
+  RefC boxing, C layout, Zig pointers, or the Rust implementation.
+* Full Cubical checking uses Agda's built-in path machinery. It does not
+  claim integration with a separately pinned Cubical library.
+
+== Observed checking
+
+Agda 2.6.4.3 accepted the compatible source with
+`--safe --without-K --cubical-compatible --double-check --warning=error`.
+The separate full-Cubical consumer passed with
+`--safe --cubical --double-check --warning=error`.
+Lean 4.15.0 (the repository pin) accepted the witness; the earlier core
+also passed Lean 4.35.0. Rocq 9.2 accepted and `coqchk` replayed the witness.
+The runner enumerates every named Lean theorem and Rocq lemma and audits
+its assumptions. These declarations require no additional axioms.
+Each prover rejected the false claim that canonicalizing lone CR removes
+the forbidden break.
+
+An installed Lean4Lean executable was also probed with both installed Lean
+formats; it rejected the object headers as incompatible. That checker leg
+is *not passed*. Its executable provenance and matching toolchain need
+pinning before replay. Upstream also notes shared ancestry with Lean's C++
+kernel; another implementation is not automatic independence of defects.
+
+== Proven / Atoma application
+
+At Proven `c13619f9a67a1b9e8234e22e22dae0940d2480cb`, the actual Idris
+`Proven.SafeHeader.Types.hasCRLF`, compiled using RefC, returns true on
+lone CR, lone LF, CRLF and embedded CR. The actual Zig export compiled
+with Zig 0.15.2 returns false on the lone/embedded cases and true on CRLF.
+
+The bridge proves what a correct normalizer would preserve; it cannot fix
+that runtime mismatch. In fact every canonical LF-only stream defeats a
+CRLF-pair-only check. Keep header rejection separate from storage
+normalization. Atoma still needs an implementation-to-model relation,
+ABI marshaling evidence and proof replay bound to the exact consumer source.

@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: MPL-2.0
+*.agdai
+*.olean
+*.ilean
+*.vo
+*.vos
+*.vok
+*.glob
+.*.aux

@@ -764,3 +764,7 @@ uncloak:
 lock-sync-fix:
     ./scripts/lock-sync-fix.sh
     ./scripts/check-lock-sync.sh
+
+# Strict line-ending proofs, Cubical consumer, replays and rejection controls.
+check-line-endings:
+    bash scripts/check-line-endings.sh
