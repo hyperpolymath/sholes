@@ -200,3 +200,132 @@ open State
 #print axioms chunk_refinement
 #print axioms reset_is_wrong
 end Sholes
+
+/- SPDX-License-Identifier: CC-BY-SA-4.0
+Copyright (c) 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+Hand re-proof of the recursive finite-octet model in Sholes.Wire.agda. -/
+
+namespace Sholes.Wire
+open Sholes Byte
+set_option maxRecDepth 4096
+set_option maxHeartbeats 2000000
+
+def Finite : Nat → Type
+  | 0 => Empty
+  | n + 1 => Option (Finite n)
+def addLeft : Nat → Nat → Nat
+  | 0, m => m
+  | n + 1, m => addLeft n m + 1
+def indexAt (n : Nat) {extra : Nat} : Finite (addLeft n extra + 1) :=
+  match n with
+  | 0 => none
+  | n + 1 => some (indexAt n)
+
+def insert : (n : Nat) → Finite (n + 1) → Finite n → Finite (n + 1)
+  | 0, _, x => nomatch x
+  | _ + 1, none, x => some x
+  | _ + 1, some _, none => none
+  | n + 1, some k, some x => some (insert n k x)
+def remove : (n : Nat) → Finite (n + 1) → Finite (n + 1) → Option (Finite n)
+  | 0, none, none => none
+  | 0, none, some x => nomatch x
+  | 0, some k, _ => nomatch k
+  | _ + 1, none, none => none
+  | _ + 1, none, some x => some x
+  | _ + 1, some _, none => some none
+  | n + 1, some k, some x =>
+    match remove n k x with
+    | none => none
+    | some y => some (some y)
+
+abbrev Octet := Finite 256
+abbrev Alphabet := Byte (Finite 254)
+def encode : Alphabet → Octet
+  | cr => indexAt 13 (extra := 242)
+  | lf => indexAt 10 (extra := 245)
+  | plain x => insert 255 (indexAt 13 (extra := 242)) (insert 254 (indexAt 10 (extra := 244)) x)
+def decode (b : Octet) : Alphabet :=
+  match remove 255 (indexAt 13 (extra := 242)) b with
+  | none => cr
+  | some x => match remove 254 (indexAt 10 (extra := 244)) x with
+    | none => lf
+    | some y => plain y
+
+def equal : (n : Nat) → Finite n → Finite n → Bool
+  | 0, x, _ => nomatch x
+  | _ + 1, none, none => true
+  | _ + 1, none, some _ => false
+  | _ + 1, some _, none => false
+  | n + 1, some x, some y => equal n x y
+theorem equal_sound (n : Nat) (x y : Finite n) : equal n x y = true → x = y := by
+  induction n with
+  | zero => exact nomatch x
+  | succ n ih =>
+    cases x with
+    | none => cases y <;> intro h; rfl; cases h
+    | some x => cases y with
+      | none => intro h; cases h
+      | some y => exact fun h => congrArg some (ih x y h)
+
+def every : (n : Nat) → (Finite n → Bool) → Bool
+  | 0, _ => true
+  | n + 1, f => f none && every n (fun x => f (some x))
+theorem and_left (a b : Bool) : (a && b) = true → a = true := by
+  cases a <;> intro h; cases h; rfl
+theorem and_right (a b : Bool) : (a && b) = true → b = true := by
+  cases a <;> intro h; cases h; exact h
+theorem every_sound (n : Nat) (f : Finite n → Bool) : every n f = true → (i : Finite n) → f i = true := by
+  induction n with
+  | zero => exact fun _ i => nomatch i
+  | succ n ih =>
+    intro h i
+    cases i with
+    | none => exact and_left _ _ h
+    | some i => exact ih (fun j => f (some j)) (and_right _ _ h) i
+
+theorem roundtrip_check : every 256 (fun b => equal 256 (encode (decode b)) b) = true := rfl
+theorem wire_roundtrip (b : Octet) : encode (decode b) = b :=
+  equal_sound 256 _ _ (every_sound 256 _ roundtrip_check b)
+
+def same : Alphabet → Alphabet → Bool
+  | cr, cr => true
+  | lf, lf => true
+  | plain x, plain y => equal 254 x y
+  | _, _ => false
+theorem same_sound (x y : Alphabet) : same x y = true → x = y := by
+  cases x <;> cases y <;> intro h <;>
+    first | rfl | cases h | exact congrArg plain (equal_sound 254 _ _ h)
+theorem payload_check : every 254 (fun b => same (decode (encode (plain b))) (plain b)) = true := rfl
+theorem alphabet_roundtrip (b : Alphabet) : decode (encode b) = b := by
+  cases b with
+  | cr => rfl
+  | lf => rfl
+  | plain b => exact same_sound _ _ (every_sound 254 _ payload_check b)
+
+-- A local map keeps the structural equations identical to the Agda model.
+def map {α β} (f : α → β) : List α → List β
+  | [] => []
+  | x :: xs => f x :: map f xs
+theorem cons_cong {α} {x y : α} {xs ys : List α} (h : x = y) (k : xs = ys) : x :: xs = y :: ys := by
+  cases h; cases k; rfl
+theorem wire_list_roundtrip (bs : List Octet) : map encode (map decode bs) = bs := by
+  induction bs with
+  | nil => rfl
+  | cons b bs ih => exact cons_cong (wire_roundtrip b) ih
+theorem alphabet_list_roundtrip (bs : List Alphabet) : map decode (map encode bs) = bs := by
+  induction bs with
+  | nil => rfl
+  | cons b bs ih => exact cons_cong (alphabet_roundtrip b) ih
+def canonWire (bs : List Octet) := map encode (canon (map decode bs))
+theorem canonWire_idempotent (bs : List Octet) : canonWire (canonWire bs) = canonWire bs :=
+  (congrArg (fun xs => map encode (canon xs)) (alphabet_list_roundtrip (canon (map decode bs)))).trans
+    (congrArg (map encode) (idempotent (map decode bs)))
+theorem wire_header_preserved (bs : List Octet) : hasBreak (map decode (canonWire bs)) = hasBreak (map decode bs) :=
+  (congrArg hasBreak (alphabet_list_roundtrip (canon (map decode bs)))).trans
+    (header_break_preserved (map decode bs))
+
+#print axioms wire_roundtrip
+#print axioms alphabet_roundtrip
+#print axioms canonWire_idempotent
+#print axioms wire_header_preserved
+end Sholes.Wire

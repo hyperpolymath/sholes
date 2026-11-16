@@ -53,7 +53,7 @@ streamed output equals the list specification; resetting at CR/LF is wrong.
 |`Sholes/Wire.agda`
 |Finite octet bijection, list round trips, octet-level idempotence and
 header-break preservation.
-|Agda only so far; Lean and Rocq legs remain open
+|Lean `Sholes/Core.lean` namespace `Sholes.Wire`; Rocq `Sholes_Wire.v`
 |`cubical/SholesCubical.agda`
 |Full Cubical consumer converts equality witnesses to paths for
 idempotence, header preservation, octet round trip and chunk refinement.
@@ -69,6 +69,10 @@ are arbitrary. Streaming states map `ready/ready` and
 Rocq's pair detector recurses through the tail rather than syntactically
 skipping a plain byte after CR; its branch equations have the same meaning.
 Agda hyphenated theorem names map to underscores in the other two files.
+The finite type is recursive optional values over the empty type in all
+three witnesses. Lean's `addLeft` makes its index arithmetic reduce in
+the same direction as Agda/Rocq. Finite reflection computes all 256 values
+under kernel reduction, without `native_decide` or an unchecked evaluator.
 
 This correspondence is reviewed at source level here; it is not a checked
 translation or an automatically certified statement-identity map. Kernel

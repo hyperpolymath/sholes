@@ -29,16 +29,17 @@ done
 (cd "$work/lean"; "$lean" -o Sholes/Core.olean Sholes/Core.lean) > "$evidence/lean.log" 2>&1
 {
   printf 'import Sholes.Core\n'
-  sed -n 's/^[[:space:]]*theorem \([A-Za-z0-9_]*\).*/#print axioms Sholes.\1/p' "$work/lean/Sholes/Core.lean"
+  awk 'BEGIN {ns="Sholes."} /^namespace Sholes.Wire$/ {ns="Sholes.Wire."} /^[[:space:]]*theorem / {print "#print axioms " ns $2}' "$work/lean/Sholes/Core.lean"
 } > "$work/lean/Audit.lean"
 (cd "$work/lean"; LEAN_PATH=. "$lean" Audit.lean) > "$evidence/lean-assumptions.log" 2>&1
 if grep -Eq "depends on axioms:|declaration uses 'sorry'|error:" "$evidence/lean-assumptions.log" "$evidence/lean.log"; then
   echo 'FAIL: Lean assumption audit' >&2; exit 1
 fi
-(cd "$work/coq"; "$coqc" Sholes_Core.v; "$coqchk" -silent Sholes_Core) > "$evidence/rocq.log" 2>&1
+(cd "$work/coq"; "$coqc" Sholes_Core.v; "$coqc" Sholes_Wire.v; "$coqchk" -silent Sholes_Core Sholes_Wire) > "$evidence/rocq.log" 2>&1
 {
-  printf 'Require Import Sholes_Core.\n'
+  printf 'Require Import Sholes_Core Sholes_Wire.\n'
   sed -n 's/^Lemma \([A-Za-z0-9_]*\).*/Print Assumptions \1./p' "$work/coq/Sholes_Core.v"
+  sed -n 's/^Lemma \([A-Za-z0-9_]*\).*/Print Assumptions Wire.\1./p' "$work/coq/Sholes_Wire.v"
 } > "$work/coq/Audit.v"
 (cd "$work/coq"; "$coqc" Audit.v) > "$evidence/rocq-assumptions.log" 2>&1
 if grep -q 'Axioms:' "$evidence/rocq-assumptions.log"; then
@@ -77,4 +78,4 @@ if (cd "$work/coq"; "$coqc" Wrong.v) > "$evidence/rocq-negative.log" 2>&1; then
 fi
 grep -q 'Unable to unify' "$evidence/rocq-negative.log"
 printf 'PASS: compatible Agda; full Cubical; Lean; Rocq/coqchk; assumption audits; three rejection controls.\nEvidence: %s\n' "$evidence"
-printf 'NOT CHECKED: automatic witness transport; Lean/Rocq Wire; Lean4Lean; executable/compiler refinement; classifier accuracy.\n'
+printf 'NOT CHECKED: automatic witness transport; Lean4Lean; executable/compiler refinement; classifier accuracy.\n'
