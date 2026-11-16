@@ -1,5 +1,16 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 = sholes
+[IMPORTANT]
+====
+Current evidence (2026-11-16): the line-ending algebra, header bridge and
+pure streaming model now have checked Agda proofs and Lean/Rocq re-proofs.
+See link:proofs/README.adoc[the proof scope and checker evidence].
+The runtime, classifier, Git driver, performance numbers and Creusot
+verification described below are target design, not delivered or verified
+implementation in this tree. The proof witnesses are hand re-proofs, not
+automatically exported proof objects. Raw byte round trips require the
+qualifications documented with the proofs.
+====
 :toc: auto
 :toclevels: 3
 :icons: font
