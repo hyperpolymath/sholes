@@ -3,4 +3,4 @@
 # Ground-truthed 2026-07-17 with coqc.
 verification/proofs/coq|TypeSafety.v|gated| compiles under `coqc`
 
-proofs/coq|Sholes_Core.v|gated| hand reproof of core, equivalence, lens, header and streaming; no Wire leg yet
+verification/proofs/coq|Sholes_Core.v|gated| hand reproof of core, equivalence, lens, header and streaming; no Wire leg yet

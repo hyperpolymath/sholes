@@ -9,7 +9,8 @@ mkdir -p "$evidence"
 evidence=$(cd "$evidence" && pwd)
 work=$(mktemp -d -t sholes-proofs.XXXXXXXX)
 trap 'rm -rf -- "$work"' EXIT
-cp -R "$root/proofs/agda" "$root/proofs/lean" "$root/proofs/coq" "$root/proofs/cubical" "$work/"
+cp -R "$root/verification/proofs/agda" "$root/verification/proofs/coq" "$root/verification/proofs/cubical" "$work/"
+cp -R "$root/verification/proofs/lean4" "$work/lean"
 # Remove only generated files in the freshly allocated proof scratch directory.
 find "$work" -type f \( -name '*.agdai' -o -name '*.olean' -o -name '*.vo' \) -delete
 agda=${AGDA:-agda}
@@ -20,7 +21,7 @@ for tool in "$agda" "$lean" "$coqc" "$coqchk"; do
   command -v "$tool" >/dev/null || { echo "FAIL: missing $tool" >&2; exit 1; }
 done
 { "$agda" --version; "$lean" --version; "$coqc" --version; } > "$evidence/versions.log"
-(cd "$root"; git rev-parse HEAD; git diff --stat; find proofs -type f \( -name '*.agda' -o -name '*.lean' -o -name '*.v' \) -print0 | sort -z | xargs -0 sha256sum) > "$evidence/source-identity.log"
+(cd "$root"; git rev-parse HEAD; git diff --stat; find verification/proofs -type f \( -name '*.agda' -o -name '*.lean' -o -name '*.v' \) -print0 | sort -z | xargs -0 sha256sum) > "$evidence/source-identity.log"
 for module in Core Equivalence Lens HeaderBridge Wire Streaming; do
   (cd "$work/agda"; "$agda" --safe --without-K --cubical-compatible --double-check --warning=error "Sholes/$module.agda") > "$evidence/agda-$module.log" 2>&1
 done

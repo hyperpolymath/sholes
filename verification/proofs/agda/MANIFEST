@@ -6,9 +6,9 @@
 # imports; the pinned agda-stdlib does not build), rechecked with Agda 2.6.3.
 verification/proofs/agda|Properties.agda|gated| compiles under `agda --safe --without-K --cubical-compatible`
 
-proofs/agda|Sholes/Core.agda|gated| line-token definitions and canonical renderers
-proofs/agda|Sholes/Equivalence.agda|gated| canonical quotient laws
-proofs/agda|Sholes/Lens.agda|gated| quotient round trips and no raw inverse
-proofs/agda|Sholes/HeaderBridge.agda|gated| header rejection bridge and counterexamples
-proofs/agda|Sholes/Wire.agda|gated| checked bijection with all 256 octets
-proofs/agda|Sholes/Streaming.agda|gated| stateful chunk composition and refinement
+verification/proofs/agda|Sholes/Core.agda|gated| line-token definitions and canonical renderers
+verification/proofs/agda|Sholes/Equivalence.agda|gated| canonical quotient laws
+verification/proofs/agda|Sholes/Lens.agda|gated| quotient round trips and no raw inverse
+verification/proofs/agda|Sholes/HeaderBridge.agda|gated| header rejection bridge and counterexamples
+verification/proofs/agda|Sholes/Wire.agda|gated| checked bijection with all 256 octets
+verification/proofs/agda|Sholes/Streaming.agda|gated| stateful chunk composition and refinement
