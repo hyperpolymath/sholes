@@ -1,5 +1,12 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 = sholes
+:toc: auto
+:toclevels: 3
+:icons: font
+:source-highlighter: rouge
+:idprefix:
+:idseparator: -
+
 [IMPORTANT]
 ====
 Current evidence (2026-11-16): the line-ending algebra, header bridge and
@@ -11,12 +18,6 @@ implementation in this tree. The proof witnesses are hand re-proofs, not
 automatically exported proof objects. Raw byte round trips require the
 qualifications documented with the proofs.
 ====
-:toc: auto
-:toclevels: 3
-:icons: font
-:source-highlighter: rouge
-:idprefix:
-:idseparator: -
 
 image:https://img.shields.io/badge/License-MPL--2.0-indigo.svg[License: MPL-2.0,link="https://github.com/hyperpolymath/sholes/blob/main/LICENSE"]
 image:https://img.shields.io/badge/standard-RSR--compliant-green.svg[RSR Compliant]

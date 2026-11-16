@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 = sholes — Show Me The Receipts
+:toc:
+:icons: font
+
 [IMPORTANT]
 ====
 Current evidence (2026-11-16): the line-ending algebra, header bridge and
@@ -11,8 +14,6 @@ implementation in this tree. The proof witnesses are hand re-proofs, not
 automatically exported proof objects. Raw byte round trips require the
 qualifications documented with the proofs.
 ====
-:toc:
-:icons: font
 
 The README makes claims. This file backs them up.
 
