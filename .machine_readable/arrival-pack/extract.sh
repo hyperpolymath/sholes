@@ -10,6 +10,12 @@
 # deterministic JSON document on stdout. Every deed read goes through
 # scripts/deed-field.sh; there are no .a2ml inputs (rsr-template-repo#209).
 #
+# Besides the deed's fields it reports two facts about the tree, so the pack
+# states them instead of asserting them: which of the clauses the pack names
+# are in the deed (`has`), and the tracked legacy .a2ml files (`a2ml_files`,
+# `a2ml_count`, `a2ml_source` saying where they were found, and `legacy`, the
+# ones that carry the name of an absent clause).
+#
 # This is a READER only — it authors nothing. The deed remains the single
 # source of truth; arrival-pack.ncl renders this JSON into the CLAUDE.md region.
 # Determinism (no timestamps) is required so the k9 drift check can byte-compare.
@@ -22,6 +28,16 @@ READ="$ROOT/scripts/deed-field.sh"
 
 DEED="$(bash "$READ" --find "$ROOT")" \
   || { echo "extract.sh: need exactly one *_chora.deed in $ROOT" >&2; exit 2; }
+# The pack's contract says the deed parses, and deed_lint.js refuses content
+# outside the one form; deed-field.sh alone reads the first form and ignores
+# the rest, so the whole-file check is made here, before anything is read.
+rc=0
+bash "$READ" --strict "$DEED" || rc=$?
+case "$rc" in
+  0) ;;
+  1) echo "extract.sh: $(basename "$DEED") is not exactly one deed form: content outside the (repo-deed …) form (deed_lint.js: trailing content after the form's closing ')')" >&2; exit 2 ;;
+  *) echo "extract.sh: $(basename "$DEED") does not parse: its (repo-deed …) form never closes" >&2; exit 2 ;;
+esac
 bash "$READ" --has "$DEED" anchor/golden-path \
   || { echo "extract.sh: $(basename "$DEED") has no (anchor (golden-path)) clause" >&2; exit 2; }
 
@@ -52,6 +68,34 @@ lines() {
   out="$(bash "$READ" --list "$DEED" "$1" "$2")" || rc=$?
   [[ "$rc" -le 1 ]] || return "$rc"
   printf '%s' "$out"
+}
+
+# has_clause PATH -> "true" or "false": whether the deed has that clause
+# (rc 2 from the reader, an unreadable deed, fails the run like field() does)
+has_clause() {
+  local rc=0
+  bash "$READ" --has "$DEED" "$1" || rc=$?
+  [ "$rc" -le 1 ] || return "$rc"
+  if [ "$rc" -eq 0 ]; then echo true; else echo false; fi
+}
+
+# The tracked legacy .a2ml files are read from the git index. Outside a git
+# work tree nothing is tracked, so every .a2ml file under ROOT (minus .git/)
+# stands in for them, and the pack says "contains", not "tracks".
+a2ml_source=filesystem
+if git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then a2ml_source=git-index; fi
+
+# a2ml_list -> those paths, NUL-delimited, each once. NUL-delimited end to end,
+# so git quotes nothing and a backslash or a newline in a name stays one path.
+# A conflicted path has one index entry per stage: `sort -u` counts it once.
+# Sorted bytewise, so the order (and the drift check's byte-compare) does not
+# depend on the locale.
+a2ml_list() {
+  if [ "$a2ml_source" = git-index ]; then
+    git -C "$ROOT" ls-files -z -- '*.a2ml'
+  else
+    (cd "$ROOT" && find . -path ./.git -prune -o -type f -name '*.a2ml' -print0)
+  fi | LC_ALL=C sort -zu
 }
 
 # hash12 -> short content hash of stdin (drift provenance)
@@ -133,6 +177,27 @@ anchor_clause="$(bash "$READ" --clause "$DEED" anchor)"
 h_deed="$(read_clauses | hash12)"
 h_anchor="$(printf '%s\n' "$anchor_clause" | hash12)"
 
+# Which of the clauses the pack names the deed has, and which legacy files are
+# tracked. An absent clause renders as absent (arrival-pack.ncl), never as an
+# empty value or as the clause's usual text.
+has_anchor="$(has_clause anchor)"
+has_agentic="$(has_clause agentic)"
+has_ecosystem="$(has_clause ecosystem)"
+has_status="$(has_clause status)"
+has_maturity="$(has_clause maturity)"
+has_neurosym="$(has_clause neurosym)"
+has_playbook="$(has_clause playbook)"
+has_meta="$(has_clause meta)"
+# bot-directives is named by its three sub-clauses, so those are reported.
+bd_present=""
+for c in methodology coverage debt; do
+  # Assigned first: inside the test, a reader failure (rc 2) would be lost.
+  has_bd="$(has_clause "bot-directives/$c")"
+  if [ "$has_bd" = true ]; then bd_present="$bd_present$c"$'\n'; fi
+done
+# A JSON array; find's leading "./" is dropped so both sources name paths alike.
+a2ml_files="$(a2ml_list | jq -Rsc 'split("\u0000") | map(select(. != "") | ltrimstr("./"))')"
+
 jq -cnS \
   --arg canonical_name "$canonical_name" \
   --arg clade_aid      "$clade_aid" \
@@ -153,6 +218,30 @@ jq -cnS \
   --arg h_anchor       "$h_anchor" \
   --arg anchor_forbidden "$anchor_forbidden" \
   --arg anchor_allowed   "$anchor_allowed" \
-  '$ARGS.named
+  --argjson a2ml_files   "$a2ml_files" \
+  --arg a2ml_source      "$a2ml_source" \
+  --arg bd_present       "$bd_present" \
+  --argjson has_anchor    "$has_anchor" \
+  --argjson has_agentic   "$has_agentic" \
+  --argjson has_ecosystem "$has_ecosystem" \
+  --argjson has_status    "$has_status" \
+  --argjson has_maturity  "$has_maturity" \
+  --argjson has_neurosym  "$has_neurosym" \
+  --argjson has_playbook  "$has_playbook" \
+  --argjson has_meta      "$has_meta" \
+  '$a2ml_files as $f
+   | def named($n): [$f[] | select((split("/") | last | ascii_downcase) == $n)];
+   ($ARGS.named
+    | del(.bd_present, .has_anchor, .has_agentic, .has_ecosystem,
+          .has_status, .has_maturity, .has_neurosym, .has_playbook, .has_meta))
    | .anchor_forbidden |= (split("\n") | map(select(. != "")))
-   | .anchor_allowed   |= (split("\n") | map(select(. != "")))'
+   | .anchor_allowed   |= (split("\n") | map(select(. != "")))
+   | .a2ml_count = ($f | length)
+   | .has = {anchor: $has_anchor, agentic: $has_agentic, ecosystem: $has_ecosystem,
+             status: $has_status, maturity: $has_maturity, neurosym: $has_neurosym,
+             playbook: $has_playbook, meta: $has_meta,
+             bot_directives: ($bd_present | split("\n") | map(select(. != "")))}
+   | .legacy = {anchor: named("anchor.a2ml"), agentic: named("agentic.a2ml"),
+                ecosystem: named("ecosystem.a2ml"), state: named("state.a2ml"),
+                neurosym: named("neurosym.a2ml"), playbook: named("playbook.a2ml"),
+                bot_directives: [$f[] | select(test("(^|/)bot_directives/"; "i"))]}'

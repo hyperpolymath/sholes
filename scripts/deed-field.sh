@@ -14,10 +14,23 @@
 #   deed-field.sh DEED PATH KEY           first value of :KEY in the clause at PATH
 #   deed-field.sh --list DEED PATH KEY    the items of the list :KEY ( … ), one per line
 #   deed-field.sh --clause DEED PATH      the clause, one token per line (for hashing)
+#   deed-field.sh --kv DEED PATH          every top-level :KEY of the clause in ONE pass, as
+#                                         KEY<TAB>item lines (a list prints one line per item,
+#                                         a scalar one line, as --list / the plain form would).
+#                                         For a gate that needs several fields: each separate
+#                                         call re-tokenises the whole deed.
 #   deed-field.sh --has DEED PATH         exit 0 iff the clause exists
+#   deed-field.sh --strict DEED           exit 0 iff the deed is exactly one balanced form:
+#                                         nothing but whitespace and comments before or after
+#                                         it ("trailing content after the form's closing ')'"
+#                                         in deed_lint.js); the other modes read the first
+#                                         form and ignore the rest. It checks token boundaries
+#                                         only and is no substitute for the linter, which also
+#                                         refuses a tab or a last comment with no line end
 #   deed-field.sh --find [DIR]            print the one *_chora.deed in DIR (default .)
 #   deed-field.sh --uuid DEED             the repo uuid: the body of :repo-uuid #uuid"…" as
-#                                         written (legacy #u5 / #u8 forms are derived)
+#                                         written (#u8 is derived; a #u5 is derived only to
+#                                         read an old deed, and check-identity.sh refuses it)
 #   deed-field.sh --typed DEED PATH KEY   like the first form, but a tagged literal keeps its
 #                                         tag and quotes: #u5"github.com/o/r" (a plain value
 #                                         prints as it does without --typed)
@@ -25,6 +38,10 @@
 # PATH names clauses below (repo-deed …), slash-separated: `status`,
 # `agentic/integrity`, `meta/maintenance-axes`. An empty PATH is (repo-deed …)
 # itself, so `deed-field.sh DEED "" canonical-name` reads the header.
+#
+# A clause is never a field's value: in `:example (agentic)` the parentheses
+# are a list, so --has DEED agentic is false unless a real (agentic …) clause
+# exists.
 #
 # KEY is matched only at the top level of that clause, never inside a nested
 # clause: `status` :phase is the clause's own phase, not a (history (entry …))
@@ -45,12 +62,13 @@
 # never guesses.
 #
 # Exit: 0 found; 1 clause or key absent (nothing printed); 2 usage error or no
-# readable deed. --find exits 1 unless exactly one deed is present.
+# readable deed. --find exits 1 unless exactly one deed is present. --strict
+# exits 1 for content outside the form and 2 for a form that never closes.
 set -euo pipefail
 
 mode=value
 case "${1:-}" in
-  --list|--clause|--has|--uuid|--typed) mode="${1#--}"; shift ;;
+  --list|--clause|--has|--uuid|--typed|--kv|--strict) mode="${1#--}"; shift ;;
   --find)
     shopt -s nullglob
     deeds=("${2:-.}"/*_chora.deed)
@@ -74,34 +92,35 @@ awk -v mode="$1" -v path="$path" -v key="$key" '
 BEGIN { RS = "\001" }
 {
   # Tokenise: "(" ")" , S<string> , A<atom>. Comments are dropped here.
-  s = $0; n = length(s); i = 1; nt = 0
-  while (i <= n) {
-    c = substr(s, i, 1)
-    if (c == ";") { while (i <= n && substr(s, i, 1) != "\n") i++; continue }
-    if (c == "(" || c == ")") { tok[++nt] = c; i++; continue }
-    if (c == "\"") {
-      v = ""; i++
-      while (i <= n) {
-        c = substr(s, i, 1)
-        if (c == "\\") {
-          d = substr(s, i + 1, 1)
-          if (d == "n") v = v "\n"; else if (d == "t") v = v "\t"; else v = v d
-          i += 2; continue
-        }
-        if (c == "\"") break
-        v = v c; i++
+  # Line-wise and regex-driven: a character-by-character substr() walk of the
+  # whole deed cost ~15 ms per call, and every gate that reads several fields
+  # pays it once per field. Each line is consumed by jumping to the next
+  # significant character; a string may span lines (the newline is part of it).
+  nl = split($0, ln, "\n"); nt = 0; instr = 0; v = ""
+  for (li = 1; li <= nl; li++) {
+    r = ln[li]
+    while (r != "") {
+      if (instr) {
+        if (!match(r, /[\\"]/)) { v = v r; r = ""; break }
+        v = v substr(r, 1, RSTART - 1)
+        if (substr(r, RSTART, 1) == "\"") { tok[++nt] = "S" v; instr = 0; r = substr(r, RSTART + 1); continue }
+        d = substr(r, RSTART + 1, 1)          # backslash escape; "" = escaped line end
+        if (RSTART == length(r)) { v = v "\n"; r = ""; skipnl = 1; break }
+        if (d == "n") v = v "\n"; else if (d == "t") v = v "\t"; else v = v d
+        r = substr(r, RSTART + 2); continue
       }
-      i++; tok[++nt] = "S" v; continue
+      if (match(r, /^[ \t\r]+/)) { r = substr(r, RLENGTH + 1); continue }
+      if (r == "") break
+      c = substr(r, 1, 1)
+      if (c == ";") break
+      if (c == "(" || c == ")") { tok[++nt] = c; r = substr(r, 2); continue }
+      if (c == "\"") { instr = 1; v = ""; r = substr(r, 2); continue }
+      match(r, /^[^ \t\r();"]+/)
+      tok[++nt] = "A" substr(r, 1, RLENGTH); r = substr(r, RLENGTH + 1)
     }
-    if (c == " " || c == "\t" || c == "\r" || c == "\n") { i++; continue }
-    v = ""
-    while (i <= n) {
-      c = substr(s, i, 1)
-      if (c == " " || c == "\t" || c == "\r" || c == "\n" || c == "(" || c == ")" || c == "\"" || c == ";") break
-      v = v c; i++
-    }
-    tok[++nt] = "A" v
+    if (instr) { if (skipnl) skipnl = 0; else if (li < nl) v = v "\n" }
   }
+  if (instr) tok[++nt] = "S" v      # unterminated string at EOF: kept, as before
 }
 # Index of the ")" token that closes the clause opening at token o, or 0.
 function close_of(o,   d, t) {
@@ -112,11 +131,18 @@ function close_of(o,   d, t) {
   }
   return 0
 }
+# True when the "(" at token t opens the list value of a field, not a clause: it
+# follows a keyword, directly or after the quote of a quoted list (deed.abnf:
+# field = keyword value, value = … / quoted / list). `:example (agentic)` is
+# a list holding the symbol agentic; the deed has no (agentic) clause.
+function is_value(t) {
+  return tok[t - 1] ~ /^A:/ || (tok[t - 1] == "A\047" && tok[t - 2] ~ /^A:/)
+}
 # First direct child clause of the clause opening at o whose head is name.
 function child(o, name,   e, t, d) {
   e = close_of(o); d = 0
   for (t = o + 1; t < e; t++) {
-    if (tok[t] == "(") { if (d == 0 && tok[t + 1] == "A" name) return t; d++ }
+    if (tok[t] == "(") { if (d == 0 && !is_value(t) && tok[t + 1] == "A" name) return t; d++ }
     else if (tok[t] == ")") d--
   }
   return 0
@@ -139,8 +165,30 @@ END {
   }
   e = close_of(o)
   if (!e) exit 2
+  if (mode == "strict") exit (o == 1 && e == nt) ? 0 : 1
   if (mode == "has") exit 0
   if (mode == "clause") { for (t = o; t <= e; t++) print tok[t]; exit 0 }
+  if (mode == "kv") {
+    d = 0
+    for (t = o + 1; t < e; t++) {
+      if (tok[t] == "(") { d++; continue }
+      if (tok[t] == ")") { d--; continue }
+      if (d != 0 || tok[t] !~ /^A:/) continue
+      k = substr(tok[t], 3); nx = tok[t + 1]
+      if (nx == "(") {
+        le = close_of(t + 1); ld = 0
+        for (u = t + 2; u < le; u++) {
+          if (tok[u] == "(") ld++
+          else if (tok[u] == ")") ld--
+          else if (ld == 0) print k "\t" show(tok[u])
+        }
+      } else if (nx != ")" && nx != "") {
+        if (nx ~ /^A#[a-z0-9]+$/ && substr(tok[t + 2], 1, 1) == "S") nx = tok[t + 2]
+        print k "\t" show(nx)
+      }
+    }
+    exit 0
+  }
   d = 0
   for (t = o + 1; t < e; t++) {
     if (tok[t] == "(") { d++; continue }
@@ -193,6 +241,14 @@ uuid5_url() {
   fi
 }
 
+# The reader takes byte 0x01 as its record separator, so awk drops one that
+# ends the file and --strict would pass it (checked against the line-wise
+# tokeniser: a valid deed plus one trailing 0x01 still exits 0 without this).
+# No deed holds that byte.
+if [ "$mode" = strict ] && LC_ALL=C grep -q $'\001' "$deed"; then
+  exit 1
+fi
+
 if [ "$mode" = uuid ]; then
   lit="$(read_deed typed)" || exit $?
   re_uuid='^[0-9a-f]{8}-[0-9a-f]{4}-[58][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
@@ -202,11 +258,13 @@ if [ "$mode" = uuid ]; then
       id="${lit#\#uuid\"}"; id="${id%\"}" ;;
     '#u5"'*'"')
       name="${lit#\#u5\"}"; name="${name%\"}"
-      echo "deed-field.sh: :repo-uuid is the legacy #u5 literal; the chora id is #uuid\"<v8 id of the birth path>\" (standards A1 V8)" >&2
+      # Read only so an old deed can still be looked up: a #u5 in an identity
+      # field is u5-identity, an error in every mode (A1 v0.4.5 T30, Q2), and
+      # scripts/check-identity.sh refuses it.
+      echo "deed-field.sh: :repo-uuid is a #u5 literal, an error under A1 T30 (Q2); derived here only to read an old deed. Write #uuid\"<v8 id of the birth path>\"." >&2
       id="$(uuid5_url "$name")" || exit 2 ;;
     '#u8"'*:*'"')
       body="${lit#\#u8\"}"; body="${body%\"}"
-      echo "deed-field.sh: :repo-uuid is the legacy #u8 literal; the chora id is #uuid\"<v8 id of the birth path>\" (standards A1 V8)" >&2
       id="$(bash "$(dirname "${BASH_SOURCE[0]}")/uuid-v8.sh" "${body%%:*}" "${body#*:}")" || exit 2 ;;
     *) echo "deed-field.sh: :repo-uuid is not a #uuid, #u5 or #u8 literal: '$lit'" >&2; exit 2 ;;
   esac

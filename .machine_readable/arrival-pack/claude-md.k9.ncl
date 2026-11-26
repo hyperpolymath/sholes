@@ -34,10 +34,16 @@ K9!
 
   # Inputs the projection reads (single source of truth).
   inputs = {
-    # The repo deed (<repo>_chora.deed) is the only input; the golden path is
-    # its (anchor (golden-path)) clause (rsr-template-repo#209).
+    # The repo deed (<repo>_chora.deed) is the only authored input; the golden
+    # path is its (anchor (golden-path)) clause (rsr-template-repo#209).
     descriptiles = [
       "<repo>_chora.deed",
+    ],
+    # Facts read from the tree, never authored: the pack states them instead of
+    # asserting them, so a repo with legacy A2ML is not told it has none.
+    tree_facts = [
+      "tracked .a2ml files: git ls-files '*.a2ml', each path once (every .a2ml under the tree, minus .git/, outside a git work tree, where the region says 'contains')",
+      "which of (anchor) (agentic) (ecosystem) (status) (maturity) (neurosym) (playbook) (meta) (bot-directives (methodology) (coverage) (debt)) the deed has",
     ],
     estate_common = "hyperpolymath/manifesto@<pinned-sha>",  # DRAFT-unratified today
     target = "CLAUDE.md",
@@ -46,9 +52,10 @@ K9!
 
   # Checks (all must hold).
   checks = [
-    { id = "inputs-exist",   desc = "exactly one repo deed exists, parses and carries (anchor (golden-path))" },
+    { id = "inputs-exist",   desc = "exactly one repo deed exists, parses as exactly one form (nothing but whitespace and comments outside it) and carries (anchor (golden-path))" },
     { id = "region-present", desc = "CLAUDE.md contains exactly one BEGIN/END region" },
     { id = "no-drift",       desc = "committed region byte-equals freshly generated region" },
+    { id = "facts-derived",  desc = "the region names a clause as a deed clause only if the deed has it, says there are no .a2ml files only if none is tracked, and names a legacy file only if it is tracked" },
   ],
 
   run = {

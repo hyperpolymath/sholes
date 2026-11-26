@@ -10,6 +10,8 @@ SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 
 # You are in the hyperpolymath estate — orient before acting
 
+**First, read `metadatastician/standards` `STANDING-RULES.adoc` at the start of every session; it overrides anything older here.** Raw: https://raw.githubusercontent.com/metadatastician/standards/main/STANDING-RULES.adoc
+
 If you are unsure what something is, **read the canon; do not guess** (guessing is how the fake `lith` monorepo got fabricated). Start here, then the files named below.
 
 ## Doctrine (the rules here)
@@ -39,7 +41,7 @@ The descriptive family (working name *descriptiles*) describes what-is; the **co
 
 | File | Answers |
 |---|---|
-| `sholes_chora.deed` | **CHORA**, the repo deed. Its header `:repo-uuid` is the repo's one id, and `(identity)` and `(lineage)` say what this repo IS; a `(clade)` clause, when present, records the repo's clade placements: identity facts about where it sits, never its id and never an edict. chora-registry (formerly `gv-clade-index`) is authoritative for them; this repo's validation checks only that a declared clade is one of the 12 shelves; `(meta)` the architecture axes; `(agentic)` *may I act now?*; `(ecosystem)` where it sits and what it is not; `(status)` and `(maturity)` where it is now. Read fields with `scripts/deed-field.sh`. |
+| `sholes_chora.deed` | **CHORA**, the repo deed. Its header `:repo-uuid` is the repo's one id, and `(identity)` and `(lineage)` say what this repo IS; a `(clade)` clause, when present, records the repo's clade placements: identity facts about where it sits, never its id and never an edict. chora-registry is authoritative for them; this repo's validation checks only that a declared clade is one of the 12 shelves; `(meta)` the architecture axes; `(agentic)` *may I act now?*; `(ecosystem)` where it sits and what it is not; `(status)` and `(maturity)` where it is now. Read fields with `scripts/deed-field.sh`. |
 | `(anchor)` | *Semantic authority + golden path* — what downstream may extend-not-redefine; if a recognised-drift / re-anchor marker is present, it **supersedes** accumulated context — read it first. |
 | `(neurosym)` | *Meaning* of operations — proof obligations. |
 | `(playbook)` | *How* permitted actions run. |
@@ -62,7 +64,7 @@ grammars. Canon: `metadatastician/standards/3-practice/DATA-FORMAT-ROUTING.adoc`
 Planned support is not operational evidence: retain explicit transitional
 checks until a pinned kyq executable passes positive and negative tests.
 
-- `hyperpolymath/standards` — the canon source. · `hyperpolymath/gv-clade-index` (being renamed chora-registry) — the estate registry of repo identities and classification schemes. · `hyperpolymath/manifesto` — this doctrine.
+- `metadatastician/standards` — the canon source. · `hyperpolymath/chora-registry` — the estate registry of repo identities and classification schemes. · `hyperpolymath/manifesto` — this doctrine.
 - **Before you invent, rename, or consolidate anything: STOP and check the map + IS-NOT.**
 
 ## Estate language policy (overridable per-repo via AGENTIC)

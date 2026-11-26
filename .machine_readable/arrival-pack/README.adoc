@@ -11,14 +11,16 @@ the repo's own machine-readable truth.
 [source]
 ----
 <repo>_chora.deed        extract.sh            arrival-pack.ncl          CLAUDE.md
-+ anchors/ANCHOR   ──▶  (deed → JSON,    ──▶   (Nickel projection  ──▶   region between
-                         the thin reader)       = the engine)            BEGIN/END markers
+(incl. its (anchor       (deed → JSON,         (Nickel projection        region between
+ (golden-path)))   ──▶   the thin reader) ──▶  = the engine)        ──▶  BEGIN/END markers
 ----
 
 Two halves of the generated region:
 
 * *Estate-common* — identical in every repo; the Manifesto doctrine + format-family
-  orientation + canon pointers + language policy. Pinned to a Manifesto SHA once
+  orientation + canon pointers + language policy + the proof guidance (which
+  prover for which obligation; moved in from hand-authored text on 2026-11-15
+  so a wording fix reaches every repo by regenerating). Pinned to a Manifesto SHA once
   the wording is ratified (today: `DRAFT-unratified`).
 * *Repo-specific* — projected from this repo's deed: identity, IS / IS-NOT,
   position, constraints, golden path, state.
@@ -29,11 +31,72 @@ over the former CLADE / ECOSYSTEM / AGENTIC / STATE records (rsr-template-repo#2
 comes from its `(anchor (golden-path))` clause. CLAUDE.md is a *view*. Content
 outside the `ARRIVAL-PACK:BEGIN/END` markers is hand-authorable and preserved.
 
+== Facts the pack derives instead of asserting
+
+The pack once said in every repo that there are no `.a2ml` files and that
+ANCHOR, AGENTIC, ECOSYSTEM, STATE, NEUROSYM and PLAYBOOK are deed clauses.
+That is true of this template. It is false in a repo that took the pack while
+its remaining A2ML still waits for conversion (kyX, ruling D313). So
+`extract.sh` reports two facts about the tree, and `arrival-pack.ncl` states
+only what they show:
+
+* *The tracked `.a2ml` files* (`git ls-files '*.a2ml'`, each path once). With
+  none, the region says there are none. Otherwise it gives the count and says
+  the files are read-only pending conversion. Outside a git work tree nothing
+  is tracked: every `.a2ml` file under the tree except `.git/` is counted
+  instead, and the region says the repo "contains" them, not "tracks".
+* *The clauses the deed has*, asked with `scripts/deed-field.sh --has`:
+  `(anchor)`, `(agentic)`, `(ecosystem)`, `(status)`, `(maturity)`,
+  `(neurosym)`, `(playbook)`, `(meta)` and the three sub-clauses of
+  `(bot-directives)`. A clause the deed lacks is listed as not yet in the deed,
+  and every line that reads it (the table rows, IS, IS-NOT, Where it sits,
+  Constraints, State) says so; none renders an empty value.
+
+For an absent clause the region names a legacy file only if that file is
+tracked: `ANCHOR.a2ml`, `AGENTIC.a2ml`, `ECOSYSTEM.a2ml`, `STATE.a2ml`,
+`NEUROSYM.a2ml` or `PLAYBOOK.a2ml` in any directory (the name is matched without
+regard to case), and any tracked `.a2ml` file under a `bot_directives/`
+directory for `(bot-directives)`. The match is by file name; the pack does not
+read the file.
+
+This template gets the same bytes as before: its deed has every clause and
+every field the pack reads, and its tree tracks no `.a2ml` file. That is not
+true of every such repo. A deed that has a clause without the field the pack
+reads from it (a `(status)` with no `:phase`) used to render an empty value and
+now renders "not declared".
+
+Deleting or converting a legacy file changes the region, so
+`just validate-claude-md` reports drift until `just claude-md` is run again.
+Both commands read the git index, not the work tree, so the order matters:
+
+. stage the removal (`git rm <file>.a2ml`);
+. regenerate (`just claude-md`);
+. stage the result (`git add CLAUDE.md`), and commit the two together.
+
+A file deleted on disk but not staged still counts. The pre-commit hook runs on
+every commit for this reason: pre-commit passes no deleted path to a `files:`
+filter. Controls: `tests/workflows/arrival_pack_derived_facts_test.sh`.
+
+`extract.sh` also refuses a deed that is not exactly one form. `deed-field.sh`
+reads the first `(repo-deed …)` form and ignores what follows, while standards
+`deed_lint.js` rejects "trailing content after the form's closing ')'"; the
+reader's `--strict` mode closes that gap. Whitespace and comments after the
+form are allowed, as in the linter.
+
+`--strict` checks token boundaries only and does not replace `deed_lint.js`.
+The reader's tokeniser is more lenient than the grammar: it accepts a tab as
+whitespace and a last comment with no line end, and the linter refuses both.
+A deed must still pass the linter (`.github/hooks/validate-deed.sh`).
+
+The reader does not take a field's list value for a clause. In
+`:example (agentic)` the parentheses are a list (deed.abnf `value`), so the
+deed has no `(agentic)` clause and the pack says so.
+
 == Files
 
 [cols="1,3"]
 |===
-| `extract.sh`        | deed reader → deterministic `claude-md-data.json` (build artifact, git-ignored)
+| `extract.sh`        | deed and tree-fact reader → deterministic `claude-md-data.json` (build artifact, git-ignored)
 | `arrival-pack.ncl`  | Nickel projection engine → the region string (`nickel export --format raw`)
 | `generate.sh`       | orchestrator: extract → render → splice (Hunt-tier, writes CLAUDE.md)
 | `verify.sh`         | drift check: regenerate + byte-compare committed region (Yard-tier)
@@ -52,7 +115,16 @@ just validate-claude-md   # fail if the committed region drifted / was hand-edit
 
 * Estate-common doctrine is a *DRAFT* in the agent's words — owner to ratify into
   his voice, then pin to a `hyperpolymath/manifesto` commit SHA.
-* `ECOSYSTEM.what-this-is-not` is empty here, so IS-NOT renders as "not yet
-  declared". Populating it is the boundary-erosion fix (the `lith` lesson).
+* IS-NOT comes from the deed's `(ecosystem :not (…))`. When that list is empty,
+  IS-NOT renders as "not yet declared" and the deed should gain the list (the
+  boundary-erosion fix, the `lith` lesson).
+* A repo's `(anchor (implementation-policy …))` renders as one "Anchor
+  override" line in the repo-specific part: what `:forbidden` lists, and any
+  language `:allowed` lists that the estate policy denies. An allowed language
+  the estate does not deny is no override and is not listed. AGPL is a licence
+  and is never counted as allowed. The "Constraints here" line names the same
+  allowed languages as exceptions to "banned langs". The override line is
+  hidden when there is neither. Controls:
+  `tests/workflows/arrival_pack_anchor_override_test.sh`.
 * The `(anchor)` clause currently encodes semantic-authority + golden-path; the
   recognised-drift / re-anchor-ledger aspect is a pending standards change.

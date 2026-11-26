@@ -76,10 +76,45 @@ check "allows a denied language and forbids: both are named" \
 check "allowed but not denied, nothing forbidden: no override line" \
     '["Rust","Zig"]' '[]' ""
 
+# AGPL is a licence: no anchor can lift that denial, so an anchor that lists it
+# under :allowed gets no "allows" wording for it.
+check "AGPL alone in :allowed is not an override" '["AGPL"]' '[]' ""
+check "AGPL beside a denied language: only the language is named" \
+    '["AGPL","Go"]' '["npm"]' \
+    "$LEAD allows, where the estate policy above denies: Go; it forbids: npm. $TAIL"
+
+# The Constraints line must agree with the override line (Codex review of
+# bactrian#39): it names the same exceptions, and is unchanged when there are none.
+# constraint LABEL ALLOWED_JSON EXPECTED_NEVER_CLAUSE
+constraint() {
+    local label="$1" want="$3" out
+    CHECKS=$((CHECKS + 1))
+    out="$(render "$2" '[]' 2>&1)" || { FAILED=$((FAILED + 1)); echo "  FAIL  $label (engine did not render)"; return; }
+    if [[ "$(grep -cF -- "$want" <<<"$out")" -eq 1 ]]; then
+        echo "  PASS  $label"
+    else
+        FAILED=$((FAILED + 1)); echo "  FAIL  $label"
+        echo "        want: $want"
+        echo "        got:  $(grep -- '- \*\*Constraints here\*\*' <<<"$out")"
+    fi
+}
+REST="secrets, state files in repo root, AGPL."
+constraint "Constraints: no allowance leaves the line as minted repos carry it" \
+    '["Rust"]' "Never: banned langs (above), $REST"
+constraint "Constraints: an allowed denied language is named as the exception" \
+    '["Go","Rust","Python"]' \
+    "Never: banned langs (above, except those this repo's anchor allows: Go, Python), $REST"
+constraint "Constraints: AGPL in :allowed is no exception" \
+    '["AGPL"]' "Never: banned langs (above), $REST"
+
 # The deny list is stated once in the engine: the policy line prints the same
 # list the override compares against.
 CHECKS=$((CHECKS + 1))
-if render '[]' '[]' 2>/dev/null | grep -qF 'Deny: **Nix, Python, Go, TypeScript, ReScript, AGPL**. (Guix, not Nix.)'; then
+# Rendered first, then searched: piped into `grep -q` under pipefail, the engine
+# could still be writing when grep found the line and left, and its SIGPIPE
+# failed the control at random.
+POLICY_OUT="$(render '[]' '[]' 2>/dev/null)"
+if grep -qF 'Deny: **Nix, Python, Go, TypeScript, ReScript, AGPL**. (Guix, not Nix.)' <<<"$POLICY_OUT"; then
     echo "  PASS  the language-policy line prints the estate deny list"
 else
     FAILED=$((FAILED + 1)); echo "  FAIL  the language-policy line prints the estate deny list"
