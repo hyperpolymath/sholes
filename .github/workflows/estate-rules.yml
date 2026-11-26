@@ -109,6 +109,11 @@ jobs:
       # An anchor that allows an estate-denied language must show in the pack.
       - name: Arrival pack renders both sides of an anchor override
         run: bash tests/workflows/arrival_pack_anchor_override_test.sh
+      # The pack states what the tree shows: the tracked legacy .a2ml files and
+      # the clauses the deed has. A partly migrated child must get no false line,
+      # and a deed with content after its closing ")" is refused (as deed_lint.js).
+      - name: Arrival pack derives the .a2ml count and the deed's clauses
+        run: bash tests/workflows/arrival_pack_derived_facts_test.sh
       - name: Verify session envelope controls
         run: bash tests/workflows/session_contracts_test.sh
       - name: Verify mint cleanup controls

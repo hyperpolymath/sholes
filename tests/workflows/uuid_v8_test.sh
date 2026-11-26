@@ -13,7 +13,10 @@ bash_bin=$(command -v bash)
 # Fixed vectors: the independent oracle of standards tools/uuid-v8 (sha256sum
 # and shell nibble arithmetic), plus this template's own birth path.
 domains=(gv-clade-index gv-clade-index d d echidna-goal)
-names=("github.com/hyperpolymath/standards" "github.com/hyperpolymath/rsr-template-repo" "" "a:b c" "é✓")
+# The template's birth path is built at run time: the mint's self-name pass
+# rewrites a literal one into the child's own path, and the vector then fails.
+tmpl_path="github.com/hyperpolymath/rsr-""template-repo"
+names=("github.com/hyperpolymath/standards" "$tmpl_path" "" "a:b c" "é✓")
 want=(b32d6be4-73ba-873e-9d61-e57f43c75cd1 8e515699-3fb9-8785-8883-ef2a100c2e02
       394e0f7e-2f80-8af2-b682-28464ce30d58 ca23a717-72b1-8d99-94c5-e32a4fda7acd
       939052b9-3381-8187-9199-1960e0a527a4)
@@ -61,8 +64,9 @@ for bad in "$(printf %s "${want[1]}" | tr a-f A-F)" "${want[1]/-8785-/-4785-}"; 
 done
 echo "PASS: deed-field.sh --uuid refuses an uppercase or version 4 body"
 
-# A legacy #u8 literal is derived through uuid-v8.sh, with a note on stderr.
+# A #u8 literal is accepted (A7 S2, A1 T30) and derived through uuid-v8.sh,
+# without a note: it is not legacy.
 printf '(repo-deed\n  :repo-uuid #u8"gv-clade-index:%s")\n' "${names[0]}" > "$d/x_chora.deed"
-got=$("$bash_bin" "$repo/scripts/deed-field.sh" --uuid "$d/x_chora.deed" 2>"$work/err") || fail "#u8 legacy literal failed"
-[ "$got" = "${want[0]}" ] && grep -q 'legacy #u8' "$work/err" || fail "#u8 gave '$got'"
-echo "PASS: deed-field.sh --uuid derives a legacy #u8 literal and says so"
+got=$("$bash_bin" "$repo/scripts/deed-field.sh" --uuid "$d/x_chora.deed" 2>"$work/err") || fail "#u8 literal failed"
+[[ "$got" = "${want[0]}" && ! -s "$work/err" ]] || fail "#u8 gave '$got' (stderr: $(cat "$work/err"))"
+echo "PASS: deed-field.sh --uuid derives a #u8 literal quietly (S2)"
